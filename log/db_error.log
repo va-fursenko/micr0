@@ -1,0 +1,24 @@
+a:15:{s:4:\"date\";s:19:\"2009-10-25 21:28:10\";s:12:\"text_message\";s:28:\"Невозможно обработать запрос\";s:13:\"db_ex_message\";s:151:\"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near \'4page\' at line 4\";s:13:\"db_query_text\";s:123:\"
+			SELECT id, text, add_date, alter_name, user_id 
+			FROM messages 
+			ORDER BY add_date DESC 
+			LIMIT 0, 4page;
+		\";s:12:\"db_user_name\";s:4:\"root\";s:7:\"db_ping\";b:1;s:9:\"db_status\";s:132:\"Uptime: 43153  Threads: 1  Questions: 542  Slow queries: 0  Opens: 29  Flush tables: 1  Open tables: 1  Queries per second avg: 0.12\";s:13:\"php_file_name\";s:40:\"C:\\Web\\www\\pcb248.ru\\lib\\class.mysql.php\";s:13:\"php_file_line\";i:102;s:9:\"php_trace\";a:6:{i:0;a:6:{s:4:\"file\";s:40:\"C:\\Web\\www\\pcb248.ru\\lib\\class.mysql.php\";s:4:\"line\";i:230;s:8:\"function\";s:11:\"throw_error\";s:5:\"class\";s:2:\"db\";s:4:\"type\";s:2:\"->\";s:4:\"args\";a:0:{}}i:1;a:6:{s:4:\"file\";s:40:\"C:\\Web\\www\\pcb248.ru\\lib\\class.mysql.php\";s:4:\"line\";i:253;s:8:\"function\";s:5:\"query\";s:5:\"class\";s:2:\"db\";s:4:\"type\";s:2:\"->\";s:4:\"args\";a:1:{i:0;s:123:\"
+			SELECT id, text, add_date, alter_name, user_id 
+			FROM messages 
+			ORDER BY add_date DESC 
+			LIMIT 0, 4page;
+		\";}}i:2;a:6:{s:4:\"file\";s:41:\"C:\\Web\\www\\pcb248.ru\\script\\loadforms.php\";s:4:\"line\";i:147;s:8:\"function\";s:11:\"assoc_query\";s:5:\"class\";s:2:\"db\";s:4:\"type\";s:2:\"->\";s:4:\"args\";a:1:{i:0;s:123:\"
+			SELECT id, text, add_date, alter_name, user_id 
+			FROM messages 
+			ORDER BY add_date DESC 
+			LIMIT 0, 4page;
+		\";}}i:3;a:4:{s:4:\"file\";s:41:\"C:\\Web\\www\\pcb248.ru\\script\\loadforms.php\";s:4:\"line\";i:45;s:8:\"function\";s:14:\"getCurrentMSGS\";s:4:\"args\";a:4:{i:0;O:2:\"db\":14:{s:5:\"\0*\0db\";i:0;s:7:\"\0*\0name\";s:6:\"pcb_db\";s:7:\"\0*\0host\";s:9:\"localhost\";s:7:\"\0*\0port\";i:3306;s:12:\"\0*\0user_name\";s:4:\"root\";s:12:\"\0*\0user_pass\";s:4:\"root\";s:15:\"\0*\0def_encoding\";s:6:\"cp1251\";s:11:\"\0*\0encoding\";s:6:\"cp1251\";s:13:\"\0*\0last_query\";s:123:\"
+			SELECT id, text, add_date, alter_name, user_id 
+			FROM messages 
+			ORDER BY add_date DESC 
+			LIMIT 0, 4page;
+		\";s:13:\"\0*\0last_error\";s:0:\"\";s:12:\"\0*\0connected\";b:1;s:8:\"\0*\0debug\";b:1;s:11:\"\0*\0log_file\";s:40:\"C:/Web/www/pcb248.ru/logs/db_queries.log\";s:17:\"\0*\0error_log_file\";s:38:\"C:/Web/www/pcb248.ru/logs/db_error.log\";}i:1;i:16;i:2;s:1:\"8\";i:3;s:1:\"1\";}}i:4;a:4:{s:4:\"file\";s:39:\"C:\\Web\\www\\pcb248.ru\\script\\general.php\";s:4:\"line\";i:47;s:8:\"function\";s:15:\"createGuestBook\";s:4:\"args\";a:1:{i:0;r:40;}}i:5;a:4:{s:4:\"file\";s:30:\"C:\\Web\\www\\pcb248.ru\\index.php\";s:4:\"line\";i:48;s:8:\"function\";s:10:\"setContent\";s:4:\"args\";a:0:{}}}s:14:\"php_error_code\";i:0;s:19:\"http_request_method\";s:3:\"GET\";s:18:\"http_script_params\";s:36:\"fva/pcb248.ru/?item=guestbook&page=1\";s:15:\"http_user_agent\";s:62:\"Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.2.15 Version/10.00\";s:16:\"http_remote_addr\";s:13:\"10.28.147.185\";}
+
+
+
