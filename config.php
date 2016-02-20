@@ -26,28 +26,6 @@ class CONFIG{
     const DEBUG = true;
 
 
-    # БД
-    /** @const Флаг дебага БД */
-    const DB_DEBUG = true;
-    /** @const Лог БД */
-    const DB_LOG_FILE = 'db.log';
-    /** @const Лог ошибок БД */
-    const DB_ERROR_LOG_FILE = 'db.error.log';
-
-    /** @const Хост БД */
-    const DB_HOST = 'localhost';
-    /** @const Порт БД */
-    const DB_PORT = 3306;
-    /** @const Имя БД */
-    const DB_NAME = 'report';
-    /** @const Пользователь БД */
-    const DB_USER = 'root';
-    /** @const Пароль БД */
-    const DB_PASSWORD = '';
-    /** @const Кодировка БД */
-    const DB_ENCODING = 'utf-8';
-
-
     # Страница
     /** @const Кодировка страниц */
     const PAGE_CHARSET = 'UTF-8';
