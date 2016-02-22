@@ -13,7 +13,9 @@
 define('HOST', 'http://' . $_SERVER['HTTP_HOST'] . '/');
 
 // Использовать эти константы через класс всяко удобнее
-define('_LOG_DIR', __DIR__ . '/log/');
+define('_ROOT', __DIR__ . DIRECTORY_SEPARATOR);
+define('_TPL_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'tpl' . DIRECTORY_SEPARATOR);
+define('_LOG_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR);
 define('_LOG_FILE', _LOG_DIR . 'common.log');
 define('_LOG_ERROR_FILE', _LOG_DIR . 'error.log');
 define('_DB_LOG_FILE', _LOG_DIR . 'db.log');
@@ -30,7 +32,9 @@ class CONFIG{
     /** @const Флаг дебага */
     const DEBUG = true;
     /** @const Базовая директория */
-    const ROOT = __DIR__;
+    const ROOT = _ROOT;
+    /** @const Директория шаблонов */
+    const TPL_DIR = _TPL_DIR;
 
 
     # Страница
@@ -51,22 +55,22 @@ class CONFIG{
     const LOG_ERROR_FILE = _LOG_ERROR_FILE;
 
     # БД
+    /** @const Флаг дебага БД */
+    const DB_DEBUG = true;
+    /** @const Строка подключения к БД */
+    const DB_DSN = 'mysql:host=localhost;dbname=mysql';
     /** @const Хост БД */
     const DB_HOST = 'localhost';
     /** @const Порт БД */
     const DB_PORT = 3306;
     /** @const Имя БД */
-    const DB_NAME = 'report';
+    const DB_NAME = 'yii';
     /** @const Пользователь БД */
     const DB_USER = 'root';
     /** @const Пароль БД @deprecated Подразумевается, что не используется в продакшне */
-    const DB_PASSWORD = '';
+    const DB_PASSWORD = 'root';
     /** @const Кодировка БД */
     const DB_CHARSET = 'utf8';
-
-    # Константы класса
-    /** @const Флаг дебага БД */
-    const DB_DEBUG = true;
     /** @const Лог БД */
     const DB_LOG_FILE = _DB_LOG_FILE;
     /** @const Лог ошибок БД */

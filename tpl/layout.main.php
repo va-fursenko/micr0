@@ -14,8 +14,6 @@
 </head>
 
 <body>
-
-    PLACE CONTENT HERE
-
+    <?= $content ?>
 </body>
 </html>

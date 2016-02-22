@@ -98,9 +98,9 @@ class Tpl {
     function getBlock($name, $style = '') {
         $result = '';
         if ($this->usingDb()) {
-            $st = $style != '' ? " AND `style` = '" . Db::escapeString($style)."'" : '';
+            $st = $style != '' ? " AND `style` = '" . Db::quote($style)."'" : '';
             $result = $this->getDb()->scalarQuery(
-                "SELECT `body` FROM " . self::TEMPLATES_DB_TABLE . " WHERE `name` = '" . Db::escapeString($name) . "'" . $st, 
+                "SELECT `body` FROM " . self::TEMPLATES_DB_TABLE . " WHERE `name` = '" . Db::quote($name) . "'" . $st,
                 ''
             );
             if (($result == '') && $this->getDebugging()){

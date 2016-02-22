@@ -4,7 +4,7 @@
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2009-2016
  * Email		    vinjoy@bk.ru
- * Version		    2.3.0
+ * Version		    2.4.0
  * Last modified	19:46 19.02.16
  *
  * This library is free software; you can redistribute it and/or
@@ -53,8 +53,8 @@ class Log {
         'db_ex_message'         => 'Сообщение СУБД',
         'db_last_query'         => 'Крайний запрос',
         'db_query_type'         => 'Тип запроса',
-        'db_affected_rows'      => 'Число измененных строк',
-        'db_user_name'          => 'Пользователь БД',
+        'db_rows_affected'      => 'Число измененных строк',
+        'db_username'           => 'Пользователь БД',
         'db_name'               => 'Имя БД',
         'db_host'               => 'Хост БД',
         'db_port'               => 'Порт БД',
@@ -143,7 +143,7 @@ class Log {
         }
         $messageArray = Filter::sqlFilterAll($messageArray);
         /** @todo Дописать нормальную работу с БД */
-        $result = self::$logDb->directQuery($messageArray);
+        $result = self::$logDb->query($messageArray);
         return $result;
     }
 
@@ -175,7 +175,7 @@ class Log {
      */
     public static function showDbLog($typeName, $startFrom, $limit, $descOrder = true) {
         /** @todo Дописать нормальную работу с БД */
-        return self::$logDb->directQuery($typeName, $startFrom, $limit, 'datetime', $descOrder);
+        return self::$logDb->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
 
 
@@ -186,7 +186,7 @@ class Log {
      */
     public static function checkDbLog($typeName){
         /** @todo Дописать нормальную работу с БД */
-        return self::$logDb->directQuery($typeName);
+        return self::$logDb->query($typeName);
     }
 
 
@@ -225,11 +225,11 @@ class Log {
 
     /** 
      * Вывод сложного объекта в строку с подробной информацией 
-     * @param object $object Выводимый объект
+     * @param mixed $object Выводимый объект
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string
      */
-    public static function dumpObject($object, $withPre = true) {
+    public static function dumpObject($object, $withPre = false) {
         ob_start();
         var_dump($object);
         $strObject = ob_get_contents();
@@ -239,12 +239,13 @@ class Log {
 
     /** 
      * Вывод сложного объекта в строку или на экран 
-     * @param object $object Выводимый объект
-     * @param bool $print Флаг - печатать объект в буфере вывода или возвращать как строку
+     * @param mixed $object Выводимый объект
+     * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string Строковое представление элемента, или bool в случае вывода его в буфер вывода
      */
-    public static function printObject($object, $print = false) {
-        return print_r($object, !$print);
+    public static function printObject($object, $withPre = false) {
+        $result = print_r($object, true);
+        return $withPre ? '<pre>' . $result . '</pre>' : $result;
     }
 }
 

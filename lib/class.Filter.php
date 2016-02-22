@@ -245,7 +245,7 @@ class Filter {
      * @return string
      */
     public static function sqlFilter($argument) {
-        return Db::escapeString($argument);
+        return Db::quote($argument);
     }
     
     
