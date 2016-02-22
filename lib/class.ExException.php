@@ -22,12 +22,12 @@
 
 /**
  * Класс общего исключения логики проекта
- * @author    Enjoy
+ * @author    viktor
  * @version   1.1.1
- * @package   se-engine
- * @copyright Enjoy
+ * @copyright viktor
+ * @deprecated Данная историческая залупа сильно под вопросом
  */
-class Ex extends Exception {
+class ExException extends Exception {
 
     // Параметры
     protected $logFile;     // Полный путь к файлу лога исключений
@@ -98,7 +98,7 @@ class Ex extends Exception {
             //$this->getLogFile(), 
             array(
                 'type_name'             => 'php_exception',
-                'session_id'            => Session::getId(),
+                'session_id'            => session_id(),
                 'session_user_id'       => Session::userGet('id', -1),
                 'text_message'          => $handleCode,
                 'exception_message'     => $this->getMessage(),

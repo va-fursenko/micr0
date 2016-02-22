@@ -1,31 +1,37 @@
 <?php
 /**
- *        PDO connect сlass (PHP 5 >= 5.4.0)
- *        Special thanks to: all, http://www.php.net
- *        Copyright (c)     viktor Belgorod, 2008-2016
- *        Email             vinjoy@bk.ru
- *        version           4.0.0
- *        Last modified     23:22 17.02.16
+ * PDO connect сlass (PHP 5 >= 5.4.0)
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor Belgorod, 2008-2016
+ * Email            vinjoy@bk.ru
+ * Version          4.0.0
+ * Last modified    23:22 17.02.16
  *        
- *        This library is free software; you can redistribute it and/or
- *        modify it under the terms of the MIT License (MIT)
- *        @see https://opensource.org/licenses/MIT
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
  *
- *        Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
- *        Do not delete this comment, if you want to use the script, and everything will be okay :)
+ * Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
+ * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
-/*
- * Автоматическое формирование DSN производится в методе formDSN
- * Пока поддерживается только mysql
- */
+
 
 
 
 /**
  * Класс исключения для объектной работы с БД
  */
-class DbException extends Exception {}
+class DbException extends Exception {
+
+    /**
+     * Строковое представление объекта
+     * @return string
+     */
+    public function __toString() {
+        return __CLASS__ . ": [{$this->code}]: {$this->message}";
+    }
+}
 
 
 
@@ -36,95 +42,52 @@ class DbException extends Exception {}
  * @author    viktor
  * @version   4.0.0
  * @copyright viktor
+ *
+ * @see http://php.net/manual/ru/book.pdo.php
+ * @see https://habrahabr.ru/post/137664/
+ * @see http://php.net/manual/ru/pdo.constants.php  - Предопределённые константы PDO для $options
  */
 class Db {
-
-    # Константы класса
-    /** @const Флаг дебага БД */
-    const DEBUG = true;
-    /** @const Лог БД */
-    const LOG_FILE = 'db.log';
-    /** @const Лог ошибок БД */
-    const ERROR_LOG_FILE = 'db.error.log';
-
-    /** @const СУБД */
-    const DMS = 'mysql';
-    /** @const Хост БД */
-    const HOST = 'localhost';
-    /** @const Порт БД */
-    const PORT = 3306;
-    /** @const Имя БД */
-    const DBNAME = 'report';
-    /** @const Пользователь БД */
-    const USER = 'root';
-    /** @const Пароль БД @deprecated Подразумевается, что не используется в продакшне */
-    const PASSWORD = '';
-    /** @const Кодировка БД */
-    const CHARSET = 'utf8';
-
-    
     # Статические свойства
     /** Список экземпляров класса */
     protected static $_instances = [];
     /** Индекс главного экземпляра класса в списке экземпляров */
     protected static $_mainInstanceIndex = null;
 
+
     # Открытые данные
     /** Дескриптор PDO */
-    public $db                 = null;
+    public $db = null;
+    /** Дескриптор результирующего набора данны */
+    public $stmt = null;
+
 
     # Закрытые данные
-    /** СУБД */
-    protected $_dms            = self::DMS;
-    /** Хост сервера */
-    protected $_host           = self::HOST;
-    /** Порт сервера */
-    protected $_port           = self::PORT;
-    /** Имя БД */
-    protected $_dbName         = self::DBNAME;
-    /** Имя пользователя */
-    protected $_userName       = self::USER;
-    /** Пароль пользователя */
-    protected $_userPass       = self::PASSWORD;
-    /** Кодировка БД */
-    protected $_charset        = self::CHARSET;
-    /** Строка подключения */
-    protected $_dsn            = self::DMS . ':' . 'host=' . self::HOST . ';port=' . self::PORT . ';dbname=' . self::NAME . ';charset=' . self::CHARSET;
     /** Индекс экземпляра класса */
     protected $_instanceIndex  = null;
-
-
     # Состояние объекта
     /** Текст последнего запроса к БД */
     protected $_lastQuery = '';
     /** Текст последней ошибки БД */
     protected $_lastError = '';
-    /** Флаг соединения */
-    protected $_connected = false;
 
 
     # Параметры
     /** Флаг логгирования */
     protected $_logging      = false;
-    /** Полный путь к файлу лога БД */
-    protected $_logFile      = self::LOG_FILE;
-    /** Полный путь к файлу лога ошибок БД */
-    protected $_errorLogFile = self::ERROR_LOG_FILE;
 
 
-    # Сообщения класса (языковые константы)
+    # Сообщения класса
     /** @const Server unreachable */
-    const LNG_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
+    const E_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
     /** @const DB unreachable */
-    const LNG_DB_UNREACHABLE                = 'База данных недоступна';
+    const E_DB_UNREACHABLE                = 'База данных недоступна';
     /** @const Unable to process query */
-    const LNG_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
-    /** @const Unable to process parameters */
-    const LNG_UNABLE_TO_PROCESS_PARAMETERS  = 'Невозможно обработать параметры запроса';
+    const E_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
     /** @const Wrong parameters */
-    const LNG_WRONG_PARAMETERS              = 'Неверные параметры';
+    const E_WRONG_PARAMETERS              = 'Неверные параметры';
     /** @const Error occurred */
-    const LNG_ERROR_OCCURRED                = 'Произошла ошибка';
+    const E_ERROR_OCCURRED                = 'Произошла ошибка';
 
 
 
@@ -137,107 +100,36 @@ class Db {
      * @param string $dsn       СУБД или строка подключения
      * @param string $userName  Пользователь
      * @param string $userPass  Пароль
-     * @param string $host      Хост
-     * @param int    $port      Порт
-     * @param string $dbName    Имя БД
-     * @param string $charset  Кодировка БД
+     * @param array  $options   Массив опций подключения
+     * @return Db
+     * @throws PDOException
      */
-    public function __construct($dsn, $userName = null, $userPass = null, $dbName = null, $host = null, $port = null, $charset = null){
+    public function __construct($dsn, $userName = '', $userPass = '', $options = []){
         $this->db            = null;
-        $this->_connected    = false;
-        $this->_logging      = self::DEBUG;
-        $this->_logFile      = self::LOG_FILE;
-        $this->_errorLogFile = self::ERROR_LOG_FILE;
-
-        $numArgs = func_num_args();
-        $args = func_get_args();
-
-        // Если первый параметр - длинная строка, значит это DSN
-        if ($numArgs > 0 && is_string($dsn) && count($dsn) > 6){ // Надо бы прикинуть минимальную длину
-            $this->dsn($dsn);
-            /** @todo получить из DSN разрешённые данные и распихать по свойствам. Или продумать, как получать их потом из дескриптора */
-
-        // Если параметров не передали, готовим соединение по умолчанию
-        }else if ($numArgs == 0) {
-            $this->dms(self::DMS);
-            $this->host(self::HOST);
-            $this->dbName(self::DBNAME);
-            $this->port(self::PORT);
-            $this->userName(self::USER);
-            $this->userPass = self::PASSWORD;
-            $this->_charset = self::CHARSET;
-            // Формируем DSN
-            $this->_dsn = $this->formDSN();
-
-        // Если параметры переданы по отдельности
-        }else if ($numArgs > 0 && $numArgs < 9){ // Надо бы прикинуть максимальную длину алиаса СУБД
-            // Проверяем и собираем параметры БД
-            $this->_dms =  is_string($dsn) && count($dsn) < 6 ? $dsn : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            $options = $numArgs = 8 ? (is_array($args[7]) ? $args[7] : $this->throwException(self::LNG_WRONG_PARAMETERS)) : [];
-            $this->_userName = $numArgs > 1 && $userName !== null ? $userName : self::USER;
-            $this->_userPass = $numArgs > 2 && $userPass !== null ? (is_string($userPass) ? $userPass : $this->throwException(self::LNG_WRONG_PARAMETERS)) : self::PASSWORD;
-            $this->_dbName = $numArgs > 3 && $dbName !== null ? (is_string($dbName) && $dbName !== '' ? $dbName : $this->throwException(self::LNG_WRONG_PARAMETERS)) : self::DBNAME;
-            $this->_host = $numArgs > 4 && $host !== null ? (is_string($host) && $host !== '' ? $host : $this->throwException(self::LNG_WRONG_PARAMETERS)) : self::HOST;
-            $this->_port = $numArgs > 5 && $port !== null ? (is_numeric($port) && $port > 0 && $port < 65535 ? $port : $this->throwException(self::LNG_WRONG_PARAMETERS)) : self::PORT;
-            $this->_charset = $numArgs > 3 && $charset !== null ? (is_string($charset) && $charset !== '' ? $charset : $this->throwException(self::LNG_WRONG_PARAMETERS)) : self::CHARSET;
-
-
-        }
-
-
-        // Сохраняем ссылку на объект в списке экземпляров класса, а в классе храним индекс ссылки в списке
-        // @todo Индексы реализованы на имени БД. Не уверен, что это стоящая идея
-        if (!isset(self::$_instances[$dbName])){
-            self::$_instances[$dbName] = &$this;
-            $this->_instanceIndex = $dbName;
-        }else{
-            self::$_instances[] = &$this;
-            end(self::$_instances);
-            $this->_instanceIndex = key(self::$_instances);
+        $this->_logging      = CONFIG::DB_DEBUG;
+        $this->_logFile      = CONFIG::DB_LOG_FILE;
+        $this->_errorLogFile = CONFIG::DB_ERROR_LOG_FILE;
+        $this->db = new PDO($dsn, $userName, $userPass, $options);
+        $this->instanceIndex(count(self::$_instances));
+        if ($this->logging()){
+            $this->log('db_connected');
         }
     }
 
 
 
-    /** Открытие нового соединения с указанными параметрами */
-    public function connect($setDefaultEncoding = true){
-
-
-        //$this->_db = new PDO( string $dsn [, string $username [, string $password [, array $options ]]] );
-
-
-        // Если пароль не установлен, идёт второй коннект подряд
-        if (!isset($this->_userPass)){
-            return $this->connected();
-        }
-        try {
-            if (!mysqli_real_connect($this->db, $this->getHost(), $this->userName(), $this->getUserPassword(), $this->getDbName(), $this->getPort())){
-                $this->throwException(self::LNG_SERVER_UNREACHABLE);
-            };
-        } catch (DbException $ex){
-            $this->catchException($ex, self::LNG_SERVER_UNREACHABLE);
-            // Ни в одном месте системы недоступность БД не является допустимой
-            Ex::throwEx(Ex::E_DB_UNREACHABLE);
-        }
-        unset($this->_userPass);
-        if ($setDefaultEncoding){
-            $this->setEncoding($this);
-        }
-        $this->_connected = true;
-        return true;
-    }
 
 
 
     /** 
-     * Обработка ошибок БД в классе БД 
+     * Вызов исключения в классе БД
      * @param string $codeMessage Текствое сообщение напрямую с места возбуждения исключения
      * @throws DbException
-     * @return bool
+     * @return bool Ничего не возвращает, но так IDE не канючит по поводу использования этого метода в выражениях
      */
     public function throwException($codeMessage = ''){
         throw new DbException(
-            (is_resource($this->db) ? $this->getError() : self::LNG_SERVER_UNREACHABLE) .
+            (is_resource($this->db) ? $this->getError() : self::E_SERVER_UNREACHABLE) .
             ($codeMessage ? ' - ' . $codeMessage : '')
         );
     }
@@ -245,22 +137,17 @@ class Db {
 
 
     /** 
-     * Функция перехвата внутреннего исключения, логгирования записи о ней и вывода сообщения пользователю 
+     * Логгирование внутреннего исключения
      * @param DbException $ex Объект исключения
      * @param string $textMessage Текствое сообщение напрямую с места перехвата исключения
-     * @param array $otherVars Дополнительные переменные, которые пишутся в ошибку
      * @return bool
      */
-    public function catchException(DbException $ex, $textMessage = '', $otherVars = null){
+    public function logException(DbException $ex, $textMessage = ''){
         $messageArray = array(
             'type_name'             => 'db_exception',
             'session_id'            => session_id(),
-            'text_message'          => $textMessage,
-            'db_ex_message'         => $ex->getMessage(),
-            'db_query_text'         => $this->getLastQuery(),
-            'db_host'               => $this->getHost(),
-            'db_name'               => $this->getDbName(),
-            'db_user_name'          => $this->userName(),
+            'db_ex_message'         => $ex->__toString(),
+            'db_last_query'         => $this->getLastQuery(),
             'db_ping'               => $this->ping(),
             'db_status'             => $this->getServerStatus(),
             'db_last_error'         => $this->getError(),
@@ -275,12 +162,12 @@ class Db {
             'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
             'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
         );
-        if (is_array($otherVars) && count($otherVars) > 0){
-            $messageArray += $otherVars;
+        if (is_string($textMessage) && $textMessage !== ''){
+            $messageArray['text_message'] = $textMessage;
         }
         return Log::write(
             $messageArray,
-            $this->getErrorLogFile()
+            CONFIG::DB_ERROR_LOG_FILE
         );
     }
 
@@ -288,47 +175,30 @@ class Db {
 
     /**
      * Логгирование результата и текста запроса
-     * @param mixed,.. $result Результат запроса
      * @param string,.. $action Строковый алиас действия
+     * @param mixed,.. $result Результат запроса
      * @return bool
      */
-    public function log($result = null, $action = null){
+    public function log($action = '', $result = null){
+        $arr = [
+            'type_name'             => 'db_query',
+            'session_id'            => session_id(),
+            'db_last_query'         => $this->getLastQuery(),
+            'db_affected_rows'      => $this->affectedRows(),
+            'http_request_method'   => $_SERVER['REQUEST_METHOD'],
+            'http_server_name'      => $_SERVER['SERVER_NAME'],
+            'http_request_uri'      => $_SERVER['REQUEST_URI'],
+            'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
+            'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
+        ];
+        if ($action) {
+            $arr['db_query_type'] = is_string($action) ? $action : '';
+            $arr['db_result'] = Log::printObject($result);
+        }
         return Log::write(
-            array(
-                'type_name'             => 'db_query',
-                'session_id'            => session_id(),
-                'db_query_text'         => $this->getLastQuery(),
-                'db_result'             => Log::printObject($result),
-                'db_query_type'         => $action,
-                'db_affected_rows'      => $this->affectedRows(),
-                'db_user_name'          => $this->userName(),
-                'http_request_method'   => $_SERVER['REQUEST_METHOD'],
-                'http_server_name'      => $_SERVER['SERVER_NAME'],
-                'http_request_uri'      => $_SERVER['REQUEST_URI'],
-                'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
-                'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
-            ),
-            $this->getLogFile()
+            $arr,
+            CONFIG::DB_LOG_FILE
         );
-    }
-
-
-
-    /**
-     * Установка SSL-соединения
-     * @deprecated
-     */
-    public function setSSLConnection($key = null, $certificate = null, $certificateAuthority = null, $pemFormatCertificate = null, $ciphers = null){
-        return mysqli_ssl_set($this->db, $key, $certificate, $certificateAuthority, $pemFormatCertificate, $ciphers);
-    }
-
-
-
-    /**
-     * Установка одной опции MySQL
-     */
-    public function setOption($optionName, $optionValue){
-        return mysqli_options($this->db, $optionName, $optionValue);
     }
 
 
@@ -345,25 +215,31 @@ class Db {
         try {
             $result = mysqli_select_db($this->db, $dbName ? $dbName : $this->getDbName());
             if (!$result){
-                $this->throwException(self::LNG_DB_UNREACHABLE );
+                $this->throwException(self::E_DB_UNREACHABLE);
             }
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_DB_UNREACHABLE);
+            return $this->logException($ex, self::E_DB_UNREACHABLE);
         }
         return $result;
     }
 
     /** Закрытие коннекта */
     public function close(){
-        $this->_connected = false;
-        $this->setLastQuery('close_connection');
-        if ($this->getInstanceIndex() == self::getMainInstanceIndex()){
-            self::setMainInstanceIndex(null);
+        $this->_lastQuery = 'close_connection';
+        self::clearInstance($this->instanceIndex());
+        if ($this->logging()){
+            $this->log('db_closed');
         }
-        self::clearInstance($this->getInstanceIndex());
         return mysqli_close($this->db);
     }
 
+
+
+    /** Устанавливает данный экземпляр класса как главный */
+    public function instanceSetMain(){
+        self::$_mainInstanceIndex = $this->instanceIndex();
+        return true;
+    }
 
 
 
@@ -377,10 +253,10 @@ class Db {
         try {
             $result = mysqli_query($this->db, $query, $resultMode);
             if (!$result){
-                $this->throwException(self::LNG_UNABLE_TO_PROCESS_QUERY);
+                $this->throwException(self::E_UNABLE_TO_PROCESS_QUERY);
             }
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_UNABLE_TO_PROCESS_QUERY);
+            return $this->logException($ex, self::E_UNABLE_TO_PROCESS_QUERY);
         }
         return $result;
     }
@@ -433,20 +309,6 @@ class Db {
 
 
 
-    /** Возвращает число затронутых прошлой операцией строк */
-    public function affectedRows(){
-        return mysqli_affected_rows($this->db);
-    }
-
-
-
-    /** Возвращает последний ID БД */
-    public function lastInsertId(){
-        return mysqli_insert_id($this->db);
-    }
-
-
-
     /**
      * Запрос(на изменение БД), составляемый из входных параметров - действия, таблицы и массива параметров
      * ВНИМАНИЕ! Автоматического экранирования данных нет. Контролируйте все параметры процедуры!
@@ -467,7 +329,7 @@ class Db {
                 case 'INSERT':
                     $paramsCount = count($params);
                     if (!$paramsCount){
-                        $this->throwException(self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+                        $this->throwException(self::E_WRONG_PARAMETERS);
                     }
                     // Если массив данных двухмерный
                     if (is_array(reset($params))){
@@ -496,7 +358,7 @@ class Db {
                 case 'UPDATE':
                     $paramsCount = count($params);
                     if (!($paramsCount)){
-                        $this->throwException(self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+                        $this->throwException(self::E_WRONG_PARAMETERS);
                     }
                     $t = each($params);
                     $qParams = '`' . $t[0] . '` = ' . ($t[1] === null ? 'null' : "'{$t[1]}'");
@@ -517,7 +379,7 @@ class Db {
                     $line = "CALL $sourceName(" . implode(', ', $params) . ')';
                     break;                
                 default:
-                    $this->throwException(self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+                    $this->throwException(self::E_WRONG_PARAMETERS);
                     break;
             }
             $result = $log ? $this->loggingQuery($line, $action) : $this->directQuery($line);
@@ -526,7 +388,7 @@ class Db {
             }
             return $result;
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+            return $this->logException($ex, self::E_WRONG_PARAMETERS);
         }
     }
 
@@ -546,13 +408,13 @@ class Db {
         // Пока не реализована обработка сложных условий, а только сравнивание с id, оставим проверку такой
         try {
             if (($target !== null) && !is_numeric($target)){
-                $this->throwException(self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+                $this->throwException(self::E_WRONG_PARAMETERS);
             }
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_UNABLE_TO_PROCESS_PARAMETERS);
+            return $this->logException($ex, self::E_WRONG_PARAMETERS);
         }
         /** @todo Реализовать правильную проверку target в зависимости от типа запроса и прочих входных данных */
-        $action = self::escapeString($action);
+        $action = $this->realEscapeString($action);
         $sourceName = self::escapeString($sourceName);
         $sequredParams = array();
         foreach ($params as $key => $value){
@@ -566,6 +428,27 @@ class Db {
     }
 
 
+
+    /**
+     * Возвращает число затронутых строк для указанного набора данных
+     * @param PDOStatement $stmt
+     * @return int
+     */
+    public function affectedRows($stmt = null){
+        return func_num_args() == 1
+            ? $stmt ? $stmt->rowCount() : false
+            : $this->stmt !== null ? $this->stmt->rowCount() : false;
+    }
+
+
+
+    /**
+     * Возвращает последний ID, добавленный в БД
+     * @return string
+     */
+    public function lastInsertId(){
+        return $this->db !== null ? $this->db->lastInsertId() : false;
+    }
 
 
 
@@ -661,6 +544,21 @@ class Db {
 
 
 
+    /**
+     * Экранирует специальные символы в строке, не принимая во внимание кодировку соединения
+     * Не все PDO драйверы реализуют этот метод (особенно PDO_ODBC).
+     * Предполагается, что вместо него будут использоваться подготавливаемые запросы.
+     * http://php.net/manual/ru/pdo.quote.php
+     * @param string $unescapedString Входная строка
+     * @param int $parameterType,.. Представляет подсказку о типе данных первого параметра для драйверов, которые имеют альтернативные способы экранирования
+     * @return string Возвращает экранированную строку, или false, если драйвер СУБД не поддерживает экранирование
+     */
+    public function escapeString($unescapedString, $parameterType = PDO::PARAM_STR){
+        return $this->db->quote($unescapedString, $parameterType);
+    }
+
+
+
 
 
 
@@ -672,13 +570,13 @@ class Db {
         try {
             $result = mysqli_real_query($this->db, $query);
             if (!$result){
-                $this->throwException(self::LNG_UNABLE_TO_PROCESS_QUERY);
+                $this->throwException(self::E_UNABLE_TO_PROCESS_QUERY);
             }
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_UNABLE_TO_PROCESS_QUERY);
+            return $this->logException($ex, self::E_UNABLE_TO_PROCESS_QUERY);
         }
         if ($this->logging()){
-            $this->log($result);
+            $this->log($query);
         }
         return $result;
     }
@@ -708,14 +606,14 @@ class Db {
 
     /** Асинхронное выполнение одного или нескольких запросов */
     public function multiQuery($query){
-        $this->setLastQuery(array('MULI_QUERY', $query));
+        $this->setLastQuery('MULTI_QUERY ' . $query);
         try {
             $result = mysqli_multi_query($this->db, $query);
             if (!$result){
-                $this->throwException(self::LNG_UNABLE_TO_PROCESS_QUERY);
+                $this->throwException(self::E_UNABLE_TO_PROCESS_QUERY);
             }
         } catch (DbException $ex){
-            return $this->catchException($ex, self::LNG_UNABLE_TO_PROCESS_QUERY);
+            return $this->logException($ex, self::E_UNABLE_TO_PROCESS_QUERY);
         }
         if ($this->logging()){
             $this->log($result);
@@ -744,38 +642,43 @@ class Db {
 
 # ------------------------------------------   Работа с транзакциями   --------------------------------------------------- #
 
-    /** Режим автоматических транзакций - включён или выключен */
+    /**
+     * Режим автоматических транзакций - включён или выключен
+     * @return mixed
+     */
     public function getAutocommitMode(){
-        return $this->scalarQuery('SELECT @@autocommit');
+        return $this->getAttribute(PDO::ATTR_AUTOCOMMIT);
     }
 
-
-
-    /** Установка режима автоматических транзакций */
+    /**
+     * Установка режима автоматических транзакций
+     * @param int $autocommitMode
+     * @return bool
+     */
     public function setAutocommitMode($autocommitMode){
-        return mysqli_autocommit($this->db, $autocommitMode);
+        return $this->setAttribute(PDO::ATTR_AUTOCOMMIT, $autocommitMode);
     }
-
-
 
     /** Начало транзакции */
-    public function startTransaction(){
-        return $this->query('START TRANSACTION');
+    public function beginTransaction(){
+        return $this->db->beginTransaction();
     }
-
-
 
     /** Подтверждение изменений */
     public function commit(){
-        return mysqli_commit($this->db);
+        return $this->db->commit();
     }
-
-
 
     /** Отмена внесенных изменений */
-    public function rollback(){
-        return mysqli_rollback($this->db);
+    public function rollBack(){
+        return $this->db->rollBack();
     }
+
+    /** Проверка на наличие открытой транзакии */
+    public function inTransaction(){
+        return $this->db->inTransaction();
+    }
+
 
 
 
@@ -886,218 +789,150 @@ class Db {
 
 
 
-# ------------------------------------------      Геттеры и сеттеры     ---------------------------------------------------- #
 
-    /** Возвращает или устанавливает DSN */
-    public function dsn(){
-        if (func_num_args() == 0) {
-            return $this->_dsn;
-        }else {
-            $dsn = func_get_arg(0);          # Да, мягко говоря, условная проверка строки на валидность
-            $this->_dsn = is_string($dsn) && count($dsn) > 6 ? $dsn : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
+# ------------------------------------------------      Сеттеры     ---------------------------------------------------------- #
+
+    /**
+     * Установка одного атрибута PDO
+     * @param int   $attrName   Имя атрибута
+     * @param mixed $attrValue  Значение атрибута
+     * @return bool
+     * @see http://php.net/manual/ru/pdo.setattribute.php
+     * @throws PDOException
+     */
+    public function setAttribute($attrName, $attrValue){
+        return $this->db->setAttribute($attrName, $attrValue);
     }
 
-    /** Возвращает или устанавливает алиас СУБД */
-    public function dms(){
-        if (func_num_args() == 0) {
-            return $this->_dms;
-        }else {
-            $dms = func_get_arg(0);          # Да, мягко говоря, условная проверка строки на валидность
-            $this->_dms = is_string($dms) && count($dms) < 7 ? $dms : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
-    }
 
-    /** Возвращает или устанавливает имя активной БД */
-    public function dbName(){
-        if (func_num_args() == 0) {
-            return $this->_dbName;
-        }else {
-            $dbName = func_get_arg(0);
-            $this->_dbName = is_string($dbName) && $dbName !== '' ? $dbName : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
-    }
 
-    /** Возвращает или устанавливает хост */
-    public function host(){
-        if (func_num_args() == 0) {
-            return $this->_host;
-        }else {
-            $host = func_get_arg(0);
-            $this->_host = is_string($host) && $host !== '' ? $host : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
-    }
 
-    /** Возвращает или устанавливает порт */
-    public function port(){
-        if (func_num_args() == 0) {
-            return $this->_port;
-        }else {
-            $port = func_get_arg(0);
-            $this->_port = is_numeric($port) && $port > 0 && $port < 65535 ? $port : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
-    }
+# ---------------------------------------------------       Геттеры       ---------------------------------------------------- #
 
-    /** Возвращает или устанавливает имя текущего пользователя */
-    public function userName(){
-        if (func_num_args() == 0) {
-            return $this->_userName;
-        }else {
-            $userName = func_get_arg(0);
-            $this->_userName = is_string($userName) && $userName !== '' ? $userName : $this->throwException(self::LNG_WRONG_PARAMETERS);
-            return true;
-        }
+    /** Возвращает текст последнего запроса */
+    public function getLastQuery(){
+        return $this->_lastQuery;
     }
 
     /**
-     * Возвращает или устанавливает кодировку БД
-     * @param string,.. Кодировка БД
-     * @return string Кодировка БД, или bool результат установки кодировки БД
+     * Установка одного атрибута PDO
+     * @param int   $attrName   Имя атрибута
+     * @return mixed
+     * @see http://php.net/manual/ru/pdo.getattribute.php
+     * @throws PDOException
      */
-    public function charset(){
-        if (func_num_args() <= 0){
-            return $this->_charset;
-        }else{
-            return mysqli_set_charset($this->db, func_get_arg(0));
+    public function getAttribute($attrName){
+        return $this->db->getAttribute($attrName);
+    }
+
+
+
+
+# ------------------------------------------       Геттеры и Сеттеры - 2 в 1      -------------------------------------------- #
+
+    /**
+     * Устанавливает, или получает индекс объекта в списке экземпляров класса
+     * @param string,.. $index Индекс инстанса
+     * @return string Запрашиваемый индекс, или true в случае успешной установки этого индекса
+     */
+    public function instanceIndex($index = null){
+        if (func_num_args() == 0){
+            return $this->_instanceIndex;
+        }else {
+            self::$_instances[$index] = &$this;
+            unset(self::$_instances[$this->_instanceIndex]);
+            $this->_instanceIndex = $index;
+            return true;
         }
     }
 
     /**
      * Возвращает или устанавливает режим логгирования
-     * @param bool,.. Флаг логгирования
+     * @param bool,.. $logging Флаг логгирования
      * @return bool Флаг логгирования, или true в случае установки этого флага
      */
-    public function logging(){
+    public function logging($logging = null){
         if (func_num_args() <= 0){
             return $this->_logging;
         }else{
-            $this->_logging = func_get_arg(0);
+            $this->_logging = boolval($logging);
             return true;
         }
     }
 
-    /** Возвращает или устанавливает текст последнего запроса */
-    public function getLastQuery(){
-        if (func_num_args() <= 0){
-            return $this->_lastQuery;
-        }else {
-            $this->_lastQuery = func_get_arg(0);
-            return true;
-        }
-    }
-
-    /** Возвращает флаг подключения */
-    public function connected(){
-        return $this->_connected;
-    }
-
-
-
-
-
-    /** Возвращает адрес файла лога ошибок БД */
-    public function getErrorLogFile(){
-        return $this->_errorLogFile;
-    }
-
-    /** Возвращает адрес файла лога запросов БД */
-    public function getLogFile(){
-        return $this->_logFile;
-    }
 
 
 
 
 
 
-    /** Устанавливает индекс объекта в списке экземпляров класса */
-    public function instanceIndex(){
-        if (func_num_args() == 0){
-            return $this->_instanceIndex;
-        }else {
-            $index = func_get_arg(0);
-            if ($index == $this->_instanceIndex) {
-                return true;
-            }
-            if ($index == self::mainInstanceIndex()) {
-                self::mainInstanceIndex($index);
-            }
-            self::$_instances[$index] = &$this;
-            self::clearInstance($this->_instanceIndex);
-            $this->_instanceIndex = $index;
-            return true;
-        }
-    }
-    
-    /** Устанавливает данный экземпляр класса как главный */
-    public function setMainInstance(){
-        self::$_mainInstanceIndex = $this->instanceIndex();
-        return true;
-    }
+# ------------------------------       Статические методы класса (работа с инстансами)      ---------------------------------- #
 
+    /** @todo Перевести инстансы в отдельный трейт */
 
-
-
-
-
-# ------------------------------------------       Статические методы класса       ------------------------------------------- #
-    
     /** 
      * Возвращает один экземпляр класса из списка классов - аналог метода getInstance()
      * @param string $instanceIndex,.. Индекс экземпляр класса в списке классов
      * @return mixed Инстанс с указанным индексом
      */
-    public static function db($instanceIndex = null){
+    public static function instance($instanceIndex = null){
         return $instanceIndex === null ? self::getMainInstance() : self::getInstance($instanceIndex);
     }
 
     /**
      * Получение списка экземпляров класса или одного его элемента
      * @param string $index,.. Индекс инстанса
-     * @return mixed
+     * @return mixed Инстанс указанной БД, или весь массив
      */
     public static function getInstance($index = null){
         return $index === null ? self::$_instances : (isset(self::$_instances[$index]) ? self::$_instances[$index] : null);
     }
 
-    /** Возвращает главный эземпляр класса из списка классов */
+    /**
+     * Возвращает главный эземпляр класса из списка классов
+     * @return mixed Главный инстанс класса
+     */
     public static function getMainInstance(){
         return self::getInstance(self::mainInstanceIndex());
     }
 
-    /** Установка или получение индекса главного экземпляра класса */
-    public static function mainInstanceIndex(){
-        if (func_num_args() == 0){
+    /**
+     * Установка или получение индекса главного экземпляра класса
+     * @param string $index Индекс инстанса
+     * @return string Индекс главного инстанса класса, или true в случае успешной установки
+     * @throws DbException
+     */
+    public static function mainInstanceIndex($index = null){
+        if ($index === null){
             return self::$_mainInstanceIndex;
         }else {
-            $index = func_get_arg(0);
-            if (!in_array($index, self::$_instances)) {
-                return false;
+            if (!(is_string($index) || is_numeric($index)) || !in_array($index, self::$_instances)) {
+                self::throwException(self::E_WRONG_PARAMETERS);
             }
             self::$_mainInstanceIndex = $index;
             return true;
         }
     }
 
-
+    /**
+     * Очищение инстанса
+     * @param string $index Индекс инстанса
+     * @return true
+     */
+    public static function clearInstance($index){
+        if ($index == self::mainInstanceIndex()){
+            self::mainInstanceIndex(null);
+        }
+        unset(self::$_instances[$index]);
+        return true;
+    }
 
     /**
-     * Экранирует специальные символы в строке, не принимая во внимание кодировку соединения
-     * Не все PDO драйверы реализуют этот метод (особенно PDO_ODBC).
-     * Предполагается, что вместо него будут использоваться подготавливаемые запросы.
-     * http://php.net/manual/ru/pdo.quote.php
-     * @deprecated
-     * @param string $unescapedString Входная строка
-     * @param int $parameterType,.. Представляет подсказку о типе данных первого параметра для драйверов, которые имеют альтернативные способы экранирования
-     * @return string Возвращает экранированную строку, или false, если драйвер СУБД не поддерживает экранирование
+     * Получение списка доступных драйверов для различных СУБД
+     * @return array
      */
-    public function escapeString($unescapedString, $parameterType = PDO::PARAM_STR){
-        return $this->_db->quote($unescapedString, $parameterType);
+    public static function getAvailableDrivers(){
+        return PDO::getAvailableDrivers();
     }
 
 
@@ -1105,7 +940,7 @@ class Db {
 
 
 
-# ------------------------------------------   Скрытые статические методы класса   ------------------------------------------- #
+# -----------------------------------------------   Скрытые методы класса   -------------------------------------------------- #
 
     /**
      * Определение в условном числе типа запроса по переданному слову или первому из запроса
@@ -1143,26 +978,6 @@ class Db {
     }
 
 
-
-    /**
-     * Формирование строки DSN
-     * @return string
-     * @throws DbException
-     */
-    protected function formDSN(){
-        switch ($this->_dms){
-            case 'mysql':
-                $result = 'mysql:' .
-                    ($this->_host ? 'host=' . $this->_host : '') .
-                    ($this->_port ? ';port=' . $this->_port : '') .
-                    ($this->_dbName ? ';dbname=' . $this->_dbName : '') .
-                    ($this->_charset ? ';charset=' . $this->_charset : '');
-                return $result;
-
-            default:
-                $this->throwException(self::LNG_WRONG_PARAMETERS);
-        }
-    }
 
 }
 

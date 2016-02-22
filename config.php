@@ -8,12 +8,17 @@
  */
 
 
-/** @const Базовая директория */
-define('BASE_DIR', '/');
-/** @const Базовая директория на сервере */
-define('ROOT', BASE_DIR);
+
 /** @const Хост */
-define('HOST', 'http://' . $_SERVER['HTTP_HOST'] . BASE_DIR);
+define('HOST', 'http://' . $_SERVER['HTTP_HOST'] . '/');
+
+// Использовать эти константы через класс всяко удобнее
+define('_LOG_DIR', __DIR__ . '/log/');
+define('_LOG_FILE', _LOG_DIR . 'common.log');
+define('_LOG_ERROR_FILE', _LOG_DIR . 'error.log');
+define('_DB_LOG_FILE', _LOG_DIR . 'db.log');
+define('_DB_ERROR_LOG_FILE', _LOG_DIR . 'db.error.log');
+
 
 
 /**
@@ -24,6 +29,8 @@ class CONFIG{
     # Общие
     /** @const Флаг дебага */
     const DEBUG = true;
+    /** @const Базовая директория */
+    const ROOT = __DIR__;
 
 
     # Страница
@@ -36,9 +43,33 @@ class CONFIG{
     # Логи
     /** @const Флаг логгирования в БД или файл */
     const LOG_USE_DB = false;
+    /** @const Директория логов */
+    const LOG_DIR = _LOG_DIR;
     /** @const Лог */
-    const LOG_FILE = 'common.log';
+    const LOG_FILE = _LOG_FILE;
     /** @const Лог ошибок */
-    const LOG_ERROR_FILE = 'error.log';
+    const LOG_ERROR_FILE = _LOG_ERROR_FILE;
+
+    # БД
+    /** @const Хост БД */
+    const DB_HOST = 'localhost';
+    /** @const Порт БД */
+    const DB_PORT = 3306;
+    /** @const Имя БД */
+    const DB_NAME = 'report';
+    /** @const Пользователь БД */
+    const DB_USER = 'root';
+    /** @const Пароль БД @deprecated Подразумевается, что не используется в продакшне */
+    const DB_PASSWORD = '';
+    /** @const Кодировка БД */
+    const DB_CHARSET = 'utf8';
+
+    # Константы класса
+    /** @const Флаг дебага БД */
+    const DB_DEBUG = true;
+    /** @const Лог БД */
+    const DB_LOG_FILE = _DB_LOG_FILE;
+    /** @const Лог ошибок БД */
+    const DB_ERROR_LOG_FILE = _DB_ERROR_LOG_FILE;
 
 }

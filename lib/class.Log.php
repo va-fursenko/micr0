@@ -1,49 +1,49 @@
 <?php
-
 /**
- * 	Log explorer сlass (PHP 5 >= 5.0.0)
- * 	Special thanks to: http://www.php.su
- * 	Copyright (c)   Enjoy! Belgorod, 2009-2011
- * 	Email		vinjoy@bk.ru
- * 	Version		2.2.4
- * 	Last modifed	19:46 19.10.2011
- * 	
- * 	 This library is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU Lesser General Public
- * 	License as published by the Free Software Foundation; either
- * 	version 2.1 of the License, or (at your option) any later version.
- * 	@see http://www.gnu.org/copyleft/lesser.html
- * 	
- * 	Не удаляйте данный комментарий, если вы хотите использовать скрипт! 
- * 	Do not delete this comment if you want to use the script!
+ * Log explorer сlass (PHP 5 >= 5.0.0)
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor Belgorod, 2009-2016
+ * Email		    vinjoy@bk.ru
+ * Version		    2.3.0
+ * Last modified	19:46 19.02.16
  *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
+ *
+ * Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
+ * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
-include_once(CORE_DIR . 'system/systemLOgsArchive.model.php');
+
 
 /**
  * Класс работы с логами
- * @author    Enjoy
- * @version   2.2.4
- * @copyright Enjoy
- * @package   se-engine
+ * @author    viktor
+ * @version   2.3.0
+ * @copyright viktor
  */
 class Log {
-// Языковые константы класса
+    protected static $logDb = null;
+
+    # Языковые константы класса
     const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
     const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
     const L_LOG_EMPTY           = 'Файл лога пока пуст';
     const L_EMPTY_MESSAGE       = 'Запись лога пуста или имеет неправильный формат';
 
-// Прочие константы
+    # Прочие константы
     const MESSAGE_SEPARATOR = "\n\n\n\n";
     const MESSAGE_HTML_SEPARATOR = '<br>';
 
-// Методы класса
+
+
+    # Методы класса
     /** 
      * Преобразовывает массив параметров в текстовое представление ошибки
      * @param array $messageArray Сообщение, выводимое на экран
      * @param array $captions - массив названий на текущем языке для полей записи
+     * @return string
      */
     public static function parseMessage($messageArray, $captions = array(
         /* Все возможные русские заголовки строк */
@@ -51,7 +51,7 @@ class Log {
         'type_name'             => 'Тип события',
         'text_message'          => 'Ошибка',
         'db_ex_message'         => 'Сообщение СУБД',
-        'db_query_text'         => 'Запрос',
+        'db_last_query'         => 'Крайний запрос',
         'db_query_type'         => 'Тип запроса',
         'db_affected_rows'      => 'Число измененных строк',
         'db_user_name'          => 'Пользователь БД',
@@ -111,99 +111,98 @@ class Log {
         return $result . self::MESSAGE_HTML_SEPARATOR;
     }
 
+
+
     /** 
      * Запись в файл лога сообщения 
-     * @param string $fileName Имя файла
+     * @param string $filename Имя файла
      * @param array $messageArray Сообщение, записываемое в файл
      * @return bool
+     * @throws Exception
      */
-    public static function write2File($fileName, $messageArray) {
-        if (!is_writable($fileName)) {
-            Ex::throwEx(self::L_LOG_FILE_UNWRITABLE . ' - ' . $fileName);
+    protected static function write2File($filename, $messageArray) {
+        if (!is_writable($filename)) {
+            throw new Exception(self::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
         }
         if (!isset($messageArray['datetime'])) {
             $messageArray = array('datetime' => date("Y-m-d H:i:s")) + $messageArray;// Дата должна идти первой в ассоциативном массиве сообщения
         }
-        return error_log(addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, 3, $fileName);
+        return error_log(addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, 3, $filename);
     }
+
+
 
     /**
      * Запись в таблицу логов БД сообщения
-     * @param mixed $db Дескриптор соединения с БД
      * @param array $messageArray Сообщение, записываемое в лог
      * @return bool
      */
-    public static function write2Db($db, $messageArray){
+    protected static function write2Db($messageArray){
         if (!isset($messageArray['datetime'])) {
             $messageArray['datetime'] = date("Y-m-d H:i:s");
         }
         $messageArray = Filter::sqlFilterAll($messageArray);
-        Db::blockLogging(true);
-        $result = SystemLogsArchive::addOne($db, $messageArray);
-        Db::blockLogging(false);
+        /** @todo Дописать нормальную работу с БД */
+        $result = self::$logDb->directQuery($messageArray);
         return $result;
     }
-    
+
+
+
     /**
      * Запись в файл лога или определённую таблицу БД сообщения
-     * @param mixed $object,.. Имя файла логов или дескриптор соединения с БД в случае двух параметров
-     * @param array $messageArray Сообщение, записываемое в лог
+     * @param array $object Сообщение, записываемое в лог
+     * @param mixed $filename,.. Имя файла логов
      * @return bool
      */
-    public static function write($object, $messageArray = null){
-        if (LOG_USE_DB){
-            if (func_num_args() == 2){
-                return self::write2Db($object, $messageArray);
-            }else{
-                return self::write2Db(Db::getInstance(), $object);
-            }
+    public static function write($object, $filename = null){
+        if (CONFIG::LOG_USE_DB){
+            return self::write2Db($object);
         }else{
-            if (func_num_args() == 2){
-                return self::write2File($object, $messageArray);
-            }else{
-                return self::write2File(LOG_FILE, $object);
-            }
+            return self::write2File($filename ? $filename : CONFIG::LOG_FILE, $object);
         }
     }
 
+
+
     /** 
      * Выводит на экран список логов
-     * @param object $db Дескриптор соединения с БД
      * @param string $typeName Тип логов
      * @param int $startFrom Начальная позиция в выборке
      * @param int $limit Число выбираемых записей
      * @param bool $descOrder,.. Флаг - порядок вывода записей(обратный или прямой)
      * @return string
      */
-    public static function showDbLog($db, $typeName, $startFrom, $limit, $descOrder = true) {
-        Db::blockLogging(true);
-        $result = SystemLogsArchive::getList($db, $typeName, $startFrom, $limit, 'datetime', $descOrder);
-        Db::blockLogging(false);
-        return $result;
+    public static function showDbLog($typeName, $startFrom, $limit, $descOrder = true) {
+        /** @todo Дописать нормальную работу с БД */
+        return self::$logDb->directQuery($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
+
+
 
     /** 
      * Получает колчиство записей в логе
-     * @param object $db Дескриптор соединения с БД
      * @param string $typeName Тип логов
      */
-    public static function checkDbLog($db, $typeName){
-        Db::blockLogging(true);
-        $result = SystemLogsArchive::getCount($db, $typeName);
-        Db::blockLogging(false);
-        return $result;
+    public static function checkDbLog($typeName){
+        /** @todo Дописать нормальную работу с БД */
+        return self::$logDb->directQuery($typeName);
     }
+
+
 
     /** 
      * Выводит на экран файл лога
      * @param string $fileName Имя файла
      * @param bool $descOrder,.. Флаг - порядок вывода записей(обратный или прямой)
+     * @return string
+     * @throws Exception
      */
     public static function showLogFile($fileName, $descOrder = true) {
-        if (!is_readable($fileName)) {
-            Ex::throwEx(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
+        if (!is_readable(CONFIG::LOG_DIR . $fileName)) {
+            throw new Exception(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
         }
-        $content = explode(self::MESSAGE_SEPARATOR, file_get_contents($fileName));
+        $content = explode(self::MESSAGE_SEPARATOR, file_get_contents(CONFIG::LOG_DIR . $fileName));
         $result = '';
         if (count($content) > 1) {
             foreach ($content as $key => $message) {
@@ -222,10 +221,13 @@ class Log {
         return $result;
     }
 
+
+
     /** 
      * Вывод сложного объекта в строку с подробной информацией 
      * @param object $object Выводимый объект
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
+     * @return string
      */
     public static function dumpObject($object, $withPre = true) {
         ob_start();
