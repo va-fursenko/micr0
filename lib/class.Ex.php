@@ -5,8 +5,8 @@
  *      Special thanks to: Stascer, http://www.php.su
  *      Copyright (c) Enjoy! Belgorod, 2011
  *      Email             vinjoy@bk.ru
- *      version           1.1.1
- *      Last modifed      14:53 12.09.11
+ *      version           1.2.0
+ *      Last modifed      22:53 24.02.16
  *        
  *      This library is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public
@@ -23,11 +23,11 @@
 /**
  * Класс общего исключения логики проекта
  * @author    viktor
- * @version   1.1.1
+ * @version   1.2.0
  * @copyright viktor
  * @deprecated Данная историческая залупа сильно под вопросом
  */
-class ExException extends Exception {
+class Ex extends Exception {
 
     // Параметры
     protected $logFile;     // Полный путь к файлу лога исключений
@@ -65,47 +65,50 @@ class ExException extends Exception {
 
     /**
      * Конструктор класса
-     * @param string $throwCode Строковый код исключения
-     * @param int $code,.. Числовой код исключения
-     * @param Exception $previus,.. Предыдущее исключение в цепочке вызовов
+     * @param string $message Строковый код исключения
+     * @param int $code Числовой код исключения
+     * @param Exception $previous Предыдущее исключение в цепочке вызовов
      */
     function __construct($message, $code = 0, Exception $previous = null) {
         parent::__construct($message, $code, $previous);
-        $this->logFile = EX_LOG_FILE;
-        $this->debugging = EX_DEBUG;
+        $this->setLogFile(CONFIG::LOG_FILE);
+        $this->setDebugging(CONFIG::DEBUG);
     }
 
+
+
     /**
-     * Вызов исключения с кодом ошибки
-     * @param string $message Строковый код вызова исключения
-     * @param int $code,.. Числовой код исключения
-     * @param Exception $previus,.. Предыдущее исключение в цепочке вызовов
+     * Строковое представление объекта
+     * @return string
      */
-    static public function throwEx($message = '', $code = 0, Exception $previous = null) {
-        throw new Ex($message, $code, $previous);
+    public function __toString() {
+        return __CLASS__ . ": [{$this->code}]: {$this->message}";
     }
+
+
 
     /**
      * Обработка перехваченного исключения
-     * @param string $handleCode Строковый код перехвата исключения
-     * @param boolean $returnText Флаг. Возвращать пользовательское сообщение об ошибке или результат аякс-запроса
-     * в виде array('state' => false, 'error' => $throwCode)
-     * @return string Текстовое сообщение о произошедшей ошибке
+     * @param string $textMessage Текстовое сообщение
+     * @return bool
      */
-    public function handleEx($handleCode = '', $returnText = true) {
+    public function handle($textMessage = '') {
         $trace = $this->getTrace();
-        Log::write(
-            //$this->getLogFile(), 
-            array(
+        return Log::write(
+            //$this->getLogFile(),  // Сложно представить, чтобы исключения в одном месте писались в другой файл
+            [
                 'type_name'             => 'php_exception',
                 'session_id'            => session_id(),
-                'session_user_id'       => Session::userGet('id', -1),
-                'text_message'          => $handleCode,
-                'exception_message'     => $this->getMessage(),
-                'php_file_name'         => $this->getFile(),
-                'php_file_line'         => $this->getLine(),
-                'php_file_name'         => $trace[1]['file'],
-                'php_file_line'         => $trace[1]['line'],
+                'text_message'          => $textMessage,
+                'exception_message'     => $this->__toString(),
+                'php_file_name'         => [
+                    'Ex'    => $this->getFile(),
+                    'trace' => $trace[1]['file'],
+                ],
+                'php_file_line'         => [
+                    'Ex'    => $this->getLine(),
+                    'trace' => $trace[1]['line'],
+                ],
                 'php_trace'             => serialize($this->getTrace()),
                 'php_error_code'        => $this->getCode(),
                 'http_request_method'   => $_SERVER['REQUEST_METHOD'],
@@ -113,58 +116,75 @@ class ExException extends Exception {
                 'http_request_uri'      => $_SERVER['REQUEST_URI'],
                 'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
                 'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
-            )
+            ]
         );
-        if ($returnText){
-            // Вывод пользовательского сообщения или подробной информации об исключении
-            if ($this->getDebugging()){
-                return Log::parseMessage($messageArr); 
-            }else{
-                return array(
-                    'js'      => '',
-                    'caption' => self::L_ERROR_TITLE,
-                    'content' => ErrorHandler::getUserError($this->getMessage())
-                );
-            }
-        }else{// Вывод результата аякс-запроса
-            return array('state' => false, 'error' => $this->getMessage(), 'html' => '');
-        }
     }
+
+
+
+
+
 
 // ------------------------------------------   Геттеры         -------------------------------------------------------------- //    
 
-    /** Адрес файла лога исключений */
+    /**
+     * Адрес файла лога исключений
+     * @return string
+     */
     public function getLogFile() {
         return $this->logFile;
     }
     
-    /** Режим эксплуатации */
+    /**
+     * Режим эксплуатации
+     * @return bool
+     */
     public function getDebugging(){
         return $this->debugging;
     }
     
-    /** Дескриптор подключения к БД */
+    /**
+     * Дескриптор подключения к БД
+     * @return Db
+     */
     public function getDb(){
         return $this->db;
     }
-    
+
+
+
+
+
+
 // ------------------------------------------   Сеттеры         -------------------------------------------------------------- //    
     
-    /** Адрес файла лога исключений */
+    /**
+     * Адрес файла лога исключений
+     * @param string $logFile
+     * @return void
+     */
     public function setLogFile($logFile){
         $this->logFile = $logFile;
     }
     
-    /** Режим эксплуатации */
+    /**
+     * Режим эксплуатации
+     * @param bool $debugging
+     * @return void
+     */
     public function setDebugging($debugging){
         $this->debugging = $debugging;
     }
     
-    /** Дескриптор подключения к БД */
+    /**
+     * Дескриптор подключения к БД
+     * @param Db $db
+     * @return void
+     */
     public function setDb($db){
         $this->db = $db;
     }
 
 }
 
-?>
+

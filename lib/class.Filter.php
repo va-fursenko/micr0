@@ -43,6 +43,7 @@ class Filter {
      * @assert (4, 1, 3) == false
      * @assert (-1, -3, -2) == false
      * @assert (1.2, 0, 3) == false
+     * @return bool
      */
     public static function isIntegerBetween($argument, $from, $to) {
         return self::isInteger($argument) && ($argument >= $from) && ($argument <= $to);
@@ -50,42 +51,48 @@ class Filter {
 
     /**
      * Проверка даты на попадание в интервал 
-     * @param date $argument Аргумент функции
-     * @param date $from Начало диапозона допустимых значений
-     * @param date $to Конец диапозона допустимых значений
+     * @param datetime $argument Аргумент функции
+     * @param datetime $from Начало диапозона допустимых значений
+     * @param datetime $to Конец диапозона допустимых значений
+     * @return bool
      */
     public static function isDateBetween($argument, $from, $to) {
         /** @todo Дописать метод isDateBetween */
+        throw new Exception('Осеньнно реализации метода не хватает, насяльника!');
         return false;
     }
 
     /** 
      * Проверка одного числа на натуральность 
      * @param int $argument Аргумент функции
+     * @return bool
      */
     public static function isNatural($argument) {
-        return is_numeric($argument) && (floor($argument) == $argument) && $argument >= 0;
+        return is_int($argument) && $argument >= 0;
     }
 
     /** 
      * Проверка одного числа на целочисленность 
      * @param int $argument Аргумент функции
+     * @return bool
      */
     public static function isInteger($argument) {
-        return is_numeric($argument) && (floor($argument) == $argument);
+        return is_int($argument);
     }
 
     /** 
      * Проверка одного числа на вещественное число 
      * @param int $argument Аргумент функции
+     * @return bool
      */
     public static function isNumeric($argument) {
         return is_numeric($argument);
     }
 
     /** 
-     * Проверка одного аргумента на правильну дату 
-     * @param date $argument Аргумент функции
+     * Проверка одного аргумента на правильну дату формата "yyyy-mm-dd"
+     * @param datetime $argument Аргумент функции
+     * @return bool
      */
     public static function isDate($argument) {
         if (preg_match('/^(\d{4})\-(\d{2})\-(\d{2})$/', $argument, $date)) {
@@ -96,8 +103,9 @@ class Filter {
     }
 
     /** 
-     * Проверка одного аргумента на правильну дату и время 
+     * Проверка одного аргумента на правильну дату и время формата "yy-mm-dd hh:mm:ss"
      * @param datetime $argument Аргумент функции
+     * @return bool
      */
     public static function isDatetime($argument) {
         if (preg_match('/^(\d{4})\-(\d{2})\-(\d{2}) ([0-1][0-9]|[2][0-3]):([0-5][0-9]):([0-5][0-9])$/', $argument, $date)) {
@@ -158,7 +166,7 @@ class Filter {
         return $result;
     }
     
-    /** Проверка всех параметров на массив */
+    /** Проверка параметра на массив */
     public static function isArray($arg) {
         return is_array($arg);
     }    
@@ -220,6 +228,7 @@ class Filter {
      * @param mixed $search Старая подстрока(подстроки)
      * @param mixed $replace Новая подстрока(подстроки)
      * @param string $subject Обрабатываемая строка
+     * @return string|array
      */
     public static function strReplace($search, $replace, $subject){
         $result = $subject;

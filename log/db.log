@@ -1,0 +1,16 @@
+a:10:{s:8:\"datetime\";s:19:\"2016-02-25 00:08:37\";s:9:\"type_name\";s:8:\"db_query\";s:10:\"session_id\";s:0:\"\";s:13:\"db_last_query\";s:7:\"CONNECT\";s:19:\"http_request_method\";s:3:\"GET\";s:16:\"http_server_name\";s:6:\"report\";s:16:\"http_request_uri\";s:1:\"/\";s:15:\"http_user_agent\";s:109:\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36\";s:16:\"http_remote_addr\";s:9:\"127.0.0.1\";s:13:\"db_query_type\";s:12:\"DB_CONNECTED\";}
+
+
+
+a:12:{s:8:\"datetime\";s:19:\"2016-02-25 00:08:37\";s:9:\"type_name\";s:8:\"db_query\";s:10:\"session_id\";s:0:\"\";s:13:\"db_last_query\";a:2:{s:2:\"db\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";s:4:\"stmt\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";}s:19:\"http_request_method\";s:3:\"GET\";s:16:\"http_server_name\";s:6:\"report\";s:16:\"http_request_uri\";s:1:\"/\";s:15:\"http_user_agent\";s:109:\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36\";s:16:\"http_remote_addr\";s:9:\"127.0.0.1\";s:16:\"db_rows_affected\";i:40;s:9:\"db_status\";s:5:\"00000\";s:13:\"db_query_type\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";}
+
+
+
+a:10:{s:8:\"datetime\";s:19:\"2016-02-25 00:09:33\";s:9:\"type_name\";s:8:\"db_query\";s:10:\"session_id\";s:0:\"\";s:13:\"db_last_query\";s:7:\"CONNECT\";s:19:\"http_request_method\";s:3:\"GET\";s:16:\"http_server_name\";s:6:\"report\";s:16:\"http_request_uri\";s:1:\"/\";s:15:\"http_user_agent\";s:109:\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36\";s:16:\"http_remote_addr\";s:9:\"127.0.0.1\";s:13:\"db_query_type\";s:12:\"DB_CONNECTED\";}
+
+
+
+a:12:{s:8:\"datetime\";s:19:\"2016-02-25 00:09:33\";s:9:\"type_name\";s:8:\"db_query\";s:10:\"session_id\";s:0:\"\";s:13:\"db_last_query\";a:2:{s:2:\"db\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";s:4:\"stmt\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";}s:19:\"http_request_method\";s:3:\"GET\";s:16:\"http_server_name\";s:6:\"report\";s:16:\"http_request_uri\";s:1:\"/\";s:15:\"http_user_agent\";s:109:\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36\";s:16:\"http_remote_addr\";s:9:\"127.0.0.1\";s:16:\"db_rows_affected\";i:40;s:9:\"db_status\";s:5:\"00000\";s:13:\"db_query_type\";s:39:\"SELECT * FROM help_category LIMIT 0, 50\";}
+
+
+

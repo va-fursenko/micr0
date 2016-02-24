@@ -50,7 +50,7 @@ class Log {
         'datetime'              => '',
         'type_name'             => 'Тип события',
         'text_message'          => 'Ошибка',
-        'db_ex_message'         => 'Сообщение СУБД',
+        'db_exception_message'  => 'Сообщение СУБД',
         'db_last_query'         => 'Крайний запрос',
         'db_query_type'         => 'Тип запроса',
         'db_rows_affected'      => 'Число измененных строк',
@@ -93,7 +93,7 @@ class Log {
                                 </div>';
                         break;
                     default: 
-                        $data = print_r($data, true);
+                        $data = self::printObject($data, is_array($data));
                 }
                 $result .=
                         '<tr>' .
@@ -200,7 +200,7 @@ class Log {
      */
     public static function showLogFile($fileName, $descOrder = true) {
         if (!is_readable(CONFIG::LOG_DIR . $fileName)) {
-            throw new Exception(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
+            throw new Ex(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
         }
         $content = explode(self::MESSAGE_SEPARATOR, file_get_contents(CONFIG::LOG_DIR . $fileName));
         $result = '';

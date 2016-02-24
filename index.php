@@ -14,8 +14,8 @@ try {
         CONFIG::DB_USER,
         CONFIG::DB_PASSWORD
     );
-    $a = [PDO::FETCH_OBJ, PDO::FETCH_ASSOC, PDO::FETCH_NAMED, PDO::FETCH_BOTH, PDO::FETCH_NUM];
-    $stmt = $db->associateQuery('SELECT * FROM help_category', PDO::FETCH_CLASS);
+    echo Log::printObject($db->db);
+    $stmt = $db->associateQuery("SELECT * FROM help_category LIMIT 0, 50", PDO::FETCH_NAMED);
     $content = Log::printObject($stmt, true);
 
     //$content = $db->getServerInfo();

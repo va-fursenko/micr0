@@ -62,7 +62,11 @@ class DbException extends Exception {
  *
  * @see http://php.net/manual/ru/book.pdo.php
  * @see https://habrahabr.ru/post/137664/
- * @see http://php.net/manual/ru/pdo.constants.php  - Предопределённые константы PDO для $options
+ * @see http://php.net/manual/ru/pdo.constants.php Предопределённые константы PDO для $options
+ * @see http://phpfaq.ru/pdo
+ * @see http://phpfaq.ru/SafeMysql https://github.com/colshrapnel/safemysql/blob/master/safemysql.class.php Безопасный класс mysql
+ * @see http://ruseller.com/lessons.php?id=610&rub=28 Примеры fetch
+ * @see https://github.com/f3ath/LazyPDO/
  */
 class Db {
     # Статические свойства
@@ -75,7 +79,6 @@ class Db {
     # Открытые данные
     /** Дескриптор PDO */
     public $db = null;
-
 
 
     # Закрытые данные
@@ -129,14 +132,14 @@ class Db {
             PDO::ATTR_CASE               => PDO::CASE_LOWER,
         ]
     ){
+        $this->lastQuery = 'CONNECT';
         $this->_logging      = CONFIG::DB_DEBUG;
         $this->_logFile      = CONFIG::DB_LOG_FILE;
         $this->_errorLogFile = CONFIG::DB_ERROR_LOG_FILE;
         $this->db = new PDO($dsn, $userName, $userPass, $options);
         $this->instanceIndex(count(self::$_instances));
-        $this->lastQuery = 'connect';
         if ($this->logging()){
-            $this->log('db_connected');
+            $this->log('DB_CONNECTED');
         }
     }
 
@@ -152,7 +155,7 @@ class Db {
         $messageArray = array(
             'type_name'             => 'db_exception',
             'session_id'            => session_id(),
-            'db_ex_message'         => $ex->__toString(),
+            'db_exception_message'  => $ex->__toString(),
             'db_last_query'         => $this->getLastQuery(),
             'db_last_error'         => $this->getLastError(),
             'db_ping'               => $this->getServerInfo(),
@@ -173,7 +176,7 @@ class Db {
         if ($ex instanceof DbException){
             $messageArray['db_rows_affected'] = $ex->rowCount;
             $messageArray['exception_message'] = $ex->errorInfo;
-            $messageArray['db_last_query'] = [          // Попробуем посмотреть, не будет ли здесь расхождений
+            $messageArray['db_last_query'] = [ // Попробуем посмотреть, не будет ли здесь расхождений
                 'db' => $messageArray['db_last_query'],
                 'ex' => $ex->lastQuery,
             ];
@@ -232,17 +235,13 @@ class Db {
 
     /** Закрытие коннекта */
     public function close(){
-        $this->lastQuery = 'close';
+        $this->lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
         if ($this->logging()){
-            $this->log('db_closed');
+            $this->log('DB_CLOSED');
         }
         $this->db = null;
-        return true;
     }
-
-
-
 
 
 
@@ -258,6 +257,7 @@ class Db {
      * @return PDOStatement
      * @throws DbException
      * @see http://php.net/manual/ru/pdo.constants.php Список предопределённых констант
+     * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
     public function query($query, $fetchType = null){
         $this->lastQuery = $query;
@@ -266,7 +266,8 @@ class Db {
         if ($numArgs == 1){
             $result = $this->db->query($query);
 
-        }else if ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_OBJ, PDO::FETCH_ASSOC, PDO::FETCH_NAMED, PDO::FETCH_BOTH, PDO::FETCH_NUM])){
+        /** @todo Тут не хватает всех возможных констант */
+        }else if ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_LAZY, PDO::FETCH_COLUMN, PDO::FETCH_UNIQUE, PDO::FETCH_KEY_PAIR, PDO::FETCH_NAMED, PDO::FETCH_ASSOC, PDO::FETCH_OBJ, PDO::FETCH_BOTH, PDO::FETCH_NUM])){
             $result = $this->db->query($query, $fetchType);
 
         }else if ($numArgs == 3 && in_array($fetchType, [PDO::FETCH_COLUMN, PDO::FETCH_INTO])){
@@ -279,10 +280,15 @@ class Db {
         }else{
             throw new DbException(self::E_WRONG_PARAMETERS);
         }
+
         if ($this->logging()){
             $this->log($query, $result);
         }
-        if ($result->errorCode() !== PDO::ERR_NONE){
+
+        if ($result === false){
+            throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
+        }
+        if ($result instanceof PDOStatement && $result->errorCode() !== PDO::ERR_NONE){
             throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY, $result);
         }
         return $result;
@@ -295,6 +301,7 @@ class Db {
      * @param string $query Текст запроса
      * @param mixed $defaultValue Значение по умолчанию
      * @return mixed
+     * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
     public function scalarQuery($query, $defaultValue = false){
         $result = $this->query($query, PDO::FETCH_NUM);
@@ -310,31 +317,50 @@ class Db {
      * SQL запрос к БД для получения результата в виде одномерного или двухмерного ассоциативного массива
      * @param string $query Текст запроса
      * @param int $fetchType Формат взвращаемых данных
-     * @return mixed
+     * @return array|false
      * @throws DbException
+     * Использование, как минимум, с пользовательскими данными не рекомендовано
+     * @see http://php.net/manual/ru/pdo.constants.php
      */
     public function associateQuery($query, $fetchType = null){
-        if ($fetchType === null){
-            $fetchType = PDO::FETCH_NAMED;
-        }else if (!in_array($fetchType, [PDO::FETCH_OBJ, PDO::FETCH_ASSOC, PDO::FETCH_NAMED, PDO::FETCH_BOTH, PDO::FETCH_NUM, PDO::FETCH_COLUMN, PDO::FETCH_CLASS])){
-            throw new DbException(self::E_WRONG_PARAMETERS);
-        }
-        switch (func_num_args()){
-            case 1:
-            case 2: $result = $this->query($query); break;
-            case 3: $result = $this->query($query, $fetchType); break;
-            case 4: $result = $this->query($query, $fetchType, func_get_arg(3)); break;
-            case 5: $result = $this->query($query, $fetchType, func_get_arg(3), func_get_arg(4)); break;
+        $numArgs = func_num_args();
+
+        switch ($numArgs){
+            case 1: $result = $this->query($query); break;
+            case 2: $result = $this->query($query, $fetchType); break;
+            case 3: $result = $this->query($query, $fetchType, func_get_arg(2)); break;
+            case 4: $result = $this->query($query, $fetchType, func_get_arg(2), func_get_arg(3)); break;
             default:
                 throw new DbException(self::E_WRONG_PARAMETERS);
         }
-        /** @todo Здесь можно выбирать только имя метода, а потом вызывать метод с выбранным именем и со всеми проверками параметров, но, кажется, это будет весьма долго думать, а нужно только в очень экзотических случаях */
+
         if ($result->rowCount() > 1){
             return $result->fetchAll($fetchType);
         }else if ($result->rowCount() == 1){
             return $result->fetch($fetchType);
         }else{
             return false;
+        }
+    }
+
+
+
+    /**
+     * Текстовый SQL-запрос без вовзращения табличного результата
+     * @param string $statement Текст запроса
+     * @return int|bool Число изменённых строк, или false в случае ошибок
+     * @throws DbException
+     * Использование, как минимум, с пользовательскими данными не рекомендовано
+     */
+    public function exec($statement){
+        $statement = $this->quote($statement);
+        $this->lastQuery = $statement;
+        $result = $this->db->exec($statement);
+        if ($this->logging()){
+            $this->log($statement, $result);
+        }
+        if ($result === false){
+            throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
         }
     }
 
@@ -361,9 +387,6 @@ class Db {
      * @throws DbException Кидает исключение, если дескриптор БД недоступен
      */
     public function quote($unescapedString, $parameterType = PDO::PARAM_STR){
-        if (!is_resource($this->db)){
-            throw new DbException(self::E_DB_UNREACHABLE);
-        }
         return $this->db->quote($unescapedString, $parameterType);
     }
 
@@ -372,77 +395,78 @@ class Db {
 
 
 
-# ---------------------------------------        Асинхронные запросы        ------------------------------------------------- #
+# ---------------------------------------       Подготовленные выражения        ------------------------------------------------- #
 
-    /** SQL-запрос без авто-обработки результата и её буфферизации */
-    public function unbufferedQuery($query){
-        $this->lastQuery = 'UNBUFFERED_QUERY ' . $query;
-        try {
-            $result = mysqli_real_query($this->db, $query);
-            if (!$result){
-                throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
+    /**
+     * Подготовка выражения
+     * @param string $statement SQL-выражение
+     * @param array $driverOptions Атрибуты возвращаемого объекта PDOStatement
+     * @return PDOStatement|bool Подготовленное выражение, или false
+     * @throws PDOException
+     */
+    public function stmtPrepare($statement , $driverOptions = []){
+        $this->lastQuery = [
+            'PREPARE',
+            $statement
+        ];
+        if (is_array($driverOptions) && count($driverOptions) > 0){
+            $this->lastQuery[] = Log::printObject($driverOptions);
+        }
+        return $this->db->prepare($statement, $driverOptions);
+    }
+
+
+
+    /**
+     * Выполнение подготовленного выражения
+     * В логике проекта объекты PDOStatement лучше выполнять через этот метод, чтобы шло логгирование
+     * @param PDOStatement|string $statement Текстовое SQL-выражение, или подготовленное выражение
+     * @param array $inputParameters Атрибуты возвращаемого объекта PDOStatement
+     * @return bool Флаг успешного, или неуспешного выполнения запроса
+     * @throws PDOException|DbException
+     */
+    public function stmtExecute($statement , $inputParameters = []){
+        $this->lastQuery = ['EXEC'];
+        if ($statement instanceof PDOStatement){
+            $this->lastQuery[] = $statement->queryString;
+
+        // Если на входе строка, пробуем подготовить из неё выражение и выполнить
+        }else if (is_string($statement)){
+            $this->lastQuery[] = $statement;
+            $statement = $this->stmtPrepare($statement);
+
+        }else{
+            throw new DbException(self::E_WRONG_PARAMETERS);
+        }
+
+        // Экранируем передаваемые параметры и добавляем в лог
+        if (!is_array($inputParameters)){
+                throw new DbException(self::E_WRONG_PARAMETERS);
+        }
+        if (count($inputParameters) > 0){
+            foreach ($inputParameters as $key => $value){
+                $inputParameters[$key] = $this->quote($value);
             }
-        } catch (DbException $ex){
-            return $this->logException($ex, self::E_UNABLE_TO_PROCESS_QUERY);
+            $this->lastQuery[] = Log::printObject($inputParameters);
         }
-        if ($this->logging()){
-            $this->log($query);
-        }
-        return $result;
+
+        return $statement->execute($statement, $inputParameters);
     }
 
 
 
-    /** Определение длины результата асинхронного запроса */
-    public function fieldCount(){
-        return mysqli_field_count($this->db);
-    }
-
-
-
-    /** Сохранение реультата асинхронного запроса */
-    public function storeResult(){
-        return mysqli_store_result($this->db);
-    }
-
-
-
-    /** Возвращение дескриптора результата асинхронного запроса */
-    public function useResult(){
-        return mysqli_use_result($this->db);
-    }
-
-
-
-    /** Асинхронное выполнение одного или нескольких запросов */
-    public function multiQuery($query){
-        $this->setLastQuery('MULTI_QUERY ' . $query);
-        try {
-            $result = mysqli_multi_query($this->db, $query);
-            if (!$result){
-                throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
-            }
-        } catch (DbException $ex){
-            return $this->logException($ex, self::E_UNABLE_TO_PROCESS_QUERY);
-        }
-        if ($this->logging()){
-            $this->log($result);
-        }
-        return $result;
-    }
-
-
-
-    /** Подготовка к получению следующего результирующего набора данных после выполнения множественного запроса */
-    public function nextResult(){
-        return mysqli_next_result($this->db);
-    }
-
-
-
-    /** Проверка наличия следующего результирующего набора данных после выполнения множественного запроса */
-    public function moreResults(){
-        return mysqli_next_result($this->db);
+    /**
+     * Возвращение в текстовом виде информации о подготовленном выражении
+     * @param PDOStatement $stmt Подготовленное выражение
+     * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
+     * @return string
+     */
+    public function debugDumpParams(PDOStatement $stmt, $withPre = false){
+        ob_start();
+        $stmt->debugDumpParams();
+        $result = ob_get_contents();
+        ob_end_clean();
+        return $withPre ? '<pre>' . $result . '</pre>' : $result;
     }
 
 
@@ -494,8 +518,7 @@ class Db {
 
 
 
-
-# ------------------------------------------       Информаторы       --------------------------------------------------------- #
+# ------------------------------------------       Геттеры, сеттеры и информаторы       ----------------------------------------------- #
 
     /**
      * Код ошибки соединения
@@ -534,7 +557,7 @@ class Db {
     }
 
     /**
-     * Установка одного атрибута PDO
+     * Получение одного атрибута PDO
      * @param int $attrName Имя атрибута
      * @return mixed
      * @see http://php.net/manual/ru/pdo.getattribute.php
@@ -559,12 +582,12 @@ class Db {
         return $this->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
+    /** Возвращает текст последнего запроса */
+    public function getLastQuery(){
+        return $this->lastQuery;
+    }
 
 
-
-
-
-# ------------------------------------------------      Сеттеры     ---------------------------------------------------------- #
 
     /**
      * Установка одного атрибута PDO
@@ -577,23 +600,6 @@ class Db {
     public function setAttribute($attrName, $attrValue){
         return $this->db->setAttribute($attrName, $attrValue);
     }
-
-
-
-
-# ---------------------------------------------------       Геттеры       ---------------------------------------------------- #
-
-    /** Возвращает текст последнего запроса */
-    public function getLastQuery(){
-        return $this->lastQuery;
-    }
-
-
-
-
-
-
-# ------------------------------------------       Геттеры и Сеттеры - 2 в 1      -------------------------------------------- #
 
 
 
@@ -616,8 +622,7 @@ class Db {
 
 
 
-
-# ----------------------------------------------       Работа с инстансами)      ------------------------------------------------------ #
+# -----------------------------------------------       Работа с инстансами      ------------------------------------------------------ #
 
     /** @todo Перевести инстансы в отдельный трейт */
 
@@ -752,9 +757,15 @@ class Db {
 
 
 
-
-
-
+    /**
+     * Возвращает строку со знаками ? для выражений вида ... IN (?, ?,...)
+     * @param array $params
+     * @return string
+     * @see http://phpfaq.ru/pdo#fetchcolumn - внизу страницы
+     */
+    public static function strIN(Array $params){
+        return str_repeat('?,', count($params) - 1) . '?';
+    }
 
 
 
@@ -768,7 +779,7 @@ class Db {
      * @param mixed $target,.. Параметры выборки или действия
      * @return PDOStatement
      * @throws DbException
-     * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит 25-30 рублей
+     * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
      */
     public function arrayQuery($action, $sourceName, $params, $target = null){
         $action = strtoupper($action);
@@ -847,7 +858,7 @@ class Db {
      * @param mixed $target Параметры выборки или действия
      * @return PDOStatement
      * @throws DbException
-     * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит 25-30 рублей
+     * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
      */
     public function arraySquery($action, $sourceName, $params, $target = null){
         // Пока не реализована обработка сложных условий, а только сравнивание с id, оставим проверку такой
