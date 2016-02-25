@@ -15,7 +15,7 @@
  * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
-
+require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.instances.php");
 
 
 
@@ -29,6 +29,11 @@ class DbException extends Exception {
     public $lastQuery = '';
     public $rowCount = false;
 
+    /**
+     * Конструктор класса
+     * @param string $message Текстовое сообщение об ошибке
+     * @param PDOStatement $stmt Подготовленное выражение, которое, вероятно, вызвало исключение
+     */
     public function __construct($message, PDOStatement $stmt = null){
         parent::__construct($message);
         if (func_num_args() > 1 && ($stmt instanceof PDOStatement)){
@@ -69,12 +74,8 @@ class DbException extends Exception {
  * @see https://github.com/f3ath/LazyPDO/
  */
 class Db {
-    # Статические свойства
-    /** Список экземпляров класса */
-    protected static $_instances = [];
-    /** Индекс главного экземпляра класса в списке экземпляров */
-    protected static $_mainInstanceIndex = null;
-
+    # Подключаем трейты
+    use instances; # Работа с инстансами
 
     # Открытые данные
     /** Дескриптор PDO */
@@ -82,16 +83,14 @@ class Db {
 
 
     # Закрытые данные
-    /** Индекс экземпляра класса */
-    protected $_instanceIndex  = null;
-    # Состояние объекта
     /** Текст последнего запроса к БД */
-    protected $lastQuery = '';
-
-
-    # Параметры
+    protected $_lastQuery = '';
     /** Флаг логгирования */
-    protected $_logging      = false;
+    protected $_logging = false;
+    /** Строка подключения */
+    protected $_dsn = false;
+    /** Пользователь БД */
+    protected $_userName = false;
 
 
     # Сообщения класса
@@ -132,10 +131,12 @@ class Db {
             PDO::ATTR_CASE               => PDO::CASE_LOWER,
         ]
     ){
-        $this->lastQuery = 'CONNECT';
+        $this->_lastQuery = 'CONNECT';
         $this->_logging      = CONFIG::DB_DEBUG;
         $this->_logFile      = CONFIG::DB_LOG_FILE;
         $this->_errorLogFile = CONFIG::DB_ERROR_LOG_FILE;
+        $this->_dsn = $dsn;
+        $this->_userName = $userName;
         $this->db = new PDO($dsn, $userName, $userPass, $options);
         $this->instanceIndex(count(self::$_instances));
         if ($this->logging()){
@@ -145,7 +146,7 @@ class Db {
 
 
 
-    /** 
+    /**
      * Логгирование внутреннего исключения
      * @param Exception $ex Объект исключения
      * @param string $textMessage Текствое сообщение напрямую с места перехвата исключения
@@ -235,7 +236,7 @@ class Db {
 
     /** Закрытие коннекта */
     public function close(){
-        $this->lastQuery = 'CLOSE';
+        $this->_lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
         if ($this->logging()){
             $this->log('DB_CLOSED');
@@ -260,7 +261,7 @@ class Db {
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
     public function query($query, $fetchType = null){
-        $this->lastQuery = $query;
+        $this->_lastQuery = $query;
         $numArgs = func_num_args();
 
         if ($numArgs == 1){
@@ -354,7 +355,7 @@ class Db {
      */
     public function exec($statement){
         $statement = $this->quote($statement);
-        $this->lastQuery = $statement;
+        $this->_lastQuery = $statement;
         $result = $this->db->exec($statement);
         if ($this->logging()){
             $this->log($statement, $result);
@@ -405,12 +406,12 @@ class Db {
      * @throws PDOException
      */
     public function stmtPrepare($statement , $driverOptions = []){
-        $this->lastQuery = [
+        $this->_lastQuery = [
             'PREPARE',
             $statement
         ];
         if (is_array($driverOptions) && count($driverOptions) > 0){
-            $this->lastQuery[] = Log::printObject($driverOptions);
+            $this->_lastQuery[] = Log::printObject($driverOptions);
         }
         return $this->db->prepare($statement, $driverOptions);
     }
@@ -426,13 +427,13 @@ class Db {
      * @throws PDOException|DbException
      */
     public function stmtExecute($statement , $inputParameters = []){
-        $this->lastQuery = ['EXEC'];
+        $this->_lastQuery = ['EXEC'];
         if ($statement instanceof PDOStatement){
-            $this->lastQuery[] = $statement->queryString;
+            $this->_lastQuery[] = $statement->queryString;
 
         // Если на входе строка, пробуем подготовить из неё выражение и выполнить
         }else if (is_string($statement)){
-            $this->lastQuery[] = $statement;
+            $this->_lastQuery[] = $statement;
             $statement = $this->stmtPrepare($statement);
 
         }else{
@@ -447,7 +448,7 @@ class Db {
             foreach ($inputParameters as $key => $value){
                 $inputParameters[$key] = $this->quote($value);
             }
-            $this->lastQuery[] = Log::printObject($inputParameters);
+            $this->_lastQuery[] = Log::printObject($inputParameters);
         }
 
         return $statement->execute($statement, $inputParameters);
@@ -584,10 +585,16 @@ class Db {
 
     /** Возвращает текст последнего запроса */
     public function getLastQuery(){
-        return $this->lastQuery;
+        return $this->_lastQuery;
     }
 
-
+    /**
+     * Получение списка доступных драйверов для различных СУБД
+     * @return array
+     */
+    public static function getAvailableDrivers(){
+        return PDO::getAvailableDrivers();
+    }
 
     /**
      * Установка одного атрибута PDO
@@ -622,102 +629,6 @@ class Db {
 
 
 
-# -----------------------------------------------       Работа с инстансами      ------------------------------------------------------ #
-
-    /** @todo Перевести инстансы в отдельный трейт */
-
-    /** 
-     * Возвращает один экземпляр класса из списка классов - аналог метода getInstance()
-     * @param string $instanceIndex,.. Индекс экземпляр класса в списке классов
-     * @return mixed Инстанс с указанным индексом
-     */
-    public static function instance($instanceIndex = null){
-        return $instanceIndex === null ? self::getMainInstance() : self::getInstance($instanceIndex);
-    }
-
-    /**
-     * Получение списка экземпляров класса или одного его элемента
-     * @param string $index,.. Индекс инстанса
-     * @return mixed Инстанс указанной БД, или весь массив
-     */
-    public static function getInstance($index = null){
-        return $index === null ? self::$_instances : (isset(self::$_instances[$index]) ? self::$_instances[$index] : null);
-    }
-
-    /**
-     * Возвращает главный эземпляр класса из списка классов
-     * @return mixed Главный инстанс класса
-     */
-    public static function getMainInstance(){
-        return self::getInstance(self::mainInstanceIndex());
-    }
-
-    /**
-     * Установка или получение индекса главного экземпляра класса
-     * @param string $index Индекс инстанса
-     * @return string Индекс главного инстанса класса, или true в случае успешной установки
-     * @throws DbException
-     */
-    public static function mainInstanceIndex($index = null){
-        if ($index === null){
-            return self::$_mainInstanceIndex;
-        }else {
-            if (!(is_string($index) || is_numeric($index)) || !in_array($index, self::$_instances)) {
-                self::throwException(self::E_WRONG_PARAMETERS);
-            }
-            self::$_mainInstanceIndex = $index;
-            return true;
-        }
-    }
-
-    /**
-     * Очищение инстанса
-     * @param string $index Индекс инстанса
-     * @return true
-     */
-    public static function clearInstance($index){
-        if ($index == self::mainInstanceIndex()){
-            self::mainInstanceIndex(null);
-        }
-        unset(self::$_instances[$index]);
-        return true;
-    }
-
-    /**
-     * Получение списка доступных драйверов для различных СУБД
-     * @return array
-     */
-    public static function getAvailableDrivers(){
-        return PDO::getAvailableDrivers();
-    }
-
-    /**
-     * Устанавливает, или получает индекс объекта в списке экземпляров класса
-     * @param string,.. $index Индекс инстанса
-     * @return string Запрашиваемый индекс, или true в случае успешной установки этого индекса
-     */
-    public function instanceIndex($index = null){
-        if (func_num_args() == 0){
-            return $this->_instanceIndex;
-        }else {
-            self::$_instances[$index] = &$this;
-            unset(self::$_instances[$this->_instanceIndex]);
-            $this->_instanceIndex = $index;
-            return true;
-        }
-    }
-
-    /** Устанавливает данный экземпляр класса как главный */
-    public function instanceSetMain(){
-        self::$_mainInstanceIndex = $this->instanceIndex();
-        return true;
-    }
-
-
-
-
-
-
 # -----------------------------------------------   Скрытые методы класса   -------------------------------------------------- #
 
     /**
@@ -733,7 +644,7 @@ class Db {
             case 'DELETE': return 3;
             case 'CALL'  : return 4;
             case 'SELECT': return 5;
-            default: 
+            default:
                 // Пытаемся определить тип запроса по первому слову текста запроса, если уже не делаем это
                 return $firstCall ? self::_getIntQueryType(strtoupper(strtok($text, ' ')), false) : false;
         }
@@ -865,7 +776,6 @@ class Db {
         if (($target !== null) && !is_numeric($target)){
             throw new DbException(self::E_WRONG_PARAMETERS);
         }
-        /** @todo Реализовать правильную проверку target в зависимости от типа запроса и прочих входных данных */
         $action = $this->quote($action);
         $sourceName = $this->quote($sourceName);
         $sequredParams = array();

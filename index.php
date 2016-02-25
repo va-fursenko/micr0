@@ -1,9 +1,9 @@
 <?php
 
 // Подключаем конфиг
-require_once(__DIR__ . '/config.php');
-require_once(__DIR__ . '/lib/class.Log.php');
-require_once(__DIR__ . '/lib/class.Db.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'config.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'lib/class.Log.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'lib/class.Db.php');
 
 $content = 'Hello';
 
@@ -20,7 +20,7 @@ try {
 
     //$content = $db->getServerInfo();
    // $content = $db->getAttribute(PDO::ATTR_DRIVER_NAME  );
-
+    echo Log::printObject(Db::getInstance(), true);
 
 }catch (DbException $ex){
     $db->logException($ex);
