@@ -41,7 +41,7 @@ class CONFIG{
     /** @const Кодировка страниц */
     const PAGE_CHARSET = 'UTF-8';
     /** @const Общий заголовок страниц */
-    const PAGE_TITLE = 'GET REPORT';
+    const PAGE_TITLE = 'MICR0';
 
 
     # Логи
@@ -68,7 +68,7 @@ class CONFIG{
     /** @const Пользователь БД */
     const DB_USER = 'root';
     /** @const Пароль БД @deprecated Подразумевается, что не используется в продакшне */
-    const DB_PASSWORD = 'root';
+    const DB_PASSWORD = '';
     /** @const Кодировка БД */
     const DB_CHARSET = 'utf8';
     /** @const Лог БД */

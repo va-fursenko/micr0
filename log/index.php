@@ -1,15 +1,25 @@
+<?php 
+	require_once('..' . DIRECTORY_SEPARATOR . 'config.php'); 
+	require_once('..' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Filter.php'); 
+	require_once('..' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Log.php'); 
+?>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><?= CONFIG::PAGE_TITLE ?></title>
+    <meta charset="<?= CONFIG::PAGE_CHARSET ?>">
+</head>
+
+<body>
 <?php
 
-include_once('../config.php');
-include_once('../lib/class.Filter.php');
-include_once('../lib/class.Log.php');
-
-if (isset($_GET['action']) && ($_GET['action'] == 'clear')){
-    fclose(fopen('error.log', 'w'));
-    fclose(fopen('db.error.log', 'w'));
-    fclose(fopen('db.log', 'w'));
-    header('Location: index.php');
-}
+	if (isset($_GET['action']) && ($_GET['action'] == 'clear')){
+		fclose(fopen('error.log', 'w'));
+		fclose(fopen('db.error.log', 'w'));
+		fclose(fopen('db.log', 'w'));
+		header('Location: index.php');
+	}
 
 ?>
 <form name="test" method="post" action="index.php?action=clear">
@@ -27,3 +37,8 @@ if (isset($_GET['action']) && ($_GET['action'] == 'clear')){
 	print Log::showLogFile('db.log');
 
 ?>
+</body>
+
+</html>
+
+

@@ -200,7 +200,7 @@ class Log {
      */
     public static function showLogFile($fileName, $descOrder = true) {
         if (!is_readable(CONFIG::LOG_DIR . $fileName)) {
-            throw new Ex(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
+            throw new Exception(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
         }
         $content = explode(self::MESSAGE_SEPARATOR, file_get_contents(CONFIG::LOG_DIR . $fileName));
         $result = '';
