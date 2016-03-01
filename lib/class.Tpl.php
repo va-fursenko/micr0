@@ -8,70 +8,96 @@
  * Прочие фрагменты текста - {имя фрагмента}
  */
 
+
+/** Собственное исключение класса */
+class TplException extends BaseException{
+
+    /**
+     * Строковое представление объекта
+     * @return string
+     */
+    public function __toString() {
+        $result = [__CLASS__ . ": [{$this->code}]: {$this->message}"];
+        $prev = $this;
+        while ($prev = $prev->getPrevious()){
+            $result[] = $prev->__toString();
+        }
+        return Log::printObject($result);
+    }
+}
+
+
+
+
 /**
- * Клсасс шаблонизатора
- * 
- * @author    viktor
- * @version   2.3.3
- * @copyright viktor
+ * Класс шаблонизатора
+ * @author      viktor
+ * @package     Micr0
+ * @version     2.4
+ * @copyright   viktor
  */
 class Tpl {
-    /**
-     * Таблица БД, в которой хранятся темплейты
-     * @property TEMPLATES_DB_TABLE
-     */
-    const TEMPLATES_DB_TABLE = '`interface_templates`';
 
-    protected $fileName;  // Имя файла с темплейтом для работы в отладочном режиме
-    protected $db;        // Класс БД с темплейтами для работы в эксплуатационном режиме
-    protected $debugging; // Режим работы класса - отладка(true) или эксплуатация(false)
-    protected $usingDb;   // Источник тесплейтов - БД или файл (bool)
-    protected $language;  // Языковой массив для поддержки мультиязычности
-    // Свойства для работы с файлами темплейтов
-    protected $content;   // Последний считаный файл
+    # Скрытые свойства класса
+    protected $fileName;        # Имя файла с темплейтом для работы в отладочном режиме
+    protected $db;              # Класс БД с темплейтами для работы в эксплуатационном режиме
+    protected $debugMode;       # Режим работы класса - отладка(true) или эксплуатация(false)
+    protected $useDb;           # Источник тесплейтов - БД или файл (bool)
+    protected $language;        # Языковой массив для поддержки мультиязычности
 
-// Языковые константы класса
+
+    # Свойства для работы с файлами темплейтов
+    protected $content;         # Последний считаный файл
+
+
+    # Языковые константы класса
     const L_TPL_FILE_UNREACHABLE = 'Файл шаблона недоступен';
     const L_TPL_BLOCK_UNKNOWN = 'Шаблон не найден';
     const L_TPL_DB_UNREACHABLE = 'База данных с темплейтами недоступна';
 
-// Методы класса
-    /** Создание объекта */
-    function __construct($fileOrDb, $usingDb = false, $language = TPL_DEFAULT_LANGUAGE) {
-        $this->setDebugging(TPL_DEBUG);
-        $this->setUsingDb($usingDb);
+
+
+    /**
+     * Создание объекта
+     * @param string|Db $target Полное имя файла, или дескриптор БД
+     * @param bool $useDb Флаг использования БД для чтения шаблонов
+     * @param string $language Язык системы
+     * @throws TplException
+     */
+    function __construct($target, $useDb = CONFIG::TPL_USE_DB, $language = CONFIG::TPL_DEFAULT_LANGUAGE) {
+        $this->setDebug(CONFIG::TPL_DEBUG);
+        $this->setUseDb($useDb);
         $this->content = '';
-        if ($this->usingDb()) {
-            $this->setDb($fileOrDb);
+        if ($this->useDb()){
+            $this->setDb($target);
             // Проверка дескриптора на корректность
             if (!method_exists($this->getDb(), 'isConnected') || !$this->getDb()->isConnected()) {
-                trigger_error(self::L_TPL_DB_UNREACHABLE, E_USER_WARNING);
+                throw new TplException(self::L_TPL_DB_UNREACHABLE, E_USER_WARNING);
             }
-        } else {
-            if (($fileOrDb != '') && (!is_readable($fileOrDb))) {
-                trigger_error(self::L_TPL_FILE_UNREACHABLE . ' - ' . $fileOrDb, E_USER_WARNING);
+        }else{
+            if (($target != '') && (!is_readable($target))) {
+                throw new TplException(self::L_TPL_FILE_UNREACHABLE . ' - ' . $target, E_USER_WARNING);
             }
-            $this->setFileName($fileOrDb);
-            $this->loadContent($fileOrDb);
+            $this->setFileName($target);
+            $this->loadContent($target);
             $this->setDb(null);
         }
-        if ($language !== null) {
-            $this->setLanguage($language);
-        } else {
-            if (defined('TPL_USER_LANGUAGE')) {
-                $this->setLanguage(TPL_USER_LANGUAGE);
-            } else {
-                $this->setLanguage(TPL_DEFAULT_LANGUAGE);
-            }
-        }
+        $this->setLanguage($language);
     }
 
-    /** Загрузка содержимого файла */
+
+
+    /**
+     * Загрузка содержимого файла
+     * @param string $fileName Имя файла для загрузки данных
+     * @return bool
+     * @throws TplException
+     */
     function loadContent($fileName = null) {
-        if (!$this->usingDb()) {
+        if (!$this->useDb()) {
             if ($fileName != '') {
                 if (!is_readable($fileName)) {
-                    trigger_error(self::L_TPL_FILE_UNREACHABLE . ' - ' . $fileName, E_USER_WARNING);
+                    throw new TplException(self::L_TPL_FILE_UNREACHABLE . ' - ' . $fileName, E_USER_WARNING);
                 }
                 $this->setFileName($fileName);
             }
@@ -80,6 +106,8 @@ class Tpl {
         }
         return false;
     }
+
+
 
     /** Получение подстроки $str, заключенной между $s_marker и $f_marker */
     private function getStrBetween($str, $sMarker, $fMarker, $initOffset = 0) {
@@ -94,28 +122,32 @@ class Tpl {
         return $result;
     }
 
+
+
     /** Получение из файла или БД заданного темплэйта */
     function getBlock($name, $style = '') {
         $result = '';
-        if ($this->usingDb()) {
+        if ($this->useDb()) {
             $st = $style != '' ? " AND `style` = '" . Db::quote($style)."'" : '';
             $result = $this->getDb()->scalarQuery(
                 "SELECT `body` FROM " . self::TEMPLATES_DB_TABLE . " WHERE `name` = '" . Db::quote($name) . "'" . $st,
                 ''
             );
-            if (($result == '') && $this->getDebugging()){
+            if (($result == '') && $this->isDebug()){
                 trigger_error(self::L_TPL_BLOCK_UNKNOWN . ' - ' . $name, E_USER_WARNING);
             }
         } else {
             $result = $this->getStrBetween(
                     $this->content, "[\$$name]" . ($style != '' ? "[$style]" : ''), "[/\$$name]" . ($style != '' ? "[$style]" : '')
             );
-            if (($result == '') && $this->getDebugging()) {
+            if (($result == '') && $this->isDebug()) {
                 trigger_error(self::L_TPL_BLOCK_UNKNOWN . ' - ' . $name, E_USER_WARNING);
             }
         }
         return $result;
     }
+
+
 
     /** Заполнение контейнера, заданного строкой */
     private function parseStrBlock($content, $strContainer) {
@@ -133,10 +165,14 @@ class Tpl {
         return $strContainer;
     }
 
+
+
     /** Заполнение контейнера, заданного именем секции */
     function parseBlock($content, $containerName) {
         return $this->parseStrBlock($content, $this->getBlock($containerName));
     }
+
+
 
     /** Обработка файла целиком */
     function parseFile($content, $fileName = null) {
@@ -149,6 +185,8 @@ class Tpl {
                 file_get_contents($fileName === null ? $this->getFileName() : $fileName)
         );
     }
+
+
 
     /** Заполнение одного выбранного блока из некэшированного файла */
     function parseBlockFromFile($content, $fileName, $blockName, $style = '') {
@@ -166,20 +204,23 @@ class Tpl {
         return $result;
     }
 
-//------------------------------------------- Геттеры ----------------------------------------------------//
+
+
+    # ------------------------------------------- Геттеры ---------------------------------------------------- #
+
     /** Имя файла темплейта */
     function getFileName() {
         return $this->fileName;
     }
 
     /** Режим работы */
-    function getDebugging() {
-        return $this->debugging;
+    function isDebug() {
+        return $this->debugMode;
     }
 
     /** Режим чтения темплейтов - из БД или файла */
-    function usingDb() {
-        return $this->usingDb;
+    function useDb() {
+        return $this->useDb;
     }
     
     /** Язык темплейтов */
@@ -191,22 +232,23 @@ class Tpl {
     function getDb(){
         return $this->db;
     }
-    
 
-//------------------------------------------- Сеттеры ----------------------------------------------------//
+
+
+    # ------------------------------------------- Сеттеры ---------------------------------------------------- #
     /** Устанавливает имя файла */
     function setFileName($fileName) {
         $this->fileName = $fileName;
     }
 
     /** Устанавливает режим работы */
-    function setDebugging($debugMode) {
-        $this->debugging = $debugMode;
+    function setDebug($debugMode) {
+        $this->debugMode = $debugMode;
     }
 
     /** Устанавливает режим чтения темплейтов - из БД, или файла */
-    function setUsingDb($usingDb) {
-        return $this->usingDb = $usingDb;
+    function setUseDb($useDb) {
+        return $this->useDb = $useDb;
     }
         
     /** Устанавливает язык темплейтов */
@@ -221,4 +263,4 @@ class Tpl {
 
 }
 
-?>
+

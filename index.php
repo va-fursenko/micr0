@@ -1,9 +1,9 @@
 <?php
 
 // Подключаем конфиг
-require_once(__DIR__ . DIRECTORY_SEPARATOR . 'config.php');
-require_once(__DIR__ . DIRECTORY_SEPARATOR . 'lib/class.Log.php');
-require_once(__DIR__ . DIRECTORY_SEPARATOR . 'lib/class.Db.php');
+require_once(__DIR__ . '/config.php');
+require_once(CONFIG::ROOT . '/lib/inc.base.php');
+
 
 $content = 'Hello';
 
@@ -23,7 +23,7 @@ try {
     echo Log::printObject(Db::getInstance(), true);
 
 }catch (DbException $ex){
-    $db->logException($ex);
+    $ex->toLog('Что-то сломалось при подключении');
 }
 
 
@@ -31,9 +31,13 @@ try {
 
 
 
+/*
+function fileExt($filename){
+    $result = explode('.', $filename);
+    return is_array($result) && count($result) > 1 ? end($result) : '';
+}
+*/
+
 
 // Рисуем шаблон
-require_once(CONFIG::TPL_DIR . 'layout.main.php');
-
-//preg_match_all('/host=([a-zA-Z0-9._]*)/', 'mysql:host=127.0.0.1;port=6666;password=passw;charset=utf8;username=root', $matches);
-//print_r($matches);
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::TPL_DIR . '/layout.main.php');

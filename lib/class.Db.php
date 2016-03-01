@@ -19,40 +19,113 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.instances.php");
 
 
 
+
 /**
  * Класс исключения для объектной работы с БД
  * @see http://php.net/manual/ru/class.pdoexception.php PDOException
  */
-class DbException extends Exception {
+class DbException extends BaseException{
 
-    public $errorInfo = '';
-    public $lastQuery = '';
-    public $rowCount = false;
+    /** @property Db Дескриптор соединения, если передана в конструктор */
+    public $db            = null;
+    /** @property string Информация об ошибке */
+    public $errorInfo     = '';
+    /** @property PDOStatement Последнее подготовленное выражение, если передано в конструктор */
+    public $lastStatement = null;
+    /** @property string Текст последнего запроса */
+    public $lastQuery     = '';
+    /** @property int Число строк, затронутых последним запросом */
+    public $rowCount      = '';
+
+
 
     /**
      * Конструктор класса
      * @param string $message Текстовое сообщение об ошибке
-     * @param PDOStatement $stmt Подготовленное выражение, которое, вероятно, вызвало исключение
+     * @param string|PDOStatement|Db $obj Подготовленное выражение, которое, вероятно, вызвало исключение, объект БД, или просто код ошибки
+     * @param Exception $prev Предыдущее исключение
      */
-    public function __construct($message, PDOStatement $stmt = null){
-        parent::__construct($message);
-        if (func_num_args() > 1 && ($stmt instanceof PDOStatement)){
-            $this->errorInfo = $stmt->errorInfo();
-            $this->errorInfo = $this->errorInfo[1] !== null
-                ? "[{$this->errorInfo[0]}] {$this->errorInfo[1]}:  {$this->errorInfo[2]}"
-                : $this->errorInfo[0];
-            $this->lastQuery = $stmt->queryString;
-            $this->rowCount = $stmt->rowCount();
+    public function __construct($message, $obj = null, Exception $prev = null){
+        $numArgs = func_num_args();
+        if ($numArgs == 1){
+            parent::__construct($message);
+
+        }else if ($numArgs > 1){
+            if ($obj instanceof PDOStatement){
+                $this->lastStatement = $obj; 
+                $this->errorInfo = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
+                $this->lastQuery = $this->lastStatement->queryString;
+                $this->rowCount = $this->lastStatement->rowCount();
+                parent::__construct($message, $this->lastStatement->errorCode(), $prev);
+
+            }else if ($obj instanceof Db){
+                $this->db = $obj;
+                $this->errorInfo = $this->db->getLastError();
+                $this->lastQuery = $this->db->getLastQuery();
+                parent::__construct($message, $this->db->getErrorCode(), $prev);
+
+            }else{
+                parent::__construct($message, Log::showObject($obj), $prev);
+            }
         }
     }
 
+
+
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ ЛОГИН И ПАРОЛЬ!      -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /**
-     * Строковое представление объекта
-     * @return string
+     * Логгирование внутреннего исключения
+     * @param string|array $action Текствое сообщение напрямую с места перехвата исключения
+     * @return bool
      */
-    public function __toString() {
-        return __CLASS__ . ": [{$this->code}]: {$this->message}";
+    public function toLog($action = ''){
+        $mArr = array(
+            Log::A_TYPE_NAME             => Log::T_DB_EXCEPTION,
+            Log::A_SESSION_ID            => session_id(),
+            Log::A_DB_EXCEPTION_MESSAGE  => $this->toString(),
+            Log::A_DB_ROWS_AFFECTED      => $this->rowCount,
+            Log::A_EXCEPTION_MESSAGE     => $this->errorInfo,
+            Log::A_DB_LAST_QUERY         => $this->lastQuery,
+            Log::A_PHP_FILE_NAME         => $this->getFile(),
+            Log::A_PHP_FILE_LINE         => $this->getLine(),
+            Log::A_PHP_TRACE             => serialize($this->getTrace()),
+            Log::A_PHP_ERROR_CODE        => $this->getCode(),
+            Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT       => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS   => $_SERVER['REMOTE_ADDR'],
+        );
+
+        // Из БД или подготовленного выражения тянем все интересные данные
+        if ($this->db instanceof Db){
+            $mArr[Log::A_DB_LAST_ERROR]  = $this->db->getLastError();
+            $mArr[Log::A_DB_SERVER_INFO] = $this->db->getServerInfo();
+
+        }else if ($this->lastStatement instanceof PDOStatement){
+            $mArr[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
+            $mArr[Log::A_DB_ROWS_AFFECTED] = $this->lastStatement->rowCount();
+            $mArr[Log::A_DB_LAST_QUERY] = [
+                'Ex'    => $mArr[Log::A_DB_LAST_QUERY],
+                'debug' => Db::debugDumpParams($this->lastStatement),
+            ];
+        }
+
+        // Строковый параметр пишем, как сообщение, массив добавляем
+        if (is_string($action) && $action !== ''){
+            $mArr[Log::A_TEXT_MESSAGE] = $action;
+        }else if (is_array($action) && $action !== []){
+            $mArr = $mArr + $action;
+        }
+
+        return Log::save(
+            $mArr,
+            CONFIG::DB_ERROR_LOG_FILE
+        );
     }
+
 }
 
 
@@ -106,7 +179,10 @@ class Db {
     const E_ERROR_OCCURRED                = 'Произошла ошибка';
 
 
-
+    # Константы класса
+    const ATTR_LOGGING            = 'DB_ATTR_LOGGING';
+    const ATTR_LOG_FILE           = 'DB_ATTR_LOG_FILE';
+    const ATTR_ERROR_LOG_FILE     = 'DB_ATTR_ERROR_LOG_FILE';
 
 
 
@@ -118,7 +194,7 @@ class Db {
      * @param string $userPass  Пароль
      * @param array  $options   Массив опций подключения
      * @return Db
-     * @throws PDOException
+     * @throws DbException
      *
      * @see http://php.net/manual/ru/pdo.constants.php Предопределённые константы, в том числе, используемые при подключении
      * @see http://php-zametki.ru/php-prodvinutym/58-pdo-konstanty-atributy.html разжёвано по-русски
@@ -131,102 +207,61 @@ class Db {
             PDO::ATTR_CASE               => PDO::CASE_LOWER,
         ]
     ){
-        $this->_lastQuery = 'CONNECT';
-        $this->_logging      = CONFIG::DB_DEBUG;
-        $this->_logFile      = CONFIG::DB_LOG_FILE;
-        $this->_errorLogFile = CONFIG::DB_ERROR_LOG_FILE;
+        $this->_lastQuery    = 'CONNECT';
+        $this->_logging      = isset($options[self::ATTR_LOGGING]) ? $options[self::ATTR_LOGGING] : CONFIG::DB_DEBUG;
+        $this->_logFile      = isset($options[self::ATTR_LOG_FILE]) ? $options[self::ATTR_LOG_FILE] : CONFIG::DB_LOG_FILE;
+        $this->_errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
         $this->_dsn = $dsn;
         $this->_userName = $userName;
-        $this->db = new PDO($dsn, $userName, $userPass, $options);
+        // Пробуем подключиться, переделывая все исключения в DbException
+        try {
+            $this->db = new PDO($dsn, $userName, $userPass, $options);
+        }catch (Exception $e){
+            throw new DbException($e->getMessage(), $e->getCode(), $e);
+        }
         $this->instanceIndex(count(self::$_instances));
         if ($this->logging()){
-            $this->log('DB_CONNECTED');
+            $this->log('db_connect');
         }
-    }
-
-
-
-    /**
-     * Логгирование внутреннего исключения
-     * @param Exception $ex Объект исключения
-     * @param string $textMessage Текствое сообщение напрямую с места перехвата исключения
-     * @return bool
-     */
-    public function logException($ex, $textMessage = ''){
-        $messageArray = array(
-            'type_name'             => 'db_exception',
-            'session_id'            => session_id(),
-            'db_exception_message'  => $ex->__toString(),
-            'db_last_query'         => $this->getLastQuery(),
-            'db_last_error'         => $this->getLastError(),
-            'db_ping'               => $this->getServerInfo(),
-            'php_file_name'         => $ex->getFile(),
-            'php_file_line'         => $ex->getLine(),
-            'php_trace'             => serialize($ex->getTrace()),
-            'php_error_code'        => $ex->getCode(),
-            'http_request_method'   => $_SERVER['REQUEST_METHOD'],
-            'http_server_name'      => $_SERVER['SERVER_NAME'],
-            'http_request_uri'      => $_SERVER['REQUEST_URI'],
-            'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
-            'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
-        );
-        if (is_string($textMessage) && $textMessage !== ''){
-            $messageArray['text_message'] = $textMessage;
-        }
-        // Если исключение принадлежит к нашему, расширенному, выбираем из него дополнительные данные
-        if ($ex instanceof DbException){
-            $messageArray['db_rows_affected'] = $ex->rowCount;
-            $messageArray['exception_message'] = $ex->errorInfo;
-            $messageArray['db_last_query'] = [ // Попробуем посмотреть, не будет ли здесь расхождений
-                'db' => $messageArray['db_last_query'],
-                'ex' => $ex->lastQuery,
-            ];
-        }
-        return Log::write(
-            $messageArray,
-            CONFIG::DB_ERROR_LOG_FILE
-        );
     }
 
 
 
     /**
      * Логгирование результата и текста запроса
-     * @param mixed $action Строковый алиас действия
-     * @param mixed $result Результат запроса
+     * @param mixed $action Строковый алиас действия или объект результата
      * @return bool
      */
-    public function log($action = null, $result = null){
+    public function log($action = null){
         $arr = [
-            'type_name'             => 'db_query',
-            'session_id'            => session_id(),
-            'db_last_query'         => $this->getLastQuery(),
-            'http_request_method'   => $_SERVER['REQUEST_METHOD'],
-            'http_server_name'      => $_SERVER['SERVER_NAME'],
-            'http_request_uri'      => $_SERVER['REQUEST_URI'],
-            'http_user_agent'       => $_SERVER['HTTP_USER_AGENT'],
-            'http_remote_addr'      => $_SERVER['REMOTE_ADDR']
+            Log::A_TYPE_NAME             => Log::T_DB_QUERY,
+            Log::A_SESSION_ID            => session_id(),
+            Log::A_DB_LAST_QUERY         => $this->getLastQuery(),
+            Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT       => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS   => $_SERVER['REMOTE_ADDR']
         ];
-        // Если среди переданных параметров есть выражение PDOStatement, выбираем из него знакомые поля
-        $stmt = $action instanceof PDOStatement
-            ? $action
-            : $result instanceof PDOStatement ? $result : null;
-        if ($stmt){
-            $arr['db_rows_affected'] = $stmt->rowCount();
-            $arr['db_last_query'] = [          // Попробуем посмотреть, не будет ли здесь расхождений
-                'db'   => $arr['db_last_query'],
-                'stmt' => $stmt->queryString,
-            ];
-            $arr['db_status'] = $this->getLastError($stmt);
+
+        // Если передано выражение PDOStatement, выбираем из него знакомые поля
+        if ($action instanceof PDOStatement){
+            $arr[Log::A_DB_ROWS_AFFECTED] = $action->rowCount();
+            $arr[Log::A_DB_STATUS] = $this->getLastError($action);
+            // Попробуем посмотреть, не будет ли здесь расхождений
+            if ($arr[Log::A_DB_LAST_QUERY] != $action->queryString) {
+                $arr[Log::A_DB_LAST_QUERY] = [
+                    'db' => $arr[Log::A_DB_LAST_QUERY],
+                    'stmt' => $action->queryString,
+                ];
+            }
+
+        }else if (is_string($action)){
+            $arr[Log::A_DB_QUERY_TYPE] = $action;
         }
-        // Дописываем строки
-        if (is_string($action)){
-            $arr['db_query_type'] = $action;
-        }else if (is_string($result)){
-            $arr['db_query_type'] = $result;
-        }
+
         // Пишем полученное в лог
-        return Log::write(
+        return Log::save(
             $arr,
             CONFIG::DB_LOG_FILE
         );
@@ -239,7 +274,7 @@ class Db {
         $this->_lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
         if ($this->logging()){
-            $this->log('DB_CLOSED');
+            $this->log('db_close');
         }
         $this->db = null;
     }
@@ -267,7 +302,6 @@ class Db {
         if ($numArgs == 1){
             $result = $this->db->query($query);
 
-        /** @todo Тут не хватает всех возможных констант */
         }else if ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_LAZY, PDO::FETCH_COLUMN, PDO::FETCH_UNIQUE, PDO::FETCH_KEY_PAIR, PDO::FETCH_NAMED, PDO::FETCH_ASSOC, PDO::FETCH_OBJ, PDO::FETCH_BOTH, PDO::FETCH_NUM])){
             $result = $this->db->query($query, $fetchType);
 
@@ -283,7 +317,7 @@ class Db {
         }
 
         if ($this->logging()){
-            $this->log($query, $result);
+            $this->log($result);
         }
 
         if ($result === false){
@@ -358,7 +392,7 @@ class Db {
         $this->_lastQuery = $statement;
         $result = $this->db->exec($statement);
         if ($this->logging()){
-            $this->log($statement, $result);
+            $this->log($result);
         }
         if ($result === false){
             throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
@@ -456,22 +490,6 @@ class Db {
 
 
 
-    /**
-     * Возвращение в текстовом виде информации о подготовленном выражении
-     * @param PDOStatement $stmt Подготовленное выражение
-     * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
-     * @return string
-     */
-    public function debugDumpParams(PDOStatement $stmt, $withPre = false){
-        ob_start();
-        $stmt->debugDumpParams();
-        $result = ob_get_contents();
-        ob_end_clean();
-        return $withPre ? '<pre>' . $result . '</pre>' : $result;
-    }
-
-
-
 
 
 
@@ -550,11 +568,7 @@ class Db {
         }else{
             $e = $this->db->errorInfo();
         }
-        return is_array($e) && count($e) == 3
-            ? $e[1] !== null
-                ? "[{$e[0]}] {$e[1]}: {$e[2]}"
-                : $e[0]
-            : false;
+        return self::formatLastErrorMessage($e);
     }
 
     /**
@@ -632,12 +646,24 @@ class Db {
 # -----------------------------------------------   Скрытые методы класса   -------------------------------------------------- #
 
     /**
+     * Возвращает строку со знаками ? для выражений вида ... IN (?, ?,...)
+     * @param array $params
+     * @return string
+     * @see http://phpfaq.ru/pdo#fetchcolumn - внизу страницы
+     */
+    public static function strIN(Array $params){
+        return str_repeat('?,', count($params) - 1) . '?';
+    }
+
+
+
+    /**
      * Определение в условном числе типа запроса по переданному слову или первому из запроса
      * @param string $text Первое слово запрса
      * @param bool $firstCall Флаг того, что фунцкия вызвана не рекурсивно
      * @return int
      */
-    static protected function _getIntQueryType($text, $firstCall = true){
+    protected static function _getIntQueryType($text, $firstCall = true){
         switch ($text){
             case 'INSERT': return 1;
             case 'UPDATE': return 2;
@@ -669,13 +695,35 @@ class Db {
 
 
     /**
-     * Возвращает строку со знаками ? для выражений вида ... IN (?, ?,...)
-     * @param array $params
+     * Форматирование в строку массива с сообщением об ошибке
+     * @param array $errorMessage Результат метода lastError() PDOStatement, PDO, или Db
      * @return string
-     * @see http://phpfaq.ru/pdo#fetchcolumn - внизу страницы
+     * Открыта, чтобы использовать в классе исключения
      */
-    public static function strIN(Array $params){
-        return str_repeat('?,', count($params) - 1) . '?';
+    public static function formatLastErrorMessage($errorMessage){
+        return is_array($errorMessage) && count($errorMessage) == 3
+            ? isset($errorMessage[1]) && $errorMessage[1] !== null
+                ? "[{$errorMessage[0]}] {$errorMessage[1]}: " . isset($errorMessage[2]) && $errorMessage
+                    ? $errorMessage[2]
+                    : ''
+                : $errorMessage[0]
+            : false;
+    }
+
+
+
+    /**
+     * Возвращение в текстовом виде информации о подготовленном выражении
+     * @param PDOStatement $stmt Подготовленное выражение
+     * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
+     * @return string
+     */
+    public static function debugDumpParams(PDOStatement $stmt, $withPre = false){
+        ob_start();
+        $stmt->debugDumpParams();
+        $result = ob_get_contents();
+        ob_end_clean();
+        return $withPre ? '<pre>' . $result . '</pre>' : $result;
     }
 
 

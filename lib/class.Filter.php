@@ -27,6 +27,19 @@
  */
 class Filter {
 
+
+    /**
+     * Проверка первого параметра на принадлежность к типу, указанному во втором
+     * @param mixed $var Переменная для проверки
+     * @param mixed $type Тип данных
+     * @return bool
+     */
+    public static function is($var, $type){
+        return $var instanceof $type;
+    }
+
+
+
     /** 
      * Проверка целочисленного числа на попадание в заданный отрезок
      * @param int $argument Аргумент функции
@@ -62,6 +75,26 @@ class Filter {
         return false;
     }
 
+    /**
+     * Проверка одного параметра на строку
+     * @param string $argument Аргумент функции
+     * @return bool
+     */
+    public static function isString($argument) {
+        return is_string($argument);
+    }
+
+
+    /**
+     * Проверка одного параметра на логическое значение
+     * @param bool $argument Аргумент функции
+     * @return bool
+     */
+    public static function isBool($argument) {
+        return is_bool($argument);
+    }
+
+
     /** 
      * Проверка одного числа на натуральность 
      * @param int $argument Аргумент функции
@@ -82,7 +115,7 @@ class Filter {
 
     /** 
      * Проверка одного числа на вещественное число 
-     * @param int $argument Аргумент функции
+     * @param float $argument Аргумент функции
      * @return bool
      */
     public static function isNumeric($argument) {
@@ -469,6 +502,7 @@ class Filter {
     public static function trimString($str, $length, $strEnd = '..'){
         return mb_strimwidth($str, 0, $length, $strEnd, 'UTF8');
     }
+
 
 }
 

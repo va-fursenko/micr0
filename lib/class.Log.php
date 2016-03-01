@@ -15,6 +15,15 @@
  * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
+require_once('class.BaseException.php');
+require_once('class.Filter.php');
+
+
+
+/** Собственное исключение для класса */
+class LogException extends BaseException{
+
+}
 
 
 /**
@@ -26,85 +35,143 @@
 class Log {
     protected static $logDb = null;
 
+    # Типы записей
+    const T_EXCEPTION    = 'exception';
+    const T_DB_EXCEPTION = 'db_exception';
+    const T_DB_QUERY     = 'db_query';
+
+
+    # Доступные поля (атрибуты) отдельной записи лога
+    const A_DATETIME              = '';
+    const A_TYPE_NAME             = 'type_name';
+    const A_TEXT_MESSAGE          = 'text_message';
+    const A_DB_EXCEPTION_MESSAGE  = 'db_exception_message';
+    const A_DB_LAST_QUERY         = 'db_last_query';
+    const A_DB_QUERY_TYPE         = 'db_query_type';
+    const A_DB_ROWS_AFFECTED      = 'db_rows_affected';
+    const A_DB_USERNAME           = 'db_username';
+    const A_DB_NAME               = 'db_name';
+    const A_DB_HOST               = 'db_host';
+    const A_DB_PORT               = 'db_port';
+    const A_DB_ENCODING           = 'db_encoding';
+    const A_DB_SERVER_INFO        = 'db_server_info';
+    const A_DB_PING               = 'db_ping';
+    const A_DB_STATUS             = 'db_status';
+    const A_DB_RESULT             = 'db_result';
+    const A_DB_LAST_ERROR         = 'db_last_error';
+    const A_DB_CONNECT_ERROR      = 'db_connect_error';
+    const A_PHP_FILE_NAME         = 'php_file_name';
+    const A_PHP_FILE_LINE         = 'php_file_line';
+    const A_PHP_TRACE             = 'php_trace';
+    const A_PHP_ERROR_CODE        = 'php_error_code';
+    const A_HTTP_REQUEST_METHOD   = 'http_request_method';
+    const A_HTTP_SERVER_NAME      = 'http_server_name';
+    const A_HTTP_REQUEST_URI      = 'http_request_uri';
+    const A_HTTP_USER_AGENT       = 'http_user_agent';
+    const A_HTTP_REMOTE_ADDRESS   = 'http_remote_addr';
+    const A_EXCEPTION_MESSAGE     = 'exception_message';
+    const A_SESSION_ID            = 'session_id';
+    const A_SESSION_USER_ID       = 'session_user_id';
+
+
     # Языковые константы класса
     const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
     const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
     const L_LOG_EMPTY           = 'Файл лога пока пуст';
     const L_EMPTY_MESSAGE       = 'Запись лога пуста или имеет неправильный формат';
 
-    # Прочие константы
+    # Важные константы
     const MESSAGE_SEPARATOR = "\n\n\n\n";
-    const MESSAGE_HTML_SEPARATOR = '<br>';
+    const MESSAGE_HTML_SEPARATOR = '<br/><br/>';
 
 
 
     # Методы класса
+    /**
+     * Получение заголовков всех доступных полей (атрибутов) отдельной записи лога
+     * @return array
+     */
+    public static function attributeLabels(){
+        return [
+            self::A_DATETIME              => '',
+            self::A_TYPE_NAME             => 'Тип события',
+            self::A_TEXT_MESSAGE          => 'Ошибка',
+            self::A_DB_EXCEPTION_MESSAGE  => 'Сообщение СУБД',
+            self::A_DB_LAST_QUERY         => 'Предыдущий запрос',
+            self::A_DB_QUERY_TYPE         => 'Тип запроса',
+            self::A_DB_ROWS_AFFECTED      => 'Число затронутых строк',
+            self::A_DB_USERNAME           => 'Пользователь БД',
+            self::A_DB_NAME               => 'Имя БД',
+            self::A_DB_HOST               => 'Хост БД',
+            self::A_DB_PORT               => 'Порт БД',
+            self::A_DB_ENCODING           => 'Кодировка БД',
+            self::A_DB_SERVER_INFO        => 'Сервер БД',
+            self::A_DB_PING               => 'Пинг БД',
+            self::A_DB_STATUS             => 'Статус',
+            self::A_DB_RESULT             => 'Результат',
+            self::A_DB_LAST_ERROR         => 'Ошибка запроса к БД',
+            self::A_DB_CONNECT_ERROR      => 'Ошибка сединения с БД',
+            self::A_PHP_FILE_NAME         => 'Файл',
+            self::A_PHP_FILE_LINE         => 'Строка',
+            self::A_PHP_TRACE             => 'Стек вызова',
+            self::A_PHP_ERROR_CODE        => 'Код ошибки PHP',
+            self::A_HTTP_REQUEST_METHOD   => 'Метод запроса',
+            self::A_HTTP_SERVER_NAME      => 'Сервер',
+            self::A_HTTP_REQUEST_URI      => 'URI',
+            self::A_HTTP_USER_AGENT       => 'User Agent',
+            self::A_HTTP_REMOTE_ADDRESS   => 'IP клиента',
+            self::A_EXCEPTION_MESSAGE     => 'Сообщение ошибки',
+            self::A_SESSION_ID            => 'id PHP сессии',
+            self::A_SESSION_USER_ID       => 'id пользователя'
+        ];
+    }
+
+
+
     /** 
      * Преобразовывает массив параметров в текстовое представление ошибки
-     * @param array $messageArray Сообщение, выводимое на экран
-     * @param array $captions - массив названий на текущем языке для полей записи
+     * @param array $messageArray Сообщение в виде массива
+     * @param array $captions Заголовки полей
      * @return string
      */
-    public static function parseMessage($messageArray, $captions = array(
-        /* Все возможные русские заголовки строк */
-        'datetime'              => '',
-        'type_name'             => 'Тип события',
-        'text_message'          => 'Ошибка',
-        'db_exception_message'  => 'Сообщение СУБД',
-        'db_last_query'         => 'Крайний запрос',
-        'db_query_type'         => 'Тип запроса',
-        'db_rows_affected'      => 'Число измененных строк',
-        'db_username'           => 'Пользователь БД',
-        'db_name'               => 'Имя БД',
-        'db_host'               => 'Хост БД',
-        'db_port'               => 'Порт БД',
-        'db_encoding'           => 'Кодировка БД',
-        'db_ping'               => 'Пинг БД',
-        'db_status'             => 'Статус',
-        'db_result'             => 'Результат',
-        'db_last_error'         => 'Ошибка запроса к БД',
-        'db_connect_error'      => 'Ошибка сединения с БД',
-        'php_file_name'         => 'Файл',
-        'php_file_line'         => 'Строка',
-        'php_trace'             => 'Стек вызова',
-        'php_error_code'        => 'Код ошибки PHP',
-        'http_request_method'   => 'Метод запроса',
-        'http_server_name'      => 'Сервер',
-        'http_request_uri'      => 'Параметры запроса',
-        'http_user_agent'       => 'Браузер и ОС клиент',
-        'http_remote_addr'      => 'IP адрес клиента',
-        'exception_message'     => 'Сообщение ошибки',
-        'session_id'            => 'id PHP сессии',
-        'session_user_id'       => 'id пользователя'
-    )
-    ) {
-        $result = '<table cellspacing=4 cellpadding=0 border=0 style="font-size:8pt;"><col width=190px;><col>';
+    public static function parseMessage($messageArray, $captions = null) {
+        if ($captions === null){
+            $captions = self::attributeLabels();
+        }                           // style="font-size:8pt;"
+        $result = '<table cellspacing=4 cellpadding=0 border=0><col width=190px;><col>';
+
         if (is_array($messageArray)) {
             foreach ($messageArray as $caption => $data) {
+
                 switch ($caption) {
-                    case 'datetime' : $data = '<b>' . $data . '</b>';
+                    case self::A_DATETIME : $data = '<b>' . $data . '</b>';
                         break;
-                    case 'php_trace' : $data =
-                                '<div style="height:500px; max-height:500px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
-                                    <pre style="font-size:8pt;">' .
-                                        //@self::printObject(unserialize($data)) .  // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
-                                        Filter::sqlUnfilter(@var_export(unserialize($data), true)) . // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
-                                   '</pre>
-                                </div>';
+                    case self::A_PHP_TRACE :
+                        //@self::printObject(unserialize($data)) .  // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
+                        $res = Filter::sqlUnfilter(@var_export(unserialize($data), true)); // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
+                        // Пропишем стили для наглядного вывода лога в /log/index.php, но и здесь на всякий случай оставим
+                        // <div style="min-height:100px; max-height:500px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
+                        // <pre style="font-size:8pt;">
+                        $data = "<div><pre>$res</pre></div>";
                         break;
-                    default: 
-                        $data = self::printObject($data, is_array($data));
+                    default:
+                        $res = self::printObject($data, false);
+                        $data = is_array($data) ? "<div><pre>$res</pre></div>" : $res;
                 }
-                $result .=
+
+                // В пустых строках толку нет
+                if ($data !== ''){
+                    $result .=
                         '<tr>' .
-                            '<td style="text-align:right; vertical-align:top;"><b>' .
-                                $captions[$caption] . ($captions[$caption] == '' ? '' : ':') . '</b>
-                             </td>' .
-                            '<td>' . $data . '</td>' .
+                        '<td style="text-align:right; vertical-align:top;"><b>' .
+                        ($captions[$caption] == '' ? '' : $captions[$caption] . ':') . '</b>' .
+                        '</td>' .
+                        "<td>$data</td>" .
                         '</tr>';
+                }
             }
+
             $result .= '</table>';
-            //$result = self::printObject($result);
         } else {
             $result = self::L_EMPTY_MESSAGE;
         }
@@ -115,19 +182,25 @@ class Log {
 
     /** 
      * Запись в файл лога сообщения 
-     * @param string $filename Имя файла
+     * @param string $filename Короткое имя файла
      * @param array $messageArray Сообщение, записываемое в файл
      * @return bool
      * @throws Exception
      */
-    protected static function write2File($filename, $messageArray) {
-        if (!is_writable($filename)) {
-            throw new Exception(self::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
+    protected static function toFile($filename, $messageArray) {
+        $filePath = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR . $filename;
+        if (!is_writable($filePath)){
+            try{
+                // Открывать тут можно не абы какой файл, а только в папке логов
+                fopen($filePath, "bw");
+            }catch (Exception $e){
+                throw new LogException(self::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
+            }
         }
-        if (!isset($messageArray['datetime'])) {
-            $messageArray = array('datetime' => date("Y-m-d H:i:s")) + $messageArray;// Дата должна идти первой в ассоциативном массиве сообщения
+        if (!isset($messageArray[self::A_DATETIME])) {
+            $messageArray = [self::A_DATETIME => date("Y-m-d H:i:s")] + $messageArray;// Дата должна идти первой в сообщении
         }
-        return error_log(addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, 3, $filename);
+        return file_put_contents($filePath, addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, FILE_APPEND);
     }
 
 
@@ -137,9 +210,9 @@ class Log {
      * @param array $messageArray Сообщение, записываемое в лог
      * @return bool
      */
-    protected static function write2Db($messageArray){
-        if (!isset($messageArray['datetime'])) {
-            $messageArray['datetime'] = date("Y-m-d H:i:s");
+    protected static function toDb($messageArray){
+        if (!isset($messageArray[self::A_DATETIME])) {
+            $messageArray[self::A_DATETIME] = date("Y-m-d H:i:s");
         }
         $messageArray = Filter::sqlFilterAll($messageArray);
         /** @todo Дописать нормальную работу с БД */
@@ -155,11 +228,11 @@ class Log {
      * @param mixed $filename,.. Имя файла логов
      * @return bool
      */
-    public static function write($object, $filename = null){
+    public static function save($object, $filename = null){
         if (CONFIG::LOG_USE_DB){
-            return self::write2Db($object);
+            return (bool)self::toDb($object);
         }else{
-            return self::write2File($filename ? $filename : CONFIG::LOG_FILE, $object);
+            return (bool)self::toFile($filename ? $filename : CONFIG::LOG_FILE, $object);
         }
     }
 
@@ -181,7 +254,7 @@ class Log {
 
 
     /** 
-     * Получает колчиство записей в логе
+     * Получает количество записей в логе
      * @param string $typeName Тип логов
      */
     public static function checkDbLog($typeName){
@@ -199,10 +272,11 @@ class Log {
      * @throws Exception
      */
     public static function showLogFile($fileName, $descOrder = true) {
-        if (!is_readable(CONFIG::LOG_DIR . $fileName)) {
-            throw new Exception(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
+        $filePath = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR . $fileName;
+        if (!is_readable($filePath)) {
+            throw new LogException(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
         }
-        $content = explode(self::MESSAGE_SEPARATOR, file_get_contents(CONFIG::LOG_DIR . $fileName));
+        $content = explode(self::MESSAGE_SEPARATOR, file_get_contents($filePath));
         $result = '';
         if (count($content) > 1) {
             foreach ($content as $key => $message) {
@@ -223,6 +297,11 @@ class Log {
 
 
 
+
+
+
+# ---------------------------------------------- Методы перевода переменных в строку ---------------------------------------------- #
+
     /** 
      * Вывод сложного объекта в строку с подробной информацией 
      * @param mixed $object Выводимый объект
@@ -234,8 +313,27 @@ class Log {
         var_dump($object);
         $strObject = ob_get_contents();
         ob_end_clean();
-        return $withPre ? '<pre>' . $strObject . '</pre>' : $strObject;
+        return $withPre
+            ? '<pre>' . $strObject . '</pre>'
+            : $strObject;
     }
+
+
+
+    /**
+     * Вывод сложного объекта в строку с подробной информацией
+     * @param mixed $object Выводимый объект
+     * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
+     * @return string
+     */
+    public static function exportObject($object, $withPre = false) {
+        $result = var_export($object, true);
+        return $withPre
+            ? '<pre>' . $result . '</pre>'
+            : $result;
+    }
+
+
 
     /** 
      * Вывод сложного объекта в строку или на экран 
@@ -245,7 +343,29 @@ class Log {
      */
     public static function printObject($object, $withPre = false) {
         $result = print_r($object, true);
-        return $withPre ? '<pre>' . $result . '</pre>' : $result;
+        return $withPre
+            ? '<pre>' . $result . '</pre>'
+            : $result;
+    }
+
+
+
+    /**
+     * Попытка вывести переменную в строку
+     * @param mixed $param Переменная для перевода в строку
+     * @return string
+     */
+    public static function showObject($param){
+        if (Filter::isString($param)){
+            return '"' . $param . '"';
+        }
+        if (Filter::isBool($param)){
+            return $param ? 'true' : 'false';
+        }
+        if (Filter::isNumeric($param) || Filter::isDate($param) || Filter::isDatetime($param)){
+            return $param == 0 ? "0" : "$param";
+        }
+        return self::dumpObject($param, false);
     }
 }
 
