@@ -2,7 +2,7 @@
 
 // Подключаем конфиг
 require_once(__DIR__ . '/config.php');
-require_once(CONFIG::ROOT . '/lib/inc.base.php');
+require_once(CONFIG::ROOT . '/lib/inc.common.php');
 
 
 $content = 'Hello';

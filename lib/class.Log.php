@@ -129,7 +129,8 @@ class Log {
 
 
     /** 
-     * Преобразовывает массив параметров в текстовое представление ошибки
+     * Преобразовывает массив параметров в html представление ошибки
+     * Подход не комильфо
      * @param array $messageArray Сообщение в виде массива
      * @param array $captions Заголовки полей
      * @return string
@@ -137,23 +138,24 @@ class Log {
     public static function parseMessage($messageArray, $captions = null) {
         if ($captions === null){
             $captions = self::attributeLabels();
-        }                           // style="font-size:8pt;"
-        $result = '<table cellspacing=4 cellpadding=0 border=0><col width=190px;><col>';
+        }
+        $result = '<table>';
+        if (is_array($messageArray)){
+            foreach ($messageArray as $caption => $data){
 
-        if (is_array($messageArray)) {
-            foreach ($messageArray as $caption => $data) {
-
-                switch ($caption) {
-                    case self::A_DATETIME : $data = '<b>' . $data . '</b>';
+                switch ($caption){
+                    case self::A_DATETIME : $data = "<b>$data</b>";
                         break;
+
                     case self::A_PHP_TRACE :
-                        //@self::printObject(unserialize($data)) .  // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
-                        $res = Filter::sqlUnfilter(@var_export(unserialize($data), true)); // Класс mysqli ещё не разрешён к выводу, так что пропускаем этот момент
+                        //@self::printObject(unserialize($data)) .
+                        $res = Filter::sqlUnfilter(var_export(unserialize($data), true));
+
                         // Пропишем стили для наглядного вывода лога в /log/index.php, но и здесь на всякий случай оставим
                         // <div style="min-height:100px; max-height:500px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
-                        // <pre style="font-size:8pt;">
                         $data = "<div><pre>$res</pre></div>";
                         break;
+
                     default:
                         $res = self::printObject($data, false);
                         $data = is_array($data) ? "<div><pre>$res</pre></div>" : $res;
@@ -162,17 +164,17 @@ class Log {
                 // В пустых строках толку нет
                 if ($data !== ''){
                     $result .=
-                        '<tr>' .
-                        '<td style="text-align:right; vertical-align:top;"><b>' .
-                        ($captions[$caption] == '' ? '' : $captions[$caption] . ':') . '</b>' .
-                        '</td>' .
-                        "<td>$data</td>" .
+                        '<tr>' . // style="text-align:right; vertical-align:top; font-weight: bold;"
+                            '<td class="l-col">' .
+                                ($captions[$caption] === '' ? '' : $captions[$caption] . ':') .
+                            '</td>' .
+                            "<td>$data</td>" .
                         '</tr>';
                 }
             }
-
             $result .= '</table>';
-        } else {
+
+        }else{
             $result = self::L_EMPTY_MESSAGE;
         }
         return $result . self::MESSAGE_HTML_SEPARATOR;
