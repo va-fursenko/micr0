@@ -153,12 +153,12 @@ class Log {
 
                         // Пропишем стили для наглядного вывода лога в /log/index.php, но и здесь на всякий случай оставим
                         // <div style="min-height:100px; max-height:500px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
-                        $data = "<div><pre>$res</pre></div>";
+                        $data = "<pre>$res</pre>";
                         break;
 
                     default:
                         $res = self::printObject($data, false);
-                        $data = is_array($data) ? "<div><pre>$res</pre></div>" : $res;
+                        $data = is_array($data) ? "<pre>$res</pre>" : $res;
                 }
 
                 // В пустых строках толку нет
