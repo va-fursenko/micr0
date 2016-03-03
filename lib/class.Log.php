@@ -5,14 +5,10 @@
  * Copyright (c)    viktor Belgorod, 2009-2016
  * Email		    vinjoy@bk.ru
  * Version		    2.4.0
- * Last modified	19:46 19.02.16
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
  * @see https://opensource.org/licenses/MIT
- *
- * Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
- * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
 require_once('class.BaseException.php');
@@ -29,10 +25,10 @@ class LogException extends BaseException{
 /**
  * Класс работы с логами
  * @author    viktor
- * @version   2.3.0
- * @copyright viktor
+ * @version   2.4.0
+ * @package   Micr0
  */
-class Log {
+class Log{
     protected static $logDb = null;
 
     # Типы записей
@@ -129,8 +125,8 @@ class Log {
 
 
     /** 
-     * Преобразовывает массив параметров в html представление ошибки
-     * Подход не комильфо
+     * Преобразовывает массив параметров в html-представление ошибки
+     * Подход не комильфо, да, зато всегда под рукой в том же классе
      * @param array $messageArray Сообщение в виде массива
      * @param array $captions Заголовки полей
      * @return string
@@ -248,7 +244,7 @@ class Log {
      * @param bool $descOrder,.. Флаг - порядок вывода записей(обратный или прямой)
      * @return string
      */
-    public static function showDbLog($typeName, $startFrom, $limit, $descOrder = true) {
+    public static function showLogDb($typeName, $startFrom, $limit, $descOrder = true) {
         /** @todo Дописать нормальную работу с БД */
         return self::$logDb->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
@@ -259,7 +255,7 @@ class Log {
      * Получает количество записей в логе
      * @param string $typeName Тип логов
      */
-    public static function checkDbLog($typeName){
+    public static function checkLogDb($typeName){
         /** @todo Дописать нормальную работу с БД */
         return self::$logDb->query($typeName);
     }

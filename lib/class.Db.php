@@ -2,17 +2,13 @@
 /**
  * PDO connect сlass (PHP 5 >= 5.4.0)
  * Special thanks to: all, http://www.php.net
- * Copyright (c)    viktor Belgorod, 2008-2016
+ * Copyright (c)    viktor, Belgorod, 2008-2016
  * Email            vinjoy@bk.ru
  * Version          4.0.0
- * Last modified    23:22 17.02.16
- *        
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
  * @see https://opensource.org/licenses/MIT
- *
- * Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
- * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.instances.php");
@@ -60,9 +56,9 @@ class DbException extends BaseException{
 
             }else if ($obj instanceof Db){
                 $this->db = $obj;
-                $this->errorInfo = $this->db->getLastError();
-                $this->lastQuery = $this->db->getLastQuery();
-                parent::__construct($message, $this->db->getErrorCode(), $prev);
+                $this->errorInfo = $this->db->lastError();
+                $this->lastQuery = $this->db->lastQuery();
+                parent::__construct($message, $this->db->errorCode(), $prev);
 
             }else{
                 parent::__construct($message, Log::showObject($obj), $prev);
@@ -72,9 +68,9 @@ class DbException extends BaseException{
 
 
 
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ ЛОГИН И ПАРОЛЬ!      -
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /**
      * Логгирование внутреннего исключения
      * @param string|array $action Текствое сообщение напрямую с места перехвата исключения
@@ -101,8 +97,12 @@ class DbException extends BaseException{
 
         // Из БД или подготовленного выражения тянем все интересные данные
         if ($this->db instanceof Db){
-            $mArr[Log::A_DB_LAST_ERROR]  = $this->db->getLastError();
-            $mArr[Log::A_DB_SERVER_INFO] = $this->db->getServerInfo();
+            $mArr[Log::A_DB_LAST_ERROR]  = $this->db->lastError();
+            $mArr[Log::A_DB_SERVER_INFO] = $this->db->serverInfo();
+            if ($this->db->user()){
+                $mArr[Log::A_DB_USERNAME] = $this->db->user();
+            }
+
 
         }else if ($this->lastStatement instanceof PDOStatement){
             $mArr[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
@@ -134,9 +134,9 @@ class DbException extends BaseException{
 
 /**
  * Класс объектной работы с PDO
- * @author    viktor
- * @version   4.0.0
- * @copyright viktor
+ * @author      viktor
+ * @version     4.0.0
+ * @package     Micr0
  *
  * @see http://php.net/manual/ru/book.pdo.php
  * @see https://habrahabr.ru/post/137664/
@@ -179,7 +179,7 @@ class Db {
     const E_ERROR_OCCURRED                = 'Произошла ошибка';
 
 
-    # Константы класса
+    # Алиасы параметров класса
     const ATTR_LOGGING            = 'DB_ATTR_LOGGING';
     const ATTR_LOG_FILE           = 'DB_ATTR_LOG_FILE';
     const ATTR_ERROR_LOG_FILE     = 'DB_ATTR_ERROR_LOG_FILE';
@@ -236,7 +236,7 @@ class Db {
         $arr = [
             Log::A_TYPE_NAME             => Log::T_DB_QUERY,
             Log::A_SESSION_ID            => session_id(),
-            Log::A_DB_LAST_QUERY         => $this->getLastQuery(),
+            Log::A_DB_LAST_QUERY         => $this->lastQuery(),
             Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
             Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
             Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
@@ -247,7 +247,7 @@ class Db {
         // Если передано выражение PDOStatement, выбираем из него знакомые поля
         if ($action instanceof PDOStatement){
             $arr[Log::A_DB_ROWS_AFFECTED] = $action->rowCount();
-            $arr[Log::A_DB_STATUS] = $this->getLastError($action);
+            $arr[Log::A_DB_STATUS] = $this->lastError($action);
             // Попробуем посмотреть, не будет ли здесь расхождений
             if ($arr[Log::A_DB_LAST_QUERY] != $action->queryString) {
                 $arr[Log::A_DB_LAST_QUERY] = [
@@ -427,6 +427,28 @@ class Db {
 
 
 
+    /**
+     * Удаление экранирования спецсимволов SQL в строке
+     * @param string $escapedString
+     * @return string
+     */
+    public static function unQuote($escapedString) {
+        // Нечего разэкранировать
+        if (mb_strpos($escapedString, '\\', 0, 'UTF-8') === false ){
+            return $escapedString;
+        }
+
+        // Проверка на JSON
+        if (is_string($escapedString) && in_array($escapedString[0], ['{', '[']) && json_decode($escapedString, true)){
+            $escapedString = str_replace('\\', '\\\\', $escapedString);
+            $escapedString = str_replace('\"', '\\\"', $escapedString);
+        }
+
+        return stripslashes($escapedString);
+    }
+
+
+
 
 
 
@@ -476,7 +498,7 @@ class Db {
 
         // Экранируем передаваемые параметры и добавляем в лог
         if (!is_array($inputParameters)){
-                throw new DbException(self::E_WRONG_PARAMETERS);
+            throw new DbException(self::E_WRONG_PARAMETERS);
         }
         if (count($inputParameters) > 0){
             foreach ($inputParameters as $key => $value){
@@ -497,19 +519,15 @@ class Db {
 
     /**
      * Режим автоматических транзакций - включён или выключен
+     * @param int $autocommitMode
      * @return mixed
      */
-    public function getAutocommitMode(){
-        return $this->getAttribute(PDO::ATTR_AUTOCOMMIT);
-    }
-
-    /**
-     * Установка режима автоматических транзакций
-     * @param int $autocommitMode
-     * @return bool
-     */
-    public function setAutocommitMode($autocommitMode){
-        return $this->setAttribute(PDO::ATTR_AUTOCOMMIT, $autocommitMode);
+    public function autocommitMode($autocommitMode = null){
+        if (func_num_args() == 0) {
+            return $this->attribute(PDO::ATTR_AUTOCOMMIT);
+        }else{
+            return $this->attribute(PDO::ATTR_AUTOCOMMIT, $autocommitMode);
+        }
     }
 
     /** Начало транзакции */
@@ -544,7 +562,7 @@ class Db {
      * @see http://php.net/manual/ru/pdo.errorcode.php
      * @return string
      */
-    public function getErrorCode(){
+    public function errorCode(){
         return $this->db->errorCode();
     }
 
@@ -553,16 +571,16 @@ class Db {
      * @see http://php.net/manual/ru/pdo.errorinfo.php
      * @return array
      */
-    public function getErrorInfo(){
+    public function errorInfo(){
         return $this->db->errorInfo();
     }
 
     /**
-     * Строковое представление ошибки соединения
+     * Строковое представление ошибки соединения или подготовленного выражения
      * @param PDOStatement $st Выражение, из которого получается информация
      * @return mixed
      */
-    public function getLastError(PDOStatement $st = null){
+    public function lastError(PDOStatement $st = null){
         if ($st){
             $e = ($st instanceof PDOStatement) ? $st->errorInfo() : false;
         }else{
@@ -571,58 +589,57 @@ class Db {
         return self::formatLastErrorMessage($e);
     }
 
-    /**
-     * Получение одного атрибута PDO
-     * @param int $attrName Имя атрибута
-     * @return mixed
-     * @see http://php.net/manual/ru/pdo.getattribute.php
-     * @throws PDOException
-     */
-    public function getAttribute($attrName){
-        return $this->db->getAttribute($attrName);
-    }
-
     /** Информация о сервере */
-    public function getServerInfo(){
-        return '[' . $this->getAttribute(PDO::ATTR_SERVER_VERSION) . '] ' . $this->getAttribute(PDO::ATTR_SERVER_INFO);
+    public function serverInfo(){
+        return '[' . $this->attribute(PDO::ATTR_SERVER_VERSION) . '] ' . $this->attribute(PDO::ATTR_SERVER_INFO);
     }
 
     /** Информация о клиенте */
-    public function getClientVersion(){
-        return $this->getAttribute(PDO::ATTR_CLIENT_VERSION);
+    public function clientVersion(){
+        return $this->attribute(PDO::ATTR_CLIENT_VERSION);
     }
 
     /** Информация о драйвере СУБД */
-    public function getDriverName(){
-        return $this->getAttribute(PDO::ATTR_DRIVER_NAME);
+    public function driverName(){
+        return $this->attribute(PDO::ATTR_DRIVER_NAME);
     }
 
     /** Возвращает текст последнего запроса */
-    public function getLastQuery(){
+    public function lastQuery(){
         return $this->_lastQuery;
+    }
+
+    /**
+     * Возвращает имя пользователя, с которым осуществлено подключение
+     * @return string
+     */
+    public function user(){
+        return $this->_userName;
     }
 
     /**
      * Получение списка доступных драйверов для различных СУБД
      * @return array
      */
-    public static function getAvailableDrivers(){
+    public static function availableDrivers(){
         return PDO::getAvailableDrivers();
     }
 
     /**
-     * Установка одного атрибута PDO
-     * @param int   $attrName   Имя атрибута
+     * Получение или установка одного атрибута PDO
+     * @param int $attrName Имя атрибута
      * @param mixed $attrValue  Значение атрибута
-     * @return bool
-     * @see http://php.net/manual/ru/pdo.setattribute.php
+     * @return mixed
+     * @see http://php.net/manual/ru/pdo.getattribute.php
      * @throws PDOException
      */
-    public function setAttribute($attrName, $attrValue){
-        return $this->db->setAttribute($attrName, $attrValue);
+    public function attribute($attrName, $attrValue = null){
+        if (func_num_args() == 1) {
+            return $this->db->getAttribute($attrName);
+        }else{
+            return $this->db->setAttribute($attrName, $attrValue);
+        }
     }
-
-
 
     /**
      * Возвращает или устанавливает режим логгирования
@@ -651,29 +668,8 @@ class Db {
      * @return string
      * @see http://phpfaq.ru/pdo#fetchcolumn - внизу страницы
      */
-    public static function strIN(Array $params){
+    public static function strIN(array $params){
         return str_repeat('?,', count($params) - 1) . '?';
-    }
-
-
-
-    /**
-     * Определение в условном числе типа запроса по переданному слову или первому из запроса
-     * @param string $text Первое слово запрса
-     * @param bool $firstCall Флаг того, что фунцкия вызвана не рекурсивно
-     * @return int
-     */
-    protected static function _getIntQueryType($text, $firstCall = true){
-        switch ($text){
-            case 'INSERT': return 1;
-            case 'UPDATE': return 2;
-            case 'DELETE': return 3;
-            case 'CALL'  : return 4;
-            case 'SELECT': return 5;
-            default:
-                // Пытаемся определить тип запроса по первому слову текста запроса, если уже не делаем это
-                return $firstCall ? self::_getIntQueryType(strtoupper(strtok($text, ' ')), false) : false;
-        }
     }
 
 
@@ -819,7 +815,7 @@ class Db {
      * @throws DbException
      * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
      */
-    public function arraySquery($action, $sourceName, $params, $target = null){
+    public function arraySQuery($action, $sourceName, $params, $target = null){
         // Пока не реализована обработка сложных условий, а только сравнивание с id, оставим проверку такой
         if (($target !== null) && !is_numeric($target)){
             throw new DbException(self::E_WRONG_PARAMETERS);
@@ -829,7 +825,7 @@ class Db {
         $sequredParams = array();
         foreach ($params as $key => $value){
             if ($value){
-                $sequredParams[$this->quote($key)] = self::quote($value);
+                $sequredParams[$this->quote($key)] = $this->quote($value);
             } else {
                 $sequredParams[$this->quote($key)] = $value;
             }

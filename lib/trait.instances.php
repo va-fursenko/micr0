@@ -10,9 +10,6 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
  * @see https://opensource.org/licenses/MIT
- *
- * Не удаляйте данный комментарий, если вы хотите использовать скрипт, и всё будет хорошо :)
- * Do not delete this comment, if you want to use the script, and everything will be okay :)
  */
 
 
@@ -20,7 +17,7 @@
  * Трейт для работы с инстансами класса
  * @author    viktor
  * @version   1.0.0
- * @copyright viktor
+ * @package   Micr0
  */
 trait instances {
 

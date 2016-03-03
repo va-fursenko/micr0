@@ -1,29 +1,21 @@
 <?php
-
 /**
- * 	Filter сlass (PHP 5 >= 5.0.0)
- * 	Special thanks to: http://www.php.su
- * 	Copyright (c)   Enjoy! Belgorod, 2010-2011
- * 	Email		vinjoy@bk.ru
- * 	version		1.2.13
- * 	Last modifed	23:42 11.10.2014
- * 	
- * 	 This library is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU Lesser General Public
- * 	License as published by the Free Software Foundation; either
- * 	version 2.1 of the License, or (at your option) any later version.
- * 	@see http://www.gnu.org/copyleft/lesser.html
- * 	
- * 	Не удаляйте данный комментарий, если вы хотите использовать скрипт! 
- * 	Do not delete this comment if you want to use the script! *
+ * Filter сlass (PHP 5 >= 5.0.0)
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor, Belgorod, 2010-2016
+ * Email		    vinjoy@bk.ru
+ * version		    1.2.13
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
  */
 
 /**
  * Класс фильтрации параметров 
  * @author    Enjoy
  * @version   1.2.12
- * @package   se-engine
- * @copyright Enjoy
+ * @package   Micr0
  */
 class Filter {
 

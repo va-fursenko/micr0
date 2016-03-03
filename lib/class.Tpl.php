@@ -1,6 +1,17 @@
 <?php
-
 /**
+ * Templates explorer сlass (PHP 5 >= 5.0.0)
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor Belgorod, 2009-2016
+ * Email		    vinjoy@bk.ru
+ * Version		    2.4.0
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
+ */
+
+/*
  * При работе в режиме отладки темплейты хранятся в файлах. Возможно расположение несольких темплейтов в одном файле
  * Фрагменты html-кода заключены в именованных блоках, выделяемых тегами [$имя блока] и [/$имя блока]
  * Стиль(если есть) указывается в квадратных скобках после объявления начала и конца блока [$имя блока][$стиль] и [/$имя блока][$стиль] 
@@ -32,11 +43,10 @@ class TplException extends BaseException{
 /**
  * Класс шаблонизатора
  * @author      viktor
- * @package     Micr0
  * @version     2.4
- * @copyright   viktor
+ * @package     Micr0
  */
-class Tpl {
+class Tpl{
 
     # Скрытые свойства класса
     protected $fileName;        # Имя файла с темплейтом для работы в отладочном режиме

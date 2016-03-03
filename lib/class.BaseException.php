@@ -1,23 +1,14 @@
 <?php
-
 /**
- *      Exception class
- *      Special thanks to: Stascer, http://www.php.su
- *      Copyright (c) Enjoy! Belgorod, 2011
- *      Email             vinjoy@bk.ru
- *      version           1.2.0
- *      Last modifed      22:53 24.02.16
- *        
- *      This library is free software; you can redistribute it and/or
- *      modify it under the terms of the GNU Lesser General Public
- *      License as published by the Free Software Foundation; either
- *      version 2.1 of the License, or (at your option) any later version.
- *      @see http://www.gnu.org/copyleft/lesser.html
- *      @author Enjoy
- *        
- *      Не удаляйте данный комментарий, если вы хотите использовать скрипт! 
- *      Do not delete this comment if you want to use the script!
+ * Base exception class
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor, Belgorod, 2008-2016
+ * Email            vinjoy@bk.ru
+ * version          1.2.0
  *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
  */
 
 require_once('class.Log.php');
@@ -28,7 +19,6 @@ require_once('class.Log.php');
  * @author      viktor
  * @package     Micr0
  * @version     1.2.0
- * @copyright   viktor
  */
 class BaseException extends Exception {
 
@@ -87,29 +77,21 @@ class BaseException extends Exception {
      * Строковое представление исключения. Если доступны предыдущие исключения, они тоже рекурсивно выводятся
      * @return string
      */
-    public function __toString() {
-        //return __CLASS__ . ": [{$this->code}]: {$this->message}";
+    public function toString(){
         $result = __CLASS__ . ": [{$this->code}]: {$this->message}";
         $prev = $this;
+        // Собираем предыдущие исключения
         while ($prev = $prev->getPrevious()){
             if (!is_array($result)){
                 $result = [$result];
             }
-            if ($prev instanceof Exception){ // Мало ли, чего...
+            if ($prev instanceof BaseException){ // Собираем в цепочку все вызовы исключения, унаследованные от BaseException
+                $result[] = $prev->toString();
+            }else if ($prev instanceof Exception){ // Из этой строчки видно, что рекурсия закончится на первом стандартном исключении
                 $result[] = $prev->__toString();
             }
         }
         return $result;
-    }
-
-
-
-    /**
-     * Строковое представление объекта - пока только алиас для красоты
-     * @return string
-     */
-    public function toString(){
-        return $this->__toString();
     }
 
 
