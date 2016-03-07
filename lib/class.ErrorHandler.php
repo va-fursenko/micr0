@@ -11,17 +11,96 @@
  * @see https://opensource.org/licenses/MIT
  */
 
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 
-function errorHandlerCatchError($code, $msg, $file, $line){
-    return ErrorHandler::pushError(array(
-        'datetime'          => date("Y-m-d H:i:s"),
-        'session_id'        => session_id(),
-        'php_error_code'    => $code,
-        'php_file_name'     => $file,
-        'php_file_line'     => $line,
-        'text_message'      => $msg
-    ));
+
+/** @todo Добавить возвращение или отрисовку сообщений об ошибках - как в гет, так и пост, в зависимости от режиме дебага */
+/** @todo Добавить обработку register_shutdown_function */
+
+
+
+
+/**
+ * Обработчик неперехваченных исключений
+ * @param Exception $e
+ * @return void
+ */
+function customExceptionHandler(Exception $e){
+    // Если исключение из нашей иерархии, воспользуемся его собственным методом
+    if ($e instanceof BaseException){
+        $e->toArray();
+
+    // Иначе выводим всю стандартную информацию
+    }else{
+        Log::save(
+            [
+                Log::A_EVENT_TYPE            => Log::T_PHP_EXCEPTION,
+                Log::A_SESSION_ID           => session_id(),
+                Log::A_TEXT_MESSAGE         => $e->__toString(),
+                Log::A_PHP_ERROR_MESSAGE    => $e->getMessage(),
+                Log::A_PHP_ERROR_CODE       => $e->getCode(),
+                Log::A_PHP_FILE_NAME        => $e->getFile(),
+                Log::A_PHP_FILE_LINE        => $e->getLine(),
+                Log::A_PHP_TRACE            => serialize($e->getTrace()),
+                Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
+                Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
+                Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
+                Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
+                Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
+            ],
+            CONFIG::ERROR_LOG_FILE
+        );
+    }
 }
+
+
+
+
+
+
+/**
+ * Обработчик ошибок php
+ * @param int    $errNo      Уровень ошибки
+ * @param string $errStr     Сообщение об ошибке
+ * @param string $errFile    Файл с ошибкой
+ * @param int    $errLine    Строка с ошибкой
+ * @param array  $errContext Массив всех переменных, существующих в области видимости, где произошла ошибка
+ * @return void
+ */
+function customErrorHandler(int $errNo, string $errStr, string $errFile, int $errLine, array $errContext = null){
+    Log::save(
+        [
+            Log::A_EVENT_TYPE           => Log::T_PHP_ERROR,
+            Log::A_SESSION_ID           => session_id(),
+            Log::A_PHP_ERROR_MESSAGE    => $errStr,
+            Log::A_PHP_ERROR_CODE       => $errNo,
+            Log::A_PHP_FILE_NAME        => $errFile,
+            Log::A_PHP_FILE_LINE        => $errLine,
+            Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
+        ],
+        CONFIG::ERROR_LOG_FILE
+    );
+}
+
+
+
+
+
+
+/**
+ * Обработчик завершения скрипта и фатальных ошибок
+ */
+function customShutdownHandler(){
+
+}
+
+
+
+
 
 
 /**
@@ -36,8 +115,8 @@ class ErrorHandler{
 
     /** Обработчик ошибок */
     protected static $_errorHandler = null;
-    /** Обработчик завершения работы скрипта */
-    protected static $_shutdownHandler = null;
+    /** Обработчики завершения работы скрипта */
+    protected static $_shutdownHandlers = [];
     /** Обработчик исключений */
     protected static $_exceptionHandler = null;
 
@@ -72,10 +151,11 @@ class ErrorHandler{
     /**
      * Устанавливает обработчик на окончание скрипта
      * @param callable $func Обработчик ошибок
+     * @param mixed $params Возможные параметры обработчика
      * @return void
      */
-    static function setShutdownHandler(callable $func){
-        self::$_shutdownHandler = $func;
+    static function setShutdownHandler(callable $func, $params = null){
+        self::$_shutdownHandlers[] = $func;
         register_shutdown_function($func);
     }
 
@@ -97,3 +177,7 @@ class ErrorHandler{
  }
 
 
+// Назначаем обработчики различных ошибок
+ErrorHandler::setErrorHandler('customErrorHandler');
+ErrorHandler::setExceptionHandler('customExceptionHandler');
+ErrorHandler::setShutdownHandler('customShutdownHandler');

@@ -22,13 +22,8 @@ require_once('class.Log.php');
  */
 class BaseException extends Exception {
 
-    # Параметры
-    protected $logFile;     // Полный путь к файлу лога исключений
-    protected $debugging;   // Режим эксплуатации - true/false
-    protected $db;          // Дескриптор подключения к БД
-
-    # Языковые константы класса
-    const L_ERROR_TITLE = 'Произошла ошибка';
+    /** @const Файл лога для данных исключений */
+    const LOG_FILE = CONFIG::ERROR_LOG_FILE;
 
     # Строковые коды ошибок
     const E_BAD_DATA              = 'bad_data';
@@ -67,8 +62,6 @@ class BaseException extends Exception {
      */
     function __construct($message, $code = 0, Exception $previous = null) {
         parent::__construct($message, $code, $previous);
-        $this->setLogFile(CONFIG::LOG_FILE);
-        $this->setDebugging(CONFIG::DEBUG);
     }
 
 
@@ -77,19 +70,19 @@ class BaseException extends Exception {
      * Строковое представление исключения. Если доступны предыдущие исключения, они тоже рекурсивно выводятся
      * @return string
      */
-    public function toString(){
+    public function __toString(){
         $result = __CLASS__ . ": [{$this->code}]: {$this->message}";
-        $prev = $this;
         // Собираем предыдущие исключения
-        while ($prev = $prev->getPrevious()){
-            if (!is_array($result)){
-                $result = [$result];
-            }
-            if ($prev instanceof BaseException){ // Собираем в цепочку все вызовы исключения, унаследованные от BaseException
-                $result[] = $prev->toString();
-            }else if ($prev instanceof Exception){ // Из этой строчки видно, что рекурсия закончится на первом стандартном исключении
-                $result[] = $prev->__toString();
-            }
+        if ($prev = $this->getPrevious()){
+            // Собираем в цепочку все вызовы исключения, унаследованные от BaseException
+            // Из этой строчки видно, что рекурсия закончится на первом стандартном исключении
+            $result = Log::printObject(
+                [
+                    $result,
+                    $prev->__toString(),
+                ],
+                false
+            );
         }
         return $result;
     }
@@ -102,28 +95,15 @@ class BaseException extends Exception {
      * @return array
      */
     public function toArray($action = null){
-        $trace = $this->getTrace();
-        $result = [
-            Log::A_TYPE_NAME             => Log::T_EXCEPTION,
-            Log::A_SESSION_ID            => session_id(),
-            Log::A_EXCEPTION_MESSAGE     => $this->toString(),
-            Log::A_PHP_FILE_NAME         => $this->getFile(),
-            Log::A_PHP_FILE_LINE         => $this->getLine(),
-            Log::A_PHP_TRACE             => serialize($trace),
-            Log::A_PHP_ERROR_CODE        => $this->getCode(),
-            Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
-            Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
-            Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
-            Log::A_HTTP_USER_AGENT       => $_SERVER['HTTP_USER_AGENT'],
-            Log::A_HTTP_REMOTE_ADDRESS   => $_SERVER['REMOTE_ADDR']
-        ];
+        $result = Log::dumpException($this);
+        $result[Log::A_EVENT_TYPE] = Log::T_PHP_EXCEPTION;
         if ($action !== null){
             $result[Log::A_TEXT_MESSAGE] = $action;
         }
         return $result;
     }
 
-
+        
 
     /**
      * Запись исключения в лог
@@ -131,70 +111,19 @@ class BaseException extends Exception {
      * @return bool|int
      */
     public function toLog($action = null){
-        return Log::save($this->toArray($action));
+        return Log::save(
+            $this->toArray($action),
+            self::LOG_FILE
+        );
     }
 
 
 
-
-// ------------------------------------------   Геттеры         -------------------------------------------------------------- //    
-
     /**
-     * Адрес файла лога исключений
-     * @return string
+     * Обработчик дебага для класса
      */
-    public function getLogFile() {
-        return $this->logFile;
-    }
-    
-    /**
-     * Режим эксплуатации
-     * @return bool
-     */
-    public function getDebugging(){
-        return $this->debugging;
-    }
-    
-    /**
-     * Дескриптор подключения к БД
-     * @return Db
-     */
-    public function getDb(){
-        return $this->db;
-    }
-
-
-
-
-
-
-// ------------------------------------------   Сеттеры         -------------------------------------------------------------- //    
-    
-    /**
-     * Адрес файла лога исключений
-     * @param string $logFile
-     * @return void
-     */
-    public function setLogFile($logFile){
-        $this->logFile = $logFile;
-    }
-    
-    /**
-     * Режим эксплуатации
-     * @param bool $debugging
-     * @return void
-     */
-    public function setDebugging($debugging){
-        $this->debugging = $debugging;
-    }
-    
-    /**
-     * Дескриптор подключения к БД
-     * @param Db $db
-     * @return void
-     */
-    public function setDb($db){
-        $this->db = $db;
+    public function __debugInfo(){
+        return $this->toArray();
     }
 
 }

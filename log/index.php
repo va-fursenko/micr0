@@ -1,8 +1,8 @@
 <?php 
 	require_once($_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'config.php');
-	require_once($_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Log.php');
+	require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Log.php');
 
-    if (isset($_GET['action']) && ($_GET['action'] == 'clear')){
+    if (isset($_GET['clear'])){
         fclose(fopen('error.log', 'w'));
         fclose(fopen('db.error.log', 'w'));
         fclose(fopen('db.log', 'w'));
@@ -22,11 +22,8 @@
     </head>
 
     <body>
-        <form id="logForm" name="logForm" method="post" action="index.php?action=clear">
-            <div class="btn-container">
-                <input type=submit value='Очистить все логи' class="btn btn-danger">
-            </div>
-        </form>
+
+
 
         <div id="logDiv">
             <div class="tab-header">
@@ -41,6 +38,10 @@
                         <a href="#e2" aria-controls="e2" role="tab" data-toggle="tab">Запросы БД</a>
                     </li>
                 </ul>
+
+                <div class="btn-container">
+                    <a class="btn btn-danger" href="/log/index.php?clear">Очистить все логи</a>
+                </div>
             </div>
 
             <div class="tab-content">

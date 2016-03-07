@@ -12,15 +12,22 @@
  */
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.instances.php");
+require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.Log.php");
+require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.BaseException.php");
 
 
 
-
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * Класс исключения для объектной работы с БД
  * @see http://php.net/manual/ru/class.pdoexception.php PDOException
  */
 class DbException extends BaseException{
+
+    /** @property string Файл лога для данных исключений */
+    const LOG_FILE = CONFIG::DB_ERROR_LOG_FILE;
 
     /** @property Db Дескриптор соединения, если передана в конструктор */
     public $db            = null;
@@ -68,62 +75,45 @@ class DbException extends BaseException{
 
 
 
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     /**
-     * Логгирование внутреннего исключения
-     * @param string|array $action Текствое сообщение напрямую с места перехвата исключения
-     * @return bool
+     * Выжимка исключения в массив
+     * @param string $action Текстовое сообщение об ошибке от программиста
+     * @return array
      */
-    public function toLog($action = ''){
-        $mArr = array(
-            Log::A_TYPE_NAME             => Log::T_DB_EXCEPTION,
-            Log::A_SESSION_ID            => session_id(),
-            Log::A_DB_EXCEPTION_MESSAGE  => $this->toString(),
-            Log::A_DB_ROWS_AFFECTED      => $this->rowCount,
-            Log::A_EXCEPTION_MESSAGE     => $this->errorInfo,
-            Log::A_DB_LAST_QUERY         => $this->lastQuery,
-            Log::A_PHP_FILE_NAME         => $this->getFile(),
-            Log::A_PHP_FILE_LINE         => $this->getLine(),
-            Log::A_PHP_TRACE             => serialize($this->getTrace()),
-            Log::A_PHP_ERROR_CODE        => $this->getCode(),
-            Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
-            Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
-            Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
-            Log::A_HTTP_USER_AGENT       => $_SERVER['HTTP_USER_AGENT'],
-            Log::A_HTTP_REMOTE_ADDRESS   => $_SERVER['REMOTE_ADDR'],
-        );
-
-        // Из БД или подготовленного выражения тянем все интересные данные
-        if ($this->db instanceof Db){
-            $mArr[Log::A_DB_LAST_ERROR]  = $this->db->lastError();
-            $mArr[Log::A_DB_SERVER_INFO] = $this->db->serverInfo();
-            if ($this->db->user()){
-                $mArr[Log::A_DB_USERNAME] = $this->db->user();
-            }
-
-
-        }else if ($this->lastStatement instanceof PDOStatement){
-            $mArr[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
-            $mArr[Log::A_DB_ROWS_AFFECTED] = $this->lastStatement->rowCount();
-            $mArr[Log::A_DB_LAST_QUERY] = [
-                'Ex'    => $mArr[Log::A_DB_LAST_QUERY],
-                'debug' => Db::debugDumpParams($this->lastStatement),
-            ];
-        }
+    public function toArray($action = null){
+        $result = Log::dumpException($this);
+        $result[Log::A_EVENT_TYPE]        = Log::T_DB_EXCEPTION;
+        $result[Log::A_DB_ROWS_AFFECTED]  = $this->rowCount;
+        $result[Log::A_PHP_ERROR_MESSAGE] = $this->errorInfo;
+        $result[Log::A_DB_LAST_QUERY]     = $this->lastQuery;
 
         // Строковый параметр пишем, как сообщение, массив добавляем
         if (is_string($action) && $action !== ''){
-            $mArr[Log::A_TEXT_MESSAGE] = $action;
-        }else if (is_array($action) && $action !== []){
-            $mArr = $mArr + $action;
+            $result[Log::A_TEXT_MESSAGE] = $action;
+        }else if (is_array($action) && count($action) > 0){
+            $result = $result + $action;
         }
 
-        return Log::save(
-            $mArr,
-            CONFIG::DB_ERROR_LOG_FILE
-        );
+        // Из БД или подготовленного выражения тянем все интересные данные
+        if ($this->db instanceof Db){
+            $result[Log::A_DB_LAST_ERROR]  = $this->db->lastError();
+            $result[Log::A_DB_SERVER_INFO] = $this->db->serverInfo();
+            if ($this->db->user()){
+                $result[Log::A_DB_USERNAME] = $this->db->user();
+            }
+
+        }else if ($this->lastStatement instanceof PDOStatement){
+            $result[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
+            $result[Log::A_DB_ROWS_AFFECTED] = $this->lastStatement->rowCount();
+            $str = Db::debugDumpParams($this->lastStatement);
+            if ($result[Log::A_DB_LAST_QUERY] != $str) {
+                $result[Log::A_DB_LAST_QUERY] = [
+                    'Ex'    => $result[Log::A_DB_LAST_QUERY],
+                    'debug' => $str,
+                ];
+            }
+        }
+        return $result;
     }
 
 }
@@ -149,6 +139,7 @@ class DbException extends BaseException{
 class Db {
     # Подключаем трейты
     use instances; # Работа с инстансами
+
 
     # Открытые данные
     /** Дескриптор PDO */
@@ -234,7 +225,7 @@ class Db {
      */
     public function log($action = null){
         $arr = [
-            Log::A_TYPE_NAME             => Log::T_DB_QUERY,
+            Log::A_EVENT_TYPE             => Log::T_DB_QUERY,
             Log::A_SESSION_ID            => session_id(),
             Log::A_DB_LAST_QUERY         => $this->lastQuery(),
             Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],

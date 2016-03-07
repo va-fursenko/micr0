@@ -496,6 +496,28 @@ class Filter {
     }
 
 
+
+    /**
+     * Получение подстроки $str, заключенной между $sMarker и $fMarker
+     * @param string $str Строка, в которой ищется подстрока
+     * @param string $sMarker Маркер начала
+     * @param string $fMarker Маркер конца
+     * @param int $initOffset
+     * @return string
+     */
+    public static function strBetween($str, $sMarker, $fMarker, $initOffset = 0) {
+        $result = '';
+        $s = stripos($str, $sMarker, $initOffset);
+        if ($s !== false) {
+            $s += strlen($sMarker);
+            $f = stripos($str, $fMarker, $s);
+            if ($f !== false)
+                $result = substr($str, $s, $f - $s);
+        }
+        return $result;
+    }
+
+
 }
 
 ?>
