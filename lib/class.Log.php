@@ -21,6 +21,7 @@ class LogException extends BaseException{ }
 
 /** @todo Реализовать работу с логами через БД */
 /** @todo Добавить скрипт создания таблицы логов */
+/** @todo Создать файл лога при его отсутствии. ДАВНО ПОРА БЫЛО */
 
 /**
  * Класс работы с логами
@@ -48,6 +49,7 @@ class Log{
     const A_PHP_FILE_NAME         = 'php_file_name';
     const A_PHP_FILE_LINE         = 'php_file_line';
     const A_PHP_TRACE             = 'php_trace';
+    const A_PHP_CONTEXT           = 'php_context';
     const A_DB_LAST_QUERY         = 'db_last_query';
     const A_DB_QUERY_TYPE         = 'db_query_type';
     const A_DB_ROWS_AFFECTED      = 'db_rows_affected';
@@ -110,6 +112,7 @@ class Log{
             self::A_PHP_FILE_NAME         => 'Файл',
             self::A_PHP_FILE_LINE         => 'Строка',
             self::A_PHP_TRACE             => 'Стек вызова',
+            self::A_PHP_CONTEXT           => 'Контекст вызова',
             self::A_EXCEPTION             => 'Исключение',
             self::A_HTTP_REQUEST_METHOD   => 'Метод запроса',
             self::A_HTTP_SERVER_NAME      => 'Сервер',
@@ -143,7 +146,7 @@ class Log{
                         break;
 
                     case self::A_PHP_TRACE :
-                        //@self::printObject(unserialize($data)) .
+
                         $res = Filter::sqlUnfilter(var_export(unserialize($data), true));
 
                         // Пропишем стили для наглядного вывода лога в /log/index.php, но и здесь на всякий случай оставим
@@ -219,7 +222,7 @@ class Log{
      * @param mixed $filename,.. Имя файла логов
      * @return bool
      */
-    public static function save($object, $filename = null){
+    public static function save(array $object, $filename = null){
         if (!isset($object[self::A_DATETIME])) {
             $object = [self::A_DATETIME => date("Y-m-d H:i:s")] + $object;// Дата должна идти первой в сообщении
         }
@@ -385,5 +388,17 @@ class Log{
             self::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR']
         ];
     }
+
+
+
+    /**
+     * Добавление к строке метки времени для вывода в лог
+     * @param string $message
+     * @return string
+     */
+    public static function line($message){
+        return '[' . date("H:i:s") . '] ' . $message; // date("Y-m-d H:i:s")
+    }
+
 }
 

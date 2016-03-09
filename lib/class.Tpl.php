@@ -34,6 +34,7 @@ class TplException extends BaseException{ }
 /** @todo Закончить работу с БД */
 /** @todo Добавить кеширование шаблонов - разворачивание файлов с несколькими блоками в папку с файлами блоков. Продумать развёртывание в разные папки для разных стилей и языков */
 /** @todo Вынести замену языковых констант в отдельный метод, чтобы заменять их в уже готовом к выводу тексте страницы */
+/** @todo Всё, что можно, увести в статические методы без привязки к экземпляру */
 
 /**
  * Класс шаблонизатора
@@ -159,7 +160,7 @@ class Tpl{
      * @param string $strContainer Шаблон в строке
      * @return string
      */
-    private function parseStrBlock($content, $strContainer) {
+    private static function parseStrBlock($content, $strContainer) {
         //Заменяем языковые константы
         //preg_match_all('/\({L_[a-zA-Z_0-9]+\})/', $strContainer, $arr);
         // Языковые константы
@@ -183,7 +184,7 @@ class Tpl{
      * @return string
      */
     function parseBlock($content, $containerName) {
-        return $this->parseStrBlock($content, $this->getBlock($containerName));
+        return self::parseStrBlock($content, $this->getBlock($containerName));
     }
 
 
@@ -200,7 +201,7 @@ class Tpl{
         if (!is_readable($fileName)) {
             throw new TplException(self::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
         }
-        return $this->parseStrBlock(
+        return self::parseStrBlock(
                 $content, 
                 file_get_contents($fileName === null ? $this->fileName() : $fileName)
         );
@@ -221,8 +222,9 @@ class Tpl{
         if (!is_readable($fileName)) {
             throw new TplException(self::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
         }
-        $result = $this->parseStrBlock(
-                $content, $this->getStrBetween(
+        $result = self::parseStrBlock(
+
+                $content, Filter::strBetween(
                         file_get_contents($fileName), 
                         "[\$$blockName]" . ($style != '' ? "[$style]" : ''), 
                         "[/\$$blockName]" . ($style != '' ? "[$style]" : '')

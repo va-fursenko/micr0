@@ -2,3 +2,54 @@
  * Yippee-ki-yay, motherfucker!
  * It's a common css
  */
+
+
+pre.log-container{
+    margin:           0;
+    width:            100%;
+    height:           500px;
+    overflow-x:       scroll;
+    overflow-y:       scroll;
+    font-size:        8pt;
+    border:           1px dashed;
+    padding:          2px 0px 4px 6px;
+    background-color: #dddddd;
+}
+
+.log-caption{
+    float: left;
+    font-weight: bold;
+}
+
+a.log-caption{
+    float: right;
+    font-weight: bold;
+}
+
+
+.log-row{
+    vertical-align: top;
+}
+
+img.log-loader{
+    width: 30px;
+    margin-left: 4px;
+}
+
+
+sup{
+    font-weight: bold;
+    font-size: 8pt;
+}
+
+
+.notice-row{
+    font-family: monospace;
+    margin-top: 50px;
+}
+
+pre.notice-row{
+    font-family: monospace;
+    font-size: 7pt;
+    margin-top: 0;
+}
