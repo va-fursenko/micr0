@@ -395,28 +395,13 @@ class Filter {
      * Замена указанной подстроки или указанных подстрок на другую подстроку(подстроки).
      * @param string|array $search Старая подстрока(подстроки)
      * @param string|array $replacement Новая подстрока(подстроки)
-     * @param string|array $subject Обрабатываемая строка
+     * @param string|array $subject Обрабатываемая строка, или массив строк
      * @return string|array
      */
     public static function strReplace($search, $replacement, $subject){
         $func = function ($el) use ($search, $replacement){
-            $result = $el;
-            if (is_array($search)) {
-                if (is_array($replacement)) {
-                    foreach ($search as $index => $searchItem) {
-                        $result = str_replace($searchItem, $replacement[$index], $result);
-                    }
-                } else {
-                    foreach ($search as $index => $searchItem) {
-                        $result = str_replace($searchItem, $replacement, $result);
-                    }
-                }
-            } else {
-                $result = str_replace($search, $replacement, $result);
-            }
-            return $result;
+            return str_replace($search, $replacement, $el);
         };
-
         return is_array($subject)
             ? $func($subject)
             : self::map($func, $subject);
