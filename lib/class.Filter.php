@@ -18,7 +18,7 @@ require_once('class.BaseException.php');
 /** Собственное исключение для класса */
 class FilterException extends BaseException{ }
 
-
+/** @todo Сделать по возможности передачу в методы произвольного числа аргументов вместо массива. Хотя, не принципиально */
 
 /**
  * Класс фильтрации параметров 
@@ -30,20 +30,23 @@ class Filter {
 
     /**
      * Замена элементов массива $arg или всех параметров метода, начиная с [1], на результат применения к ним функции $func
-     * @param callable $func
-     * @param mixed $arg
+     * @param callable $func Функция вида mixed function (mixed $el){...}
+     * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
      * @return mixed
-     * @throws FilterException
      */
     public static function map(callable $func, $arg) {
+        // Функции переданы только коллбэк и один аргумент
         if (func_num_args() == 2) {
             if (is_array($arg)) {
                 $result = array_map($func, $arg);
             } else {
                 $result = $func($arg);
             }
+
+        // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
         }else{
-            $result = array_map($func, func_get_args());
+            // Передаём на обработку все аргументы кроме первого - это сам коллбэк
+            $result = array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
         }
         return $result;
     }
@@ -54,32 +57,31 @@ class Filter {
      * Применение ко всем элементам массива $arg или всем параметрам метода, начиная с [1], функции $func и логическое сложение && результатов
      * Прерывается при получении первого false в результате выполнения $func
      * @param callable $func Функция вида bool function(mixed $el){...}
-     * @param mixed $arg
+     * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
      * @return bool
-     * @throws FilterException
      */
     public static function mapBool(callable $func, $arg) {
         $map = function($arr) use ($func){
-            $result = false;
+            $result = true;
             $i = 0;
-            while ($i < count($arr) && $result){
-                $result = $i == 0
-                    ? $func($arr[$i])
-                    : $result && $func($arr[$i]);
+            while ($result && $i < count($arr)){
+                $result = $result && $func($arr[$i]);
                 $i++;
             }
-            return $result;
+            return $i > 0 && $result; // Для пустого массива стоит вернуть false
         };
 
-        if (func_num_args() == 2) {
+        if (func_num_args() == 2){
             if (is_array($arg)) {
                 $result = $map($arg);
             } else {
                 $result = $func($arg);
             }
+
         }else{
             $result = $map(func_get_args());
         }
+
         return $result;
     }
 
@@ -327,14 +329,13 @@ class Filter {
     /**
      * Отмена экранирования спесцимволов в стиле языка С
      * @param string|array $var Обрабатываемая строка или массив строк
-     * @param string $charList Список экранируемых символов
      * @return mixed
      * @throws FilterException
      */
-    public static function slashesStrip($var, $charList = '') {
+    public static function slashesStrip($var) {
         return self::map(
-            function ($el) use ($charList){
-                return stripcslashes($el, $charList);
+            function ($el){
+                return stripcslashes($el);
             },
             $var
         );
@@ -387,6 +388,24 @@ class Filter {
             }
         }
         return $result;
+    }
+
+
+
+
+    /**
+     * Проверяет существование в массиве ключа, или массива ключей
+     * @param mixed|array $key Ключ, или массив ключей массива
+     * @param array $arr Проверяемый массив
+     * @return bool
+     */
+    public static function arrayKeyExists($key, $arr){
+        $func = function ($el) use ($arr){
+            return array_key_exists($el, $arr);
+        };
+        return is_array($key)
+            ? self::mapBool($func, $key)
+            : $func($key);
     }
 
 
@@ -454,6 +473,7 @@ class Filter {
 
     /**
      * Увеличение строки до $padLength символов. Многобайтовая версия
+     * Под linux на русских символах РАБОТАЕТ НЕПРАВИЛЬНО
      * @param string|array $var Исходная строка, или массив строк
      * @param int $padLength Длина, до которой будет дополняться исходная строка
      * @param string $padStr Строка, которой будет дополняться исходная строка
