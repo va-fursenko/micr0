@@ -90,13 +90,21 @@ class BaseException extends Exception {
 
 
     /**
+     * Обработчик дебага для класса
+     */
+    public function __debugInfo(){
+        return $this->toArray();
+    }
+
+
+
+    /**
      * Представление исключения в виде массива со всей доступной информацией
      * @param string $action Текстовое сообщение
      * @return array
      */
     public function toArray($action = null){
         $result = Log::dumpException($this);
-        $result[Log::A_EVENT_TYPE] = Log::T_PHP_EXCEPTION;
         if ($action !== null){
             $result[Log::A_TEXT_MESSAGE] = $action;
         }
@@ -115,15 +123,6 @@ class BaseException extends Exception {
             $this->toArray($action),
             self::LOG_FILE
         );
-    }
-
-
-
-    /**
-     * Обработчик дебага для класса
-     */
-    public function __debugInfo(){
-        return $this->toArray();
     }
 
 }

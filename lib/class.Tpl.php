@@ -20,14 +20,18 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 /*
  * При работе в режиме отладки темплейты хранятся в файлах. Возможно расположение несольких темплейтов в одном файле
  * Фрагменты html-кода заключены в именованных блоках, выделяемых тегами [$имя блока] и [/$имя блока]
- * Стиль(если есть) указывается в квадратных скобках после объявления начала и конца блока [$имя блока][$стиль] и [/$имя блока][$стиль] 
  * Языковые константы обозначатся тегами {L_ИМЯ_КОНСТАНТЫ}
  * Прочие фрагменты текста - {имя фрагмента}
  */
 
 
 /** Собственное исключение класса */
-class TplException extends BaseException{ }
+class TplException extends BaseException{
+    # Языковые константы класса
+    const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
+    const L_TPL_DB_UNREACHABLE   = 'База данных с темплейтами недоступна';
+    const L_TPL_BLOCK_UNKNOWN    = 'Шаблон не найден';
+}
 
 
 /** @todo Добавить скрипт создания связанной таблицы БД */
@@ -35,6 +39,8 @@ class TplException extends BaseException{ }
 /** @todo Добавить кеширование шаблонов - разворачивание файлов с несколькими блоками в папку с файлами блоков. Продумать развёртывание в разные папки для разных стилей и языков */
 /** @todo Вынести замену языковых констант в отдельный метод, чтобы заменять их в уже готовом к выводу тексте страницы */
 /** @todo Всё, что можно, увести в статические методы без привязки к экземпляру */
+/** @todo Свойства по возможности увести в статические и сразу инициализовать свойствами CONFIG:: */
+
 
 /**
  * Класс шаблонизатора
@@ -45,21 +51,16 @@ class TplException extends BaseException{ }
 class Tpl{
 
     # Скрытые свойства класса
-    protected $_fileName;        # Имя файла с темплейтом для работы в отладочном режиме
-    protected $_db;              # Класс БД с темплейтами для работы в эксплуатационном режиме
-    protected $_debugMode;       # Режим работы класса - отладка(true) или эксплуатация(false)
-    protected $_useDb;           # Источник тесплейтов - БД или файл (bool)
-    protected $_language;        # Языковой массив для поддержки мультиязычности
+    protected $_fileName  = '';      # Имя файла с темплейтом для работы в отладочном режиме
+    protected $_db        = null;    # Объект Db БД с темплейтами для работы в эксплуатационном режиме
+    protected $_db_table  = '';      # Имя таблицы БД с шаблонами
+    protected $_debugMode = false;   # Режим работы класса - отладка(true) или эксплуатация(false)
+    protected $_useDb     = false;   # Источник тесплейтов - БД или файл (bool)
+    protected $_language  = '';      # Алиас языка для работы с мультиязычностью
 
 
     # Свойства для работы с файлами темплейтов
-    protected $content;         # Последний считаный файл
-
-
-    # Языковые константы класса
-    const L_TPL_FILE_UNREACHABLE = 'Файл шаблона недоступен';
-    const L_TPL_BLOCK_UNKNOWN = 'Шаблон не найден';
-    const L_TPL_DB_UNREACHABLE = 'База данных с темплейтами недоступна';
+    protected $_content = '';        # Последний считаный файл
 
 
 
@@ -73,17 +74,17 @@ class Tpl{
     function __construct($target, $useDb = CONFIG::TPL_USE_DB, $language = CONFIG::TPL_DEFAULT_LANGUAGE) {
         $this->debug(CONFIG::TPL_DEBUG);
         $this->useDb($useDb);
-        $this->content = '';
+        $this->_content = '';
         if ($this->useDb()){
-            $this->_db = $target;
             // Проверка дескриптора на корректность
-            /** @todo  Такого метода в классе уже нет */
-            if (!method_exists($this->db(), 'isConnected') || !$this->db()->isConnected()) {
-                throw new TplException(self::L_TPL_DB_UNREACHABLE, E_USER_WARNING);
+            if (!($target instanceof Db)){
+                throw new TplException(TplException::L_TPL_DB_UNREACHABLE, E_USER_WARNING);
             }
+            $this->_db = $target;
+            $this->_db_table = CONFIG::TPL_DB_TABLE;
         }else{
             if (($target != '') && (!is_readable($target))) {
-                throw new TplException(self::L_TPL_FILE_UNREACHABLE . ' - ' . $target, E_USER_WARNING);
+                throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ' - ' . $target, E_USER_WARNING);
             }
             $this->fileName($target);
             $this->loadContent($target);
@@ -93,12 +94,16 @@ class Tpl{
     }
 
 
+
     /**
      * Деструктор класса
      * @return void
      */
     public function __destruct() {
         $this->_db = null;
+        $this->_language = null;
+        $this->_content = null;
+        $this->_fileName = null;
         $this->_language = null;
     }
 
@@ -110,18 +115,15 @@ class Tpl{
      * @return bool
      * @throws TplException
      */
-    function loadContent($fileName = null) {
-        if (!$this->useDb()) {
-            if ($fileName != '') {
-                if (!is_readable($fileName)) {
-                    throw new TplException(self::L_TPL_FILE_UNREACHABLE . ' - ' . $fileName, E_USER_WARNING);
-                }
-                $this->fileName($fileName);
+    public function loadContent($fileName = null) {
+        if ($fileName != '') {
+            if (!is_readable($fileName)) {
+                throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ' - ' . $fileName, E_USER_WARNING);
             }
-            $this->content = file_get_contents($this->fileName());
-            return true;
+            $this->fileName($fileName);
         }
-        return false;
+        $this->_content = file_get_contents($this->fileName());
+        return true;
     }
 
 
@@ -129,25 +131,20 @@ class Tpl{
     /**
      * Получение из файла или БД заданного блока шаблона
      * @param string $name Имя блока шаблона
-     * @param string $style Стиль шаблона
      * @return string
      * @throws TplException
      */
-    function getBlock($name, $style = '') {
+    public function getBlock($name) {
         if ($this->useDb()) {
             $result = $this->db()->scalarQuery(
-                "SELECT `body` FROM " . self::TEMPLATES_DB_TABLE . " WHERE `name` = '" . Db::quote($name) . "'" . ($style != '' ? " AND `style` = '" . Db::quote($style)."'" : ''),
+                "SELECT `body` FROM `" . $this->_db_table . "` WHERE `name` = '" . Filter::slashesAdd($name) . "' LIMIT 1",
                 ''
             );
         }else{
-            $result = Filter::strBetween(
-                    $this->content,
-                    "[\$$name]" . ($style != '' ? "[$style]" : ''),
-                    "[/\$$name]" . ($style != '' ? "[$style]" : '')
-            );
+            $result = Filter::strBetween($this->_content, "[\$$name]", "[/\$$name]");
         }
-        if (($result == '') && $this->debug()){
-            throw new TplException(self::L_TPL_BLOCK_UNKNOWN . ': ' . $name, E_USER_WARNING);
+        if (!$result){
+            throw new TplException(TplException::L_TPL_BLOCK_UNKNOWN . ': ' . $name, E_USER_WARNING);
         }
         return $result;
     }
@@ -161,13 +158,16 @@ class Tpl{
      * @return string
      */
     private static function parseStrBlock($content, $strContainer) {
+/*
         //Заменяем языковые константы
-        //preg_match_all('/\({L_[a-zA-Z_0-9]+\})/', $strContainer, $arr);
-        // Языковые константы
-        //$langs = Language::getValues($this->db(), TPL_DEFAULT_LANGUAGE, $arr[1]);
-        //foreach ($arr[1] as $name) {
-        //   $strContainer = str_replace($name, $langs[$name], $strContainer);
-        //}
+        preg_match_all('/\({L_[a-zA-Z_0-9]+\})/', $strContainer, $lang);
+        // Получаем массив использованных в данном шаблоне языковых констант
+        $lang = Language::getList($this->db(), TPL_DEFAULT_LANGUAGE, $lang[1]);
+        // Проходим в цикле и меняем все
+        foreach ($lang as $key => $value) {
+           $strContainer = str_replace($key, $value, $strContainer);
+        }
+*/
         // Прочие параметры		
         foreach ($content as $key => $value) {
             $strContainer = str_replace('{' . $key . '}', $value, $strContainer);
@@ -196,14 +196,13 @@ class Tpl{
      * @return string
      * @throws TplException
      */
-    function parseFile($content, $fileName = null) {
-        $fileName = $fileName ? $fileName : $this->_fileName;
+    public static function parseFile($content, $fileName) {
         if (!is_readable($fileName)) {
-            throw new TplException(self::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
+            throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
         }
         return self::parseStrBlock(
                 $content, 
-                file_get_contents($fileName === null ? $this->fileName() : $fileName)
+                file_get_contents($fileName)
         );
     }
 
@@ -220,14 +219,14 @@ class Tpl{
      */
     function parseBlockFromFile($content, $fileName, $blockName, $style = '') {
         if (!is_readable($fileName)) {
-            throw new TplException(self::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
+            throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ': ' . $fileName, E_USER_WARNING);
         }
         $result = self::parseStrBlock(
-
-                $content, Filter::strBetween(
-                        file_get_contents($fileName), 
-                        "[\$$blockName]" . ($style != '' ? "[$style]" : ''), 
-                        "[/\$$blockName]" . ($style != '' ? "[$style]" : '')
+                $content,
+                Filter::strBetween(
+                    file_get_contents($fileName),
+                    "[\$$blockName]" . ($style != '' ? "[$style]" : ''),
+                    "[/\$$blockName]" . ($style != '' ? "[$style]" : '')
                 )
         );
         return $result;

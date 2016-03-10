@@ -32,21 +32,7 @@ function customExceptionHandler(Exception $e){
 
     // Иначе выводим всю стандартную информацию
     }else{
-        $mArr = [
-            Log::A_EVENT_TYPE            => Log::T_PHP_EXCEPTION,
-            Log::A_SESSION_ID           => session_id(),
-            Log::A_TEXT_MESSAGE         => $e->__toString(),
-            Log::A_PHP_ERROR_MESSAGE    => $e->getMessage(),
-            Log::A_PHP_ERROR_CODE       => $e->getCode(),
-            Log::A_PHP_FILE_NAME        => $e->getFile(),
-            Log::A_PHP_FILE_LINE        => $e->getLine(),
-            //Log::A_PHP_TRACE            => serialize($e->getTrace()),
-            Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
-            Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
-            Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
-            Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
-            Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
-        ];
+        $mArr = Log::dumpException($e);
     }
     // Без вьюх пока только так
     echo "Exception has been raised \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.";
@@ -78,13 +64,15 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
         Log::A_PHP_ERROR_CODE       => $errNo,
         Log::A_PHP_FILE_NAME        => $errFile,
         Log::A_PHP_FILE_LINE        => $errLine,
-        //Log::A_PHP_CONTEXT          => $errContext,
         Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
         Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
         Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
         Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
         Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
     ];
+    if ($errContext){
+        $mArr[Log::A_PHP_CONTEXT] = $errContext;
+    }
     // Без вьюх пока только так
     echo "Error occurred: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.";
     Log::save(

@@ -17,7 +17,11 @@ require_once('class.Filter.php');
 
 
 /** Собственное исключение для класса */
-class LogException extends BaseException{ }
+class LogException extends BaseException{
+    # Языковые константы класса
+    const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
+    const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
+}
 
 /** @todo Реализовать работу с логами через БД */
 /** @todo Добавить скрипт создания таблицы логов */
@@ -30,7 +34,7 @@ class LogException extends BaseException{ }
  * @package   Micr0
  */
 class Log{
-    protected static $logDb = null;
+    protected static $_db = null;
 
     # Типы записей
     const T_PHP_EXCEPTION = 'php_exception';
@@ -72,17 +76,13 @@ class Log{
     const A_SESSION_USER_ID       = 'session_user_id';
 
 
-    # Языковые константы класса
-    const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
-    const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
-    const L_LOG_EMPTY           = 'Файл лога пока пуст';
-    const L_EMPTY_MESSAGE       = 'Запись лога пуста или имеет неправильный формат';
-
     # Важные константы
     const MESSAGE_SEPARATOR = "\n\n\n\n";
     const MESSAGE_HTML_SEPARATOR = '<br/><br/>';
 
-
+    # Языковые константы класса
+    const L_LOG_EMPTY            = 'Файл лога пока пуст';
+    const L_EMPTY_MESSAGE        = 'Запись лога пуста или имеет неправильный формат';
 
     # Методы класса
     /**
@@ -130,13 +130,10 @@ class Log{
      * Преобразовывает массив параметров в html-представление ошибки
      * Подход не комильфо, да, зато всегда под рукой в том же классе
      * @param array $messageArray Сообщение в виде массива
-     * @param array $captions Заголовки полей
      * @return string
      */
-    public static function parseMessage($messageArray, $captions = null) {
-        if ($captions === null){
-            $captions = self::attributeLabels();
-        }
+    public static function parseMessage($messageArray) {
+        $captions = self::attributeLabels();
         $result = '<table>';
         if (is_array($messageArray)){
             foreach ($messageArray as $caption => $data){
@@ -146,12 +143,10 @@ class Log{
                         break;
 
                     case self::A_PHP_TRACE :
-
-                        $res = Filter::slashesStrip(var_export(unserialize($data), true));
-
-                        // Пропишем стили для наглядного вывода лога в /log/index.php, но и здесь на всякий случай оставим
-                        // <div style="min-height:100px; max-height:500px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
-                        $data = "<pre>$res</pre>";
+                    case self::A_PHP_CONTEXT :
+                        // Пропишем стили для наглядного вывода лога в log/index.php и css/log.css, но и здесь на всякий случай оставим
+                        // <div style="min-height:100px; max-height:400px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
+                        $data = self::printObject($data, true);
                         break;
 
                     default:
@@ -162,7 +157,7 @@ class Log{
                 // В пустых строках толку нет
                 if ($data !== ''){
                     $result .=
-                        '<tr>' . // style="text-align:right; vertical-align:top; font-weight: bold;"
+                        '<tr>' . // Стиль "text-align:right; vertical-align:top; font-weight: bold;" перенесён в css/log.css
                             '<td class="l-col">' .
                                 ($captions[$caption] === '' ? '' : $captions[$caption] . ':') .
                             '</td>' .
@@ -194,7 +189,7 @@ class Log{
                 // Открывать тут можно не абы какой файл, а только в папке логов
                 fopen($filePath, "bw");
             }catch (Exception $e){
-                throw new LogException(self::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
+                throw new LogException(LogException::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
             }
         }
         return file_put_contents($filePath, addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, FILE_APPEND);
@@ -210,7 +205,7 @@ class Log{
     protected static function toDb($messageArray){
         $messageArray = Filter::slashesAdd($messageArray);
         /** @todo Дописать нормальную работу с БД */
-        $result = self::$logDb->query($messageArray);
+        $result = self::$_db->query($messageArray);
         return $result;
     }
 
@@ -245,7 +240,7 @@ class Log{
      */
     public static function showLogDb($typeName, $startFrom, $limit, $descOrder = true) {
         /** @todo Дописать нормальную работу с БД */
-        return self::$logDb->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
+        return self::$_db->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
 
 
@@ -256,7 +251,7 @@ class Log{
      */
     public static function checkLogDb($typeName){
         /** @todo Дописать нормальную работу с БД */
-        return self::$logDb->query($typeName);
+        return self::$_db->query($typeName);
     }
 
 
@@ -271,7 +266,7 @@ class Log{
     public static function showLogFile($fileName, $descOrder = true) {
         $filePath = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR . $fileName;
         if (!is_readable($filePath)) {
-            throw new LogException(self::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
+            throw new LogException(LogException::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
         }
         $content = explode(self::MESSAGE_SEPARATOR, file_get_contents($filePath));
         $result = '';
@@ -354,13 +349,13 @@ class Log{
      */
     public static function showObject($param){
         if (Filter::isString($param)){
-            return '"' . $param . '"';
+            return "'$param'";
         }
         if (Filter::isBool($param)){
             return $param ? 'true' : 'false';
         }
         if (Filter::isNumeric($param) || Filter::isDate($param) || Filter::isDatetime($param)){
-            return $param == 0 ? "0" : "$param";
+            return strval($param);
         }
         return self::dumpObject($param, false);
     }
@@ -373,14 +368,14 @@ class Log{
      * @return array
      */
     public static function dumpException(Exception $e){
-        //$trace = $e->getTrace();
         return [
+            self::A_EVENT_TYPE           => self::T_PHP_EXCEPTION,
             self::A_EXCEPTION            => $e->__toString(),
             self::A_PHP_ERROR_MESSAGE    => $e->getMessage(),
             self::A_PHP_ERROR_CODE       => $e->getCode(),
             self::A_PHP_FILE_NAME        => $e->getFile(),
             self::A_PHP_FILE_LINE        => $e->getLine(),
-            //self::A_PHP_TRACE            => serialize($trace), // Serialization of 'Closure' is not allowed
+            self::A_PHP_TRACE            => $e->getTrace(), // Serialization of 'Closure' is not allowed
             self::A_SESSION_ID           => session_id(),
             self::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
             self::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],

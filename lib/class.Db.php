@@ -17,17 +17,32 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.BaseException.php");
 
 
 
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА УШАТАЕТ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
-//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА МОЖЕТ УШАТАТЬ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /**
  * Класс исключения для объектной работы с БД
  * @see http://php.net/manual/ru/class.pdoexception.php PDOException
  */
 class DbException extends BaseException{
 
+    # Сообщения класса
+    /** @const Server unreachable */
+    const L_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
+    /** @const DB unreachable */
+    const L_DB_UNREACHABLE                = 'База данных недоступна';
+    /** @const Unable to process query */
+    const L_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
+    /** @const Wrong parameters */
+    const L_WRONG_PARAMETERS              = 'Неверные параметры';
+    /** @const Error occurred */
+    const L_ERROR_OCCURRED                = 'Произошла ошибка';
+
+
+
     /** @property string Файл лога для данных исключений */
     const LOG_FILE = CONFIG::DB_ERROR_LOG_FILE;
+
 
     /** @property Db Дескриптор соединения, если передана в конструктор */
     public $db            = null;
@@ -150,30 +165,17 @@ class Db {
     /** Текст последнего запроса к БД */
     protected $_lastQuery = '';
     /** Флаг логгирования */
-    protected $_logging = false;
+    protected $_debug = false;
     /** Строка подключения */
     protected $_dsn = false;
     /** Пользователь БД */
     protected $_userName = false;
 
 
-    # Сообщения класса
-    /** @const Server unreachable */
-    const E_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
-    /** @const DB unreachable */
-    const E_DB_UNREACHABLE                = 'База данных недоступна';
-    /** @const Unable to process query */
-    const E_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
-    /** @const Wrong parameters */
-    const E_WRONG_PARAMETERS              = 'Неверные параметры';
-    /** @const Error occurred */
-    const E_ERROR_OCCURRED                = 'Произошла ошибка';
-
-
     # Алиасы параметров класса
-    const ATTR_LOGGING            = 'DB_ATTR_LOGGING';
-    const ATTR_LOG_FILE           = 'DB_ATTR_LOG_FILE';
-    const ATTR_ERROR_LOG_FILE     = 'DB_ATTR_ERROR_LOG_FILE';
+    const ATTR_DEBUG            = 'DB_ATTR_DEBUG';
+    const ATTR_LOG_FILE         = 'DB_ATTR_LOG_FILE';
+    const ATTR_ERROR_LOG_FILE   = 'DB_ATTR_ERROR_LOG_FILE';
 
 
 
@@ -199,8 +201,8 @@ class Db {
         ]
     ){
         $this->_lastQuery    = 'CONNECT';
-        $this->_logging      = isset($options[self::ATTR_LOGGING]) ? $options[self::ATTR_LOGGING] : CONFIG::DB_DEBUG;
-        $this->_logFile      = isset($options[self::ATTR_LOG_FILE]) ? $options[self::ATTR_LOG_FILE] : CONFIG::DB_LOG_FILE;
+        $this->_debug        = isset($options[self::ATTR_DEBUG])          ? $options[self::ATTR_DEBUG]          : CONFIG::DB_DEBUG;
+        $this->_logFile      = isset($options[self::ATTR_LOG_FILE])       ? $options[self::ATTR_LOG_FILE]       : CONFIG::DB_LOG_FILE;
         $this->_errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
         $this->_dsn = $dsn;
         $this->_userName = $userName;
@@ -208,10 +210,14 @@ class Db {
         try {
             $this->db = new PDO($dsn, $userName, $userPass, $options);
         }catch (Exception $e){
-            throw new DbException($e->getMessage(), $e->getCode(), $e);
+            if (CONFIG::DB_DEBUG) {
+                throw new DbException($e->getMessage(), $e->getCode(), $e);
+            }else{
+                trigger_error($e->getMessage() . ': ' . $e->getCode(), E_USER_ERROR);
+            }
         }
         $this->instanceIndex(count(self::$_instances));
-        if ($this->logging()){
+        if ($this->debug()){
             $this->log('db_connect');
         }
     }
@@ -264,7 +270,7 @@ class Db {
     public function close(){
         $this->_lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
-        if ($this->logging()){
+        if ($this->debug()){
             $this->log('db_close');
         }
         $this->db = null;
@@ -304,18 +310,18 @@ class Db {
 
         // Неверные входные данные
         }else{
-            throw new DbException(self::E_WRONG_PARAMETERS);
+            throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
-        if ($this->logging()){
+        if ($this->debug()){
             $this->log($result);
         }
 
         if ($result === false){
-            throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
+            throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY);
         }
         if ($result instanceof PDOStatement && $result->errorCode() !== PDO::ERR_NONE){
-            throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY, $result);
+            throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY, $result);
         }
         return $result;
     }
@@ -357,7 +363,7 @@ class Db {
             case 3: $result = $this->query($query, $fetchType, func_get_arg(2)); break;
             case 4: $result = $this->query($query, $fetchType, func_get_arg(2), func_get_arg(3)); break;
             default:
-                throw new DbException(self::E_WRONG_PARAMETERS);
+                throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
         if ($result->rowCount() > 1){
@@ -382,11 +388,11 @@ class Db {
         $statement = $this->quote($statement);
         $this->_lastQuery = $statement;
         $result = $this->db->exec($statement);
-        if ($this->logging()){
+        if ($this->debug()){
             $this->log($result);
         }
         if ($result === false){
-            throw new DbException(self::E_UNABLE_TO_PROCESS_QUERY);
+            throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY);
         }
     }
 
@@ -484,12 +490,12 @@ class Db {
             $statement = $this->stmtPrepare($statement);
 
         }else{
-            throw new DbException(self::E_WRONG_PARAMETERS);
+            throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
         // Экранируем передаваемые параметры и добавляем в лог
         if (!is_array($inputParameters)){
-            throw new DbException(self::E_WRONG_PARAMETERS);
+            throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         if (count($inputParameters) > 0){
             foreach ($inputParameters as $key => $value){
@@ -633,15 +639,15 @@ class Db {
     }
 
     /**
-     * Возвращает или устанавливает режим логгирования
-     * @param  bool $logging Флаг логгирования
+     * Возвращает или устанавливает режим дебага
+     * @param  bool $debug Флаг логгирования
      * @return bool Флаг логгирования, или true в случае установки этого флага
      */
-    public function logging($logging = null){
+    public function debug($debug = null){
         if (func_num_args() == 0){
-            return $this->_logging;
+            return $this->_debug;
         }else{
-            $this->_logging = boolval($logging);
+            $this->_debug = boolval($debug);
             return true;
         }
     }
@@ -734,7 +740,7 @@ class Db {
             case 'INSERT':
                 $paramsCount = count($params);
                 if (!$paramsCount){
-                    throw new DbException(self::E_WRONG_PARAMETERS);
+                    throw new DbException(DbException::L_WRONG_PARAMETERS);
                 }
                 // Если массив данных двухмерный
                 if (is_array(reset($params))){
@@ -764,7 +770,7 @@ class Db {
             case 'UPDATE':
                 $paramsCount = count($params);
                 if (!($paramsCount)){
-                    throw new DbException(self::E_WRONG_PARAMETERS);
+                    throw new DbException(DbException::L_WRONG_PARAMETERS);
                 }
                 $t = each($params);
                 $qParams = '`' . $t[0] . '` = ' . ($t[1] === null ? 'null' : "'{$t[1]}'");
@@ -788,7 +794,7 @@ class Db {
                 break;
 
             default:
-                throw new DbException(self::E_WRONG_PARAMETERS);
+                throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         return $this->query($line);
     }
@@ -809,7 +815,7 @@ class Db {
     public function arraySQuery($action, $sourceName, $params, $target = null){
         // Пока не реализована обработка сложных условий, а только сравнивание с id, оставим проверку такой
         if (($target !== null) && !is_numeric($target)){
-            throw new DbException(self::E_WRONG_PARAMETERS);
+            throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         $action = $this->quote($action);
         $sourceName = $this->quote($sourceName);

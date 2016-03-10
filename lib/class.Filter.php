@@ -18,6 +18,9 @@ require_once('class.BaseException.php');
 /** Собственное исключение для класса */
 class FilterException extends BaseException{ }
 
+
+
+
 /** @todo Сделать по возможности передачу в методы произвольного числа аргументов вместо массива. Хотя, не принципиально */
 
 /**
@@ -29,7 +32,7 @@ class FilterException extends BaseException{ }
 class Filter {
 
     /**
-     * Замена элементов массива $arg или всех параметров метода, начиная с [1], на результат применения к ним функции $func
+     * Возвращает массив $arg или массив из всех параметров метода, начиная с [1], к элементам которых применили функцию $func
      * @param callable $func Функция вида mixed function (mixed $el){...}
      * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
      * @return mixed
@@ -49,6 +52,23 @@ class Filter {
             $result = array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
         }
         return $result;
+    }
+
+
+
+    /**
+     * Возвращает массив $arg, к элементам которого рекурсивно применили функцию $func
+     * @param callable $func Функция вида mixed function (mixed $el){...}
+     * @param mixed $arg Аргумент функции
+     * @return mixed
+     */
+    public static function mapRecursive(callable $func, array $arg) {
+        foreach ($arg as $key => $value){
+            $arg[$key] = is_array($value)
+                ? self::mapRecursive($func, $value)
+                : $func($value);
+        }
+        return $arg;
     }
 
 
@@ -389,7 +409,6 @@ class Filter {
         }
         return $result;
     }
-
 
 
 
