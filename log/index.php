@@ -17,6 +17,7 @@
         <meta charset="<?= CONFIG::PAGE_CHARSET ?>">
         <script src="<?= CONFIG::HOST ?>js/jquery.js"></script>
         <script src="<?= CONFIG::HOST ?>js/bootstrap.js"></script>
+        <script src="<?= CONFIG::HOST ?>js/log.js"></script>
         <link rel="stylesheet" href="<?= CONFIG::HOST ?>css/bootstrap.css">
         <link rel="stylesheet" href="<?= CONFIG::HOST ?>css/log.css">
     </head>
@@ -54,6 +55,8 @@
                 </div>
             </div>
         </div>
+	
+	<div id="scrollup" class="scrollup"><img alt="Прокрутить вверх" class="scrollup" src="<?= CONFIG::HOST ?>/img/up.png"></div>
 
     </body>
 </html>

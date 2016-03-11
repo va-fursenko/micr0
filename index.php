@@ -16,6 +16,8 @@ $content = Tpl::parseFile(
     CONFIG::ROOT . DIRECTORY_SEPARATOR . 'tpl/tpl.base.php'
 );
 
+Tpl::parseFile();
+
 
 // Рисуем шаблон
 require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::TPL_DIR . '/layout.main.php');
