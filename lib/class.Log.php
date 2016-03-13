@@ -1,6 +1,6 @@
 <?php
 /**
- * Log explorer сlass (PHP 5 >= 5.0.0)
+ * Log explorer сlass (PHP 5 >= 5.6.0)
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2009-2016
  * Email		    vinjoy@bk.ru
@@ -11,8 +11,10 @@
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once('class.BaseException.php');
-require_once('class.Filter.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Filter.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'trait.UseDb.php');
+
 
 
 
@@ -21,11 +23,13 @@ class LogException extends BaseException{
     # Языковые константы класса
     const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
     const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
+    const L_LOG_DB_UNREACHABLE  = 'База данных лога недоступа';
 }
+
 
 /** @todo Реализовать работу с логами через БД */
 /** @todo Добавить скрипт создания таблицы логов */
-/** @todo Создать файл лога при его отсутствии. ДАВНО ПОРА БЫЛО */
+
 
 /**
  * Класс работы с логами
@@ -34,13 +38,28 @@ class LogException extends BaseException{
  * @package   Micr0
  */
 class Log{
-    protected static $_db = null;
+    # Подключаем трейты
+    use UseDb; # Статическое свойство для работы с БД
+
+
+
+    # Собственные константы
+    /** @const Использование БД вместо файлов для работы с логами */
+    const USE_DB = CONFIG::LOG_USE_DB;
+    /** @const Папка для хранения логов */
+    const DIR = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR;
+    /** @const Разделитель сообщений в файле лога */
+    const MESSAGE_SEPARATOR = "\n\n";
+    /** @const Разделитель сообщений при выводе на экран */
+    const MESSAGE_HTML_SEPARATOR = '<br/><br/>';
+
 
     # Типы записей
-    const T_PHP_EXCEPTION = 'php_exception';
-    const T_PHP_ERROR     = 'php_error';
-    const T_DB_EXCEPTION  = 'db_exception';
-    const T_DB_QUERY      = 'db_query';
+    const T_PHP_EXCEPTION   = 'php_exception';
+    const T_PHP_ERROR       = 'php_error';
+    const T_PHP_FATAL_ERROR = 'php_fatal_error';
+    const T_DB_EXCEPTION    = 'db_exception';
+    const T_DB_QUERY        = 'db_query';
 
 
     # Доступные поля (атрибуты) отдельной записи лога
@@ -76,13 +95,14 @@ class Log{
     const A_SESSION_USER_ID       = 'session_user_id';
 
 
-    # Важные константы
-    const MESSAGE_SEPARATOR = "\n\n\n\n";
-    const MESSAGE_HTML_SEPARATOR = '<br/><br/>';
-
     # Языковые константы класса
     const L_LOG_EMPTY            = 'Файл лога пока пуст';
     const L_EMPTY_MESSAGE        = 'Запись лога пуста или имеет неправильный формат';
+
+
+
+
+
 
     # Методы класса
     /**
@@ -183,16 +203,16 @@ class Log{
      * @throws Exception
      */
     protected static function toFile($filename, $messageArray) {
-        $filePath = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR . $filename;
-        if (!is_writable($filePath)){
-            try{
-                // Открывать тут можно не абы какой файл, а только в папке логов
-                fopen($filePath, "bw");
-            }catch (Exception $e){
-                throw new LogException(LogException::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
+        // Открывать тут можно не абы какой файл, а только в папке логов
+        $filePath = self::DIR . $filename;
+        try{
+            if (!is_writable($filePath)){
+                fopen($filePath, "w");
             }
+            return file_put_contents($filePath, Filter::slashesAdd(serialize($messageArray)) . self::MESSAGE_SEPARATOR, FILE_APPEND);
+        }catch (Exception $e){
+            throw new LogException(LogException::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
         }
-        return file_put_contents($filePath, addslashes(serialize($messageArray)) . self::MESSAGE_SEPARATOR, FILE_APPEND);
     }
 
 
@@ -205,7 +225,7 @@ class Log{
     protected static function toDb($messageArray){
         $messageArray = Filter::slashesAdd($messageArray);
         /** @todo Дописать нормальную работу с БД */
-        $result = self::$_db->query($messageArray);
+        $result = self::db()->query($messageArray);
         return $result;
     }
 
@@ -221,7 +241,7 @@ class Log{
         if (!isset($object[self::A_DATETIME])) {
             $object = [self::A_DATETIME => date("Y-m-d H:i:s")] + $object;// Дата должна идти первой в сообщении
         }
-        if (CONFIG::LOG_USE_DB){
+        if (self::USE_DB){
             return (bool)self::toDb($object);
         }else{
             return (bool)self::toFile($filename ? $filename : CONFIG::LOG_FILE, $object);
@@ -240,7 +260,7 @@ class Log{
      */
     public static function showLogDb($typeName, $startFrom, $limit, $descOrder = true) {
         /** @todo Дописать нормальную работу с БД */
-        return self::$_db->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
+        return self::db()->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
 
 
@@ -248,10 +268,11 @@ class Log{
     /** 
      * Получает количество записей в логе
      * @param string $typeName Тип логов
+     * @return bool
      */
-    public static function checkLogDb($typeName){
+    public static function isLogEmpty($typeName){
         /** @todo Дописать нормальную работу с БД */
-        return self::$_db->query($typeName);
+        return self::db()->query($typeName);
     }
 
 
@@ -264,25 +285,27 @@ class Log{
      * @throws Exception
      */
     public static function showLogFile($fileName, $descOrder = true) {
-        $filePath = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::LOG_DIR . DIRECTORY_SEPARATOR . $fileName;
-        if (!is_readable($filePath)) {
-            throw new LogException(LogException::L_LOG_FILE_UNREADABLE . ' - ' . $fileName);
-        }
-        $content = explode(self::MESSAGE_SEPARATOR, file_get_contents($filePath));
-        $result = '';
-        if (count($content) > 1) {
-            foreach ($content as $key => $message) {
-                if ($message == '') {
-                    break;
-                }
-                if ($descOrder){
-                    $result = self::parseMessage(unserialize(stripslashes($message))) . $result;
-                }else{
-                    $result .= self::parseMessage(unserialize(stripslashes($message)));
-                }
+        // Открывать тут можно не абы какой файл, а только в папке логов
+        $filePath = self::DIR . $fileName;
+        try {
+            if (!is_readable($filePath)) {
+                fopen($filePath, "w");
             }
-        } else {
-            $result = self::L_LOG_EMPTY;
+            $content = explode(self::MESSAGE_SEPARATOR, file_get_contents($filePath));
+            $result = '';
+            if (count($content) > 1) {
+                foreach ($content as $key => $message) {
+                    if ($message == '') {
+                        break;
+                    }
+                    $message = self::parseMessage(unserialize(Filter::slashesStrip($message)));
+                    $result = $descOrder ? $message . $result : $result . $message;
+                }
+            } else {
+                $result = self::L_LOG_EMPTY;
+            }
+        }catch (Exception $e){
+            throw new LogException(LogException::L_LOG_FILE_UNREADABLE . ' - ' . $fileName. '. ' . $e->getMessage());
         }
         return $result;
     }

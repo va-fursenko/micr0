@@ -15,7 +15,6 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 
 
 /** @todo Добавить возвращение или отрисовку сообщений об ошибках - как в гет, так и пост, в зависимости от режиме дебага */
-/** @todo Добавить обработку register_shutdown_function */
 
 
 
@@ -35,7 +34,7 @@ function customExceptionHandler(Exception $e){
         $mArr = Log::dumpException($e);
     }
     // Без вьюх пока только так
-    echo "Exception has been raised \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.<br/><br/>";
+    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.<br/><br/>";
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE
@@ -59,11 +58,11 @@ function customExceptionHandler(Exception $e){
 function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = null){
     $mArr = [
         Log::A_EVENT_TYPE           => Log::T_PHP_ERROR,
-        Log::A_SESSION_ID           => session_id(),
         Log::A_PHP_ERROR_MESSAGE    => $errStr,
         Log::A_PHP_ERROR_CODE       => $errNo,
         Log::A_PHP_FILE_NAME        => $errFile,
         Log::A_PHP_FILE_LINE        => $errLine,
+        Log::A_SESSION_ID           => session_id(),
         Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
         Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
         Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
@@ -90,7 +89,27 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
  * Обработчик завершения скрипта и фатальных ошибок
  */
 function customShutdownHandler(){
-
+    $error = error_get_last();
+    // Ошибка таки-произошла
+    if (isset($error["type"]) && $error["type"] == E_ERROR){
+        $mArr = [
+            Log::A_EVENT_TYPE           => Log::T_PHP_FATAL_ERROR,
+            Log::A_PHP_ERROR_MESSAGE    => $error["message"],
+            Log::A_PHP_ERROR_CODE       => $error["type"],
+            Log::A_PHP_FILE_NAME        => $error["file"],
+            Log::A_PHP_FILE_LINE        => $error["line"],
+            Log::A_SESSION_ID           => session_id(),
+            Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
+        ];
+        Log::save(
+            $mArr,
+            CONFIG::ERROR_LOG_FILE
+        );
+    }
 }
 
 

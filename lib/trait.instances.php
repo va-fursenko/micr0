@@ -12,6 +12,23 @@
  * @see https://opensource.org/licenses/MIT
  */
 
+require_once (__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
+
+
+
+
+
+
+class InstancesException extends BaseException{
+    # Языковые константы
+    /** @const Неизвестный инстанс */
+    const L_UNKNOWN_INSTANCE = 'Неизвестный инстанс класса';
+}
+
+
+
+
+
 
 /**
  * Трейт для работы с инстансами класса
@@ -19,13 +36,11 @@
  * @version   1.0.0
  * @package   Micr0
  */
-trait instances {
+trait Instances {
 
     # Статические свойства
     /** Список экземпляров класса */
     protected static $_instances = [];
-    /** Индекс главного экземпляра класса в списке экземпляров */
-    protected static $_mainInstanceIndex = null;
 
     # Закрытые данные
     /** Индекс экземпляра класса */
@@ -36,51 +51,49 @@ trait instances {
 
 
 
-# -----------------------------------------------       Работа с инстансами      ------------------------------------------------------ #
-
     /**
-     * Возвращает один экземпляр класса из списка классов - аналог метода getInstance()
-     * @param string $instanceIndex,.. Индекс экземпляр класса в списке классов
-     * @return mixed Инстанс с указанным индексом
+     * Установка, или получение индекса инстанса для объекта
+     * @param string $index Новый индекс
+     * @return string|true
+     * @throws InstancesException
      */
-    public static function instance($instanceIndex = null){
-        return $instanceIndex === null ? self::getMainInstance() : self::getInstance($instanceIndex);
-    }
+    public function instanceIndex($index = null){
+        if (func_num_args() == 0){
+            return $this->_instanceIndex;
 
-    /**
-     * Получение списка экземпляров класса или одного его элемента
-     * @param string $index,.. Индекс инстанса
-     * @return mixed Инстанс указанной БД, или весь массив
-     */
-    public static function getInstance($index = null){
-        return $index === null ? self::$_instances : (isset(self::$_instances[$index]) ? self::$_instances[$index] : null);
-    }
-
-    /**
-     * Возвращает главный эземпляр класса из списка классов
-     * @return mixed Главный инстанс класса
-     */
-    public static function getMainInstance(){
-        return self::getInstance(self::mainInstanceIndex());
-    }
-
-    /**
-     * Установка или получение индекса главного экземпляра класса
-     * @param string $index Индекс инстанса
-     * @return string Индекс главного инстанса класса, или true в случае успешной установки
-     * @throws Exception
-     */
-    public static function mainInstanceIndex($index = null){
-        if ($index === null){
-            return self::$_mainInstanceIndex;
-        }else {
-            if (!(is_string($index) || is_numeric($index)) || !in_array($index, self::$_instances)) {
-                throw new DbException(Db::E_WRONG_PARAMETERS);
+        }else{
+            if ($index === null || $index === ''){
+                $index = strval(count(self::$_instances));
+            }else if (!self::isValidInstanceIndex($index)){
+                throw new InstancesException(InstancesException::L_WRONG_PARAMETERS . ": '$index'");
             }
-            self::$_mainInstanceIndex = $index;
-            return true;
+            if ($index !== $this->_instanceIndex) {
+                if ($this->_instanceIndex !== null) {
+                    self::clearInstance($this->_instanceIndex);
+                }
+                self::$_instances[$index] = &$this;
+                $this->_instanceIndex = $index;
+            }
         }
+        return true;
     }
+
+
+
+    /**
+     * Получение указанного экземпляра класса
+     * @param string $index Индекс инстанса
+     * @return mixed Инстанс указанного объекта
+     * @throws InstancesException
+     */
+    public static function getInstance($index){
+        if (!isset(self::$_instances[$index])){
+            throw new InstancesException(InstancesException::L_UNKNOWN_INSTANCE . __CLASS__ . ": '$index'");
+        }
+        return self::$_instances[$index];
+    }
+
+
 
     /**
      * Очищение инстанса
@@ -88,34 +101,19 @@ trait instances {
      * @return true
      */
     public static function clearInstance($index){
-        if ($index == self::mainInstanceIndex()){
-            self::mainInstanceIndex(null);
-        }
         unset(self::$_instances[$index]);
         return true;
     }
 
+
+
     /**
-     * Устанавливает, или получает индекс объекта в списке экземпляров класса
-     * @param string,.. $index Индекс инстанса
-     * @return string Запрашиваемый индекс, или true в случае успешной установки этого индекса
+     * Проверка индекса инстанса на валидность
+     * @param string $index
+     * @return bool
      */
-    public function instanceIndex($index = null){
-        if (func_num_args() == 0){
-            return $this->_instanceIndex;
-        }else {
-            self::$_instances[$index] = &$this;
-            unset(self::$_instances[$this->_instanceIndex]);
-            $this->_instanceIndex = $index;
-            return true;
-        }
+    static protected function isValidInstanceIndex($index){
+        return (is_string($index) && strlen($index) < 33) || is_int($index); // Лично я хочу видеть в индексах только строки до 33 символов, или целые числа
     }
-
-    /** Устанавливает данный экземпляр класса как главный */
-    public function instanceSetMain(){
-        self::$_mainInstanceIndex = $this->instanceIndex();
-        return true;
-    }
-
 
 } 

@@ -11,7 +11,7 @@
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once('class.Log.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 
 
 /**
@@ -24,6 +24,14 @@ class BaseException extends Exception {
 
     /** @const Файл лога для данных исключений */
     const LOG_FILE = CONFIG::ERROR_LOG_FILE;
+
+
+    # Языковые константы
+    /** @const Wrong parameters */
+    const L_WRONG_PARAMETERS              = 'Неверные параметры';
+    /** @const Error occurred */
+    const L_ERROR_OCCURRED                = 'Произошла ошибка';
+
 
     # Строковые коды ошибок
     const E_BAD_DATA              = 'bad_data';

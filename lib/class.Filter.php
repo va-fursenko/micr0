@@ -333,14 +333,13 @@ class Filter {
     /**
      * Экранирование спесцимволов в стиле языка С
      * @param string|array $var Обрабатываемая строка или массив строк
-     * @param string $charList Список экранируемых символов
      * @return mixed
      * @throws FilterException
      */
-    public static function slashesAdd($var, $charList = '') {
+    public static function slashesAdd($var) {
         return self::map(
-            function ($el) use ($charList){
-                return addcslashes($el, $charList);
+            function ($el){
+                return addslashes($el);
             },
             $var
         );
@@ -355,7 +354,7 @@ class Filter {
     public static function slashesStrip($var) {
         return self::map(
             function ($el){
-                return stripcslashes($el);
+                return stripslashes($el);
             },
             $var
         );

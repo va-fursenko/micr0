@@ -11,7 +11,7 @@
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.instances.php");
+require_once(__DIR__ . DIRECTORY_SEPARATOR . "trait.Instances.php");
 require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.Log.php");
 require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.BaseException.php");
 
@@ -33,11 +33,6 @@ class DbException extends BaseException{
     const L_DB_UNREACHABLE                = 'База данных недоступна';
     /** @const Unable to process query */
     const L_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
-    /** @const Wrong parameters */
-    const L_WRONG_PARAMETERS              = 'Неверные параметры';
-    /** @const Error occurred */
-    const L_ERROR_OCCURRED                = 'Произошла ошибка';
-
 
 
     /** @property string Файл лога для данных исключений */
@@ -153,7 +148,7 @@ class DbException extends BaseException{
  */
 class Db {
     # Подключаем трейты
-    use instances; # Работа с инстансами
+    use Instances; # Работа с инстансами
 
 
     # Открытые данные
@@ -216,7 +211,7 @@ class Db {
                 trigger_error($e->getMessage() . ': ' . $e->getCode(), E_USER_ERROR);
             }
         }
-        $this->instanceIndex(count(self::$_instances));
+        $this->setInstanceIndex();
         if ($this->debug()){
             $this->log('db_connect');
         }
@@ -269,7 +264,7 @@ class Db {
     /** Закрытие коннекта */
     public function close(){
         $this->_lastQuery = 'CLOSE';
-        self::clearInstance($this->instanceIndex());
+        self::clearInstance($this->setInstanceIndex());
         if ($this->debug()){
             $this->log('db_close');
         }

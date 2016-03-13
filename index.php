@@ -2,7 +2,7 @@
 
 // Конфиг
 require_once(__DIR__ . '/config.php');
-require_once(__DIR__ . '/lib/inc.common.php');
+require_once(__DIR__ . '/lib/init.common.php');
 
 // Рабочий модуль
 //require_once(__DIR__ . '/work/report.php');
@@ -13,10 +13,12 @@ $content = Tpl::parseFile(
     [
         'lines' => '' // Log::line("Импорт xls: $filename")
     ],
-    CONFIG::ROOT . DIRECTORY_SEPARATOR . 'tpl/tpl.base.php'
+    'tpl.base.php'
 );
 
-Tpl::parseFile();
+
+
+
 
 
 // Рисуем шаблон
