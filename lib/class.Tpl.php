@@ -1,6 +1,6 @@
 <?php
 /**
- * Templates explorer сlass (PHP 5 >= 5.0.0)
+ * Templates explorer сlass (PHP 5 >= 5.6.0)
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2009-2016
  * Email		    vinjoy@bk.ru
@@ -39,7 +39,6 @@ class TplException extends BaseException{
 /** @todo Добавить кеширование шаблонов - разворачивание файлов с несколькими блоками в папку с файлами блоков. Продумать развёртывание в разные папки для разных стилей и языков */
 
 /** @todo Всё, что можно, увести в статические методы без привязки к экземпляру */
-/** @todo Свойства по возможности увести в статические и сразу инициализовать свойствами CONFIG:: */
 
 
 /**
@@ -66,54 +65,20 @@ class Tpl{
 
 
 
-    # Скрытые свойства объекта
-    protected $_filename  = '';      # Имя файла с темплейтом
-    protected $_content   = '';        # Последний считаный файл
-
 
 
     /**
-     * Создание объекта
-     * @param string $filename Имя файла шаблона
-     * @throws TplException
-     */
-    function __construct($filename = null) {
-        if (!self::USE_DB){
-            if ($filename && (!is_readable(self::DIR . $filename))) {
-                throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ' - ' . $filename, E_USER_WARNING);
-            }
-            $this->filename($filename);
-            $this->loadContent($filename);
-        }
-    }
-
-
-
-    /**
-     * Деструктор класса
-     * @return void
-     */
-    public function __destruct() {
-        $this->_content = null;
-        $this->_filename = null;
-    }
-
-
-
-    /**
-     * Загрузка содержимого файла
+     * Загрузка содержимого файла в отдельные файлы блоков
      * @param string $filename Имя файла для загрузки данных
      * @return bool
      * @throws TplException
      */
-    public function loadContent($filename = null) {
-        if ($filename != '') {
-            if (!is_readable(self::DIR . $filename)) {
-                throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ' - ' . $filename, E_USER_WARNING);
-            }
-            $this->filename($filename);
+    public static function cacheFile($filename) {
+        $filename = self::DIR . $filename;
+        if (!is_readable($filename)) {
+            throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ' - ' . $filename, E_USER_WARNING);
         }
-        $this->_content = file_get_contents(self::DIR . $this->filename());
+        $content = file_get_contents($filename);
         return true;
     }
 
@@ -125,7 +90,7 @@ class Tpl{
      * @return string
      * @throws TplException
      */
-    public function getBlock($name) {
+    public static function getBlock($name) {
         if (self::USE_DB) {
             $result = self::db()->scalarQuery(
                 "SELECT `body` FROM `" . self::DB_TABLE . "` WHERE `name` = '" . Filter::slashesAdd($name) . "' LIMIT 1",
@@ -163,8 +128,8 @@ class Tpl{
      * @param string $containerName Имя блока шаблона
      * @return string
      */
-    function parseBlock($data, $containerName) {
-        return self::parseStrBlock($data, $this->getBlock($containerName));
+    public static function parseBlock($data, $containerName) {
+        return self::parseStrBlock($data, self::getBlock($containerName));
     }
 
 
@@ -191,23 +156,6 @@ class Tpl{
     }
 
 
-
-    # ------------------------------------------- Геттеры и сеттеры ---------------------------------------------------- #
-    /**
-     * Возвращает, или устанавливает имя файла
-     * @param string $fileName
-     * @return string|true
-     */
-    function filename($fileName = null) {
-        if (func_num_args() == 0){
-            return $this->_filename;
-        }else{
-            $this->_filename = $fileName;
-            return true;
-        }
-    }
-
-    
 }
 
 

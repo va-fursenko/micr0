@@ -112,7 +112,7 @@ trait Instances {
      * @param string $index
      * @return bool
      */
-    static protected function isValidInstanceIndex($index){
+    protected static function isValidInstanceIndex($index){
         return (is_string($index) && strlen($index) < 33) || is_int($index); // Лично я хочу видеть в индексах только строки до 33 символов, или целые числа
     }
 

@@ -21,3 +21,20 @@ require_once(CONFIG::ROOT . '/lib/class.ErrorHandler.php');
 /* PHPExcel */
 require_once(CONFIG::ROOT . '/lib/external/PHPExcel/PHPExcel.php');
 require_once(CONFIG::ROOT . '/lib/external/PHPExcel/PHPExcel/IOFactory.php');
+
+
+
+
+
+
+
+/* Initialization */
+
+new Db(
+    CONFIG::DB_DSN,
+    CONFIG::DB_USER,
+    CONFIG::DB_PASSWORD,
+    [
+        Db::ATTR_INSTANCE_INDEX => 'main',
+    ]
+);

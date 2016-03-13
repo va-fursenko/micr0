@@ -142,7 +142,7 @@ class ErrorHandler{
      * @return mixed
      * @see http://php.net/manual/ru/function.set-error-handler.php
      */
-    static function setErrorHandler(callable $func){
+    public static function setErrorHandler(callable $func){
         self::$_errorHandler = $func;
         return set_error_handler($func, E_ALL);
     }
@@ -155,7 +155,7 @@ class ErrorHandler{
      * @return callable
      * @see http://php.net/manual/ru/function.set-exception-handler.php
      */
-    static function setExceptionHandler(callable $func){
+    public static function setExceptionHandler(callable $func){
         self::$_exceptionHandler = $func;
         return set_exception_handler($func);
     }
@@ -168,7 +168,7 @@ class ErrorHandler{
      * @param mixed $params Возможные параметры обработчика
      * @return void
      */
-    static function setShutdownHandler(callable $func, $params = null){
+    public static function setShutdownHandler(callable $func, $params = null){
         self::$_shutdownHandlers[] = $func;
         register_shutdown_function($func);
     }
@@ -180,7 +180,7 @@ class ErrorHandler{
      * @param bool $debugMode
      * @return bool|void
      */
-    static function debugMode($debugMode = null){
+    public static function debugMode($debugMode = null){
         if (func_num_args() == 1){
             self::$_debugMode = $debugMode;
         }else{

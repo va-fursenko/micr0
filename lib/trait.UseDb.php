@@ -39,7 +39,7 @@ trait UseDb {
      * Геттер дескриптора соединения
      * @return Db
      */
-    static public function db(){
+    public static function db(){
         // Получаем дескриптор. Если он ешё не инициализован, пробуем получить его у Db::getInstance()
         if (self::$_db === null){
             self::$_db = Db::getInstance(self::$_dbInstanceIndex);
@@ -53,7 +53,7 @@ trait UseDb {
      * Сеттер индекса инстанса БД
      * @param string $index
      */
-    static public function setDbInstanceIndex($index){
+    public static function setDbInstanceIndex($index){
         self::$_dbInstanceIndex = $index;
     }
 

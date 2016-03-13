@@ -129,7 +129,7 @@ class DbException extends BaseException{
 }
 
 
-
+/** @todo Не логгируется ошибка при коннекте */
 
 
 /**
@@ -171,6 +171,7 @@ class Db {
     const ATTR_DEBUG            = 'DB_ATTR_DEBUG';
     const ATTR_LOG_FILE         = 'DB_ATTR_LOG_FILE';
     const ATTR_ERROR_LOG_FILE   = 'DB_ATTR_ERROR_LOG_FILE';
+    const ATTR_INSTANCE_INDEX   = 'DB_ATTR_INSTANCE_INDEX';
 
 
 
@@ -201,7 +202,7 @@ class Db {
         $this->_errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
         $this->_dsn = $dsn;
         $this->_userName = $userName;
-        // Пробуем подключиться, переделывая все исключения в DbException
+        // Пробуем подключиться, переделывая возможные исключения в DbException
         try {
             $this->db = new PDO($dsn, $userName, $userPass, $options);
         }catch (Exception $e){
@@ -211,7 +212,7 @@ class Db {
                 trigger_error($e->getMessage() . ': ' . $e->getCode(), E_USER_ERROR);
             }
         }
-        $this->setInstanceIndex();
+        $this->instanceIndex(isset($options[self::ATTR_INSTANCE_INDEX]) ? $options[self::ATTR_INSTANCE_INDEX] : null);
         if ($this->debug()){
             $this->log('db_connect');
         }
@@ -264,7 +265,7 @@ class Db {
     /** Закрытие коннекта */
     public function close(){
         $this->_lastQuery = 'CLOSE';
-        self::clearInstance($this->setInstanceIndex());
+        self::clearInstance($this->instanceIndex());
         if ($this->debug()){
             $this->log('db_close');
         }
