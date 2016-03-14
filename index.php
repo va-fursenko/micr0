@@ -8,15 +8,14 @@ require_once(__DIR__ . '/lib/init.common.php');
 //require_once(__DIR__ . '/work/report.php');
 
 // Генерим контент
-
 $content = Tpl::parseFile(
     [
         'lines' => '' // Log::line("Импорт xls: $filename")
     ],
-    'tpl.base.php'
+    'base.php'
 );
 
-
+Tpl::cacheFile('base.php');
 
 
 

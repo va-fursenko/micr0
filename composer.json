@@ -1,0 +1,17 @@
+{
+    "name": "micro/micro",
+    "description": "Testing micro-framework",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Viktor Fursenko",
+            "email": "va.fursenko@yandex.ru"
+        }
+    ],
+    "require": {
+        "php": "^5.5|^7.0",
+        "smarty/smarty": "^3.1",
+        "phpoffice/phpexcel": "^1.8",
+        "phpoffice/phpword": "^0.12.1"
+    }
+}

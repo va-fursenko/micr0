@@ -350,7 +350,7 @@ class Db {
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      * @see http://php.net/manual/ru/pdo.constants.php
      */
-    public function associateQuery($query, $fetchType = null){
+    public function assocQuery($query, $fetchType = null){
         $numArgs = func_num_args();
 
         switch ($numArgs){
@@ -380,7 +380,7 @@ class Db {
      * @throws DbException
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
-    public function exec($statement){
+    public function execQuery($statement){
         $statement = $this->quote($statement);
         $this->_lastQuery = $statement;
         $result = $this->db->exec($statement);
@@ -454,7 +454,7 @@ class Db {
      * @return PDOStatement|bool Подготовленное выражение, или false
      * @throws PDOException
      */
-    public function stmtPrepare($statement , $driverOptions = []){
+    public function prepare($statement , $driverOptions = []){
         $this->_lastQuery = [
             'PREPARE',
             $statement
@@ -469,13 +469,13 @@ class Db {
 
     /**
      * Выполнение подготовленного выражения
-     * В логике проекта объекты PDOStatement лучше выполнять через этот метод, чтобы шло логгирование
+     * В логике проекта объекты PDOStatement лучше выполнять через этот метод, чтобы шло логгирование запросов при дебаге
      * @param PDOStatement|string $statement Текстовое SQL-выражение, или подготовленное выражение
      * @param array $inputParameters Атрибуты возвращаемого объекта PDOStatement
      * @return bool Флаг успешного, или неуспешного выполнения запроса
      * @throws PDOException|DbException
      */
-    public function stmtExecute($statement , $inputParameters = []){
+    public function execute($statement , $inputParameters = null){
         $this->_lastQuery = ['EXEC'];
         if ($statement instanceof PDOStatement){
             $this->_lastQuery[] = $statement->queryString;
@@ -483,20 +483,17 @@ class Db {
         // Если на входе строка, пробуем подготовить из неё выражение и выполнить
         }else if (is_string($statement)){
             $this->_lastQuery[] = $statement;
-            $statement = $this->stmtPrepare($statement);
+            $statement = $this->prepare($statement);
 
         }else{
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
-        // Экранируем передаваемые параметры и добавляем в лог
-        if (!is_array($inputParameters)){
+        // Проверяем параметры и добавляем в лог
+        if ($inputParameters !== null && !is_array($inputParameters)){
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         if (count($inputParameters) > 0){
-            foreach ($inputParameters as $key => $value){
-                $inputParameters[$key] = $this->quote($value);
-            }
             $this->_lastQuery[] = Log::printObject($inputParameters);
         }
 

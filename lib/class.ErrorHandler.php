@@ -34,7 +34,7 @@ function customExceptionHandler(Exception $e){
         $mArr = Log::dumpException($e);
     }
     // Без вьюх пока только так
-    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.<br/><br/>";
+    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log " . CONFIG::ERROR_LOG_FILE . "<br/><br/>";
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE
@@ -73,7 +73,7 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
         $mArr[Log::A_PHP_CONTEXT] = $errContext;
     }
     // Без вьюх пока только так
-    echo "Error occurred: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log.<br/><br/>";
+    echo "Error occurred: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log " . CONFIG::ERROR_LOG_FILE . "<br/><br/>";
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE
