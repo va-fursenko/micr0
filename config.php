@@ -35,7 +35,7 @@ class CONFIG{
     /** @const string Кодировка страниц */
     const PAGE_CHARSET = 'UTF-8';
     /** @const string Общий заголовок страниц */
-    const PAGE_TITLE = 'Micr0';
+    const PAGE_TITLE = 'micro';
 
 
     # Логи
