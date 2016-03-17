@@ -15,8 +15,11 @@ require_once('class.BaseException.php');
 
 
 
+
 /** Собственное исключение для класса */
-class FilterException extends BaseException{ }
+class FilterException extends BaseException
+{
+}
 
 
 
@@ -29,29 +32,25 @@ class FilterException extends BaseException{ }
  * @version   2.0.0
  * @package   Micr0
  */
-class Filter {
-
+class Filter
+{
     /**
      * Возвращает массив $arg или массив из всех параметров метода, начиная с [1], к элементам которых применили функцию $func
      * @param callable $func Функция вида mixed function (mixed $el){...}
      * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
      * @return mixed
      */
-    public static function map(callable $func, $arg) {
+    public static function map(callable $func, $arg)
+    {
         // Функции переданы только коллбэк и один аргумент
         if (func_num_args() == 2) {
-            if (is_array($arg)) {
-                $result = array_map($func, $arg);
-            } else {
-                $result = $func($arg);
-            }
+            return is_array($arg) ? array_map($func, $arg) : $func($arg);
 
         // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
-        }else{
-            // Передаём на обработку все аргументы кроме первого - это сам коллбэк
-            $result = array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
+        } else {
+            // Передаём на обработку все аргументы кроме первого - это коллбэк
+            return array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
         }
-        return $result;
     }
 
 
@@ -62,8 +61,9 @@ class Filter {
      * @param mixed $arg Аргумент функции
      * @return mixed
      */
-    public static function mapRecursive(callable $func, array $arg) {
-        foreach ($arg as $key => $value){
+    public static function mapRecursive(callable $func, array $arg)
+    {
+        foreach ($arg as $key => $value) {
             $arg[$key] = is_array($value)
                 ? self::mapRecursive($func, $value)
                 : $func($value);
@@ -80,29 +80,27 @@ class Filter {
      * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
      * @return bool
      */
-    public static function mapBool(callable $func, $arg) {
-        $map = function($arr) use ($func){
+    public static function mapBool(callable $func, $arg)
+    {
+        $map = function($arr) use ($func)
+        {
             $result = true;
             $i = 0;
-            while ($result && $i < count($arr)){
+            while ($result && $i < count($arr)) {
                 $result = $result && $func($arr[$i]);
                 $i++;
             }
             return $i > 0 && $result; // Для пустого массива стоит вернуть false
         };
 
-        if (func_num_args() == 2){
-            if (is_array($arg)) {
-                $result = $map($arg);
-            } else {
-                $result = $func($arg);
-            }
+        if (func_num_args() == 2) {
+            return is_array($arg) ? $map($arg) : $func($arg);
 
-        }else{
-            $result = $map(func_get_args());
+        // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
+        } else {
+            // Передаём на обработку все аргументы кроме первого - это коллбэк
+            return $map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
         }
-
-        return $result;
     }
 
 
@@ -113,9 +111,11 @@ class Filter {
      * @param mixed $type Тип данных
      * @return bool
      */
-    public static function is($var, $type){
+    public static function is($var, $type)
+    {
         return self::mapBool(
-            function ($el) use ($type){
+            function ($el) use ($type)
+            {
                 return is_a($el, $type, false);
             },
             $var
@@ -142,9 +142,11 @@ class Filter {
      * @assert (1.2, 0, 3) == false
      * @return bool
      */
-    public static function isIntegerBetween($var, $from, $to) {
+    public static function isIntegerBetween($var, $from, $to)
+    {
         return self::mapBool(
-            function ($el) use ($from, $to){
+            function ($el) use ($from, $to)
+            {
                 return is_int($el) && ($el >= $from) && ($el <= $to);
             },
             $var
@@ -160,7 +162,8 @@ class Filter {
      * @param datetime $to Конец диапозона допустимых значений
      * @return bool
      */
-    public static function isDateBetween($var, $from, $to) {
+    public static function isDateBetween($var, $from, $to)
+    {
         /** @todo Дописать метод isDateBetween */
         return 1 / 0;
     }
@@ -172,7 +175,8 @@ class Filter {
      * @param string|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isString($var) {
+    public static function isString($var)
+    {
         return self::mapBool('is_string', $var);
     }
 
@@ -183,7 +187,8 @@ class Filter {
      * @param array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isArray($var) {
+    public static function isArray($var)
+    {
         return self::mapBool('is_array', $var);
     }
 
@@ -194,7 +199,8 @@ class Filter {
      * @param bool|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isBool($var) {
+    public static function isBool($var)
+    {
         return self::mapBool('is_bool', $var);
     }
 
@@ -205,7 +211,8 @@ class Filter {
      * @param float|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isNumeric($var) {
+    public static function isNumeric($var)
+    {
         return self::mapBool('is_numeric', $var);
     }
 
@@ -216,7 +223,8 @@ class Filter {
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isInteger($var) {
+    public static function isInteger($var)
+    {
         return self::mapBool('is_int', $var);
     }
 
@@ -227,9 +235,11 @@ class Filter {
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isNatural($var) {
+    public static function isNatural($var)
+    {
         return self::mapBool(
-            function($el){
+            function($el)
+            {
                 return is_int($el) && $el >= 0;
             },
             $var
@@ -244,11 +254,12 @@ class Filter {
      * @param string $formatExpr Регулярное выражение для проверки формата даты
      * @return bool
      */
-    public static function isDate($var, $formatExpr = '/^(\d{4})\-(\d{2})\-(\d{2})$/') {
+    public static function isDate($var, $formatExpr = '/^(\d{4})\-(\d{2})\-(\d{2})$/')
+    {
         return self::mapBool(
-            function($el) use ($formatExpr){
-                return (preg_match($formatExpr, $el, $d))
-                && checkdate($d[2], $d[3], $d[1]);
+            function($el) use ($formatExpr)
+            {
+                return preg_match($formatExpr, $el, $d) && checkdate($d[2], $d[3], $d[1]);
             },
             $var
         );
@@ -261,18 +272,21 @@ class Filter {
      * @param datetime|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
-    public static function isDatetime($var) {
-        $func = function ($el){
-            function checktime($hour, $min, $sec) {
-                if (strlen($hour) == 2 && $hour{0} == '0'){ $hour = $hour{1}; }
+    public static function isDatetime($var)
+    {
+        $func = function ($el)
+        {
+            function checktime($hour, $min, $sec)
+            {
+                $hour = (strlen($hour) < 2 || $hour{0} !== '0') ?: $hour{1};
                 if ($hour < 0 || $hour > 23 || !is_int($hour)) {
                     return false;
                 }
-                if (strlen($min) == 2 && $min{0} == '0'){ $min = $min{1}; }
+                $min = (strlen($min) < 2 || $min{0} !== '0') ?: $min{1};
                 if ($min < 0 || $min > 59 || !is_int($min)) {
                     return false;
                 }
-                if (strlen($sec) == 2 && $sec{0} == '0'){ $sec = $sec{1}; }
+                $sec = (strlen($sec) < 2 || $sec{0} !== '0') ?: $sec{1};
                 if ($sec < 0 || $sec > 59 || !is_int($sec)) {
                     return false;
                 }
@@ -298,12 +312,12 @@ class Filter {
      * @param int $flags Способ обработки кавычек, аналогичен второму параметру htmlspecialchars
      * @return string
      */
-    public static function htmlEncode($var, $flags = ENT_QUOTES) {
-        if ($flags === null){
-            $flags = ENT_COMPAT | ENT_HTML401;
-        }
+    public static function htmlEncode($var, $flags = ENT_QUOTES)
+    {
+        $flags = $flags !== null ?: ENT_COMPAT | ENT_HTML401;
         return self::map(
-            function ($el) use ($flags){
+            function ($el) use ($flags)
+            {
                 return htmlspecialchars($el, $flags);
             },
             $var
@@ -316,12 +330,12 @@ class Filter {
      * @param int $flags Способ обработки кавычек, аналогичен второму параметру htmlspecialchars_decode
      * @return string
      */
-    public function htmlDecode($var, $flags = ENT_QUOTES) {
-        if ($flags === null){
-            $flags = ENT_COMPAT | ENT_HTML401;
-        }
+    public function htmlDecode($var, $flags = ENT_QUOTES)
+    {
+        $flags = $flags !== null ?: ENT_COMPAT | ENT_HTML401;
         return self::map(
-            function ($el) use ($flags){
+            function ($el) use ($flags)
+            {
                 return htmlspecialchars_decode($el, $flags);
             },
             $var
@@ -336,9 +350,11 @@ class Filter {
      * @return mixed
      * @throws FilterException
      */
-    public static function slashesAdd($var) {
+    public static function slashesAdd($var)
+    {
         return self::map(
-            function ($el){
+            function ($el)
+            {
                 return addslashes($el);
             },
             $var
@@ -351,9 +367,11 @@ class Filter {
      * @return mixed
      * @throws FilterException
      */
-    public static function slashesStrip($var) {
+    public static function slashesStrip($var)
+    {
         return self::map(
-            function ($el){
+            function ($el)
+            {
                 return stripslashes($el);
             },
             $var
@@ -372,10 +390,11 @@ class Filter {
      * @param string $index Новый индекс - один из индексов во всех строках массива. Сохраняется первое вхождение всех дублируемых индексов
      * @return array
      */
-    public static function arrayReindex($arr, $index){
+    public static function arrayReindex($arr, $index)
+    {
         $result = [];
-        foreach ($arr as $el){
-            if (isset($el[$index]) && !isset($result[$el[$index]])){
+        foreach ($arr as $el) {
+            if (isset($el[$index]) && !isset($result[$el[$index]])) {
                 $result[$el[$index]] = $el;
             }
         }
@@ -386,22 +405,24 @@ class Filter {
 
     /**
      * Выбирает из двухмерного массива множество значений столбца
+     * @todo Как-то коряво смотрится
      * @param array $arr Исходный массив
      * @param string $index 
      * @param bool $arrayReindex Флаг, указывающий та то, что индексация результата будет проведена значениями полученного массива
      * @return array
      */
-    public static function arrayExtract($arr, $index, $arrayReindex = false){
+    public static function arrayExtract($arr, $index, $arrayReindex = false)
+    {
         $result = [];
-        if ($arrayReindex){
-             foreach ($arr as $el){
-                if (isset($el[$index]) && !isset($result[$el[$index]])){
+        if ($arrayReindex) {
+             foreach ($arr as $el) {
+                if (isset($el[$index]) && !isset($result[$el[$index]])) {
                     $result[$el[$index]] = $el[$index];
                 }
             }
         }else{
-            foreach ($arr as $el){
-                if (isset($el[$index]) && (array_search($el[$index], $result) === false)){
+            foreach ($arr as $el) {
+                if (isset($el[$index]) && (array_search($el[$index], $result) === false)) {
                     $result[] = $el[$index];
                 }
             }
@@ -417,8 +438,10 @@ class Filter {
      * @param array $arr Проверяемый массив
      * @return bool
      */
-    public static function arrayKeyExists($key, $arr){
-        $func = function ($el) use ($arr){
+    public static function arrayKeyExists($key, $arr)
+    {
+        $func = function ($el) use ($arr)
+        {
             return array_key_exists($el, $arr);
         };
         return is_array($key)
@@ -435,8 +458,10 @@ class Filter {
      * @param string|array $subject Обрабатываемая строка, или массив строк
      * @return string|array
      */
-    public static function strReplace($search, $replacement, $subject){
-        $func = function ($el) use ($search, $replacement){
+    public static function strReplace($search, $replacement, $subject)
+    {
+        $func = function ($el) use ($search, $replacement)
+        {
             return str_replace($search, $replacement, $el);
         };
         return is_array($subject)
@@ -454,9 +479,11 @@ class Filter {
      * @param string $encoding Кодировка
      * @return string
      */
-    public static function strTrim($var, $length, $strEnd = '..', $encoding = null){
-        $encoding = $encoding === null ? mb_internal_encoding() : $encoding;
-        $func = function ($el) use ($length, $strEnd, $encoding){
+    public static function strTrim($var, $length, $strEnd = '..', $encoding = null)
+    {
+        $encoding = $encoding !== null ?: mb_internal_encoding();
+        $func = function ($el) use ($length, $strEnd, $encoding)
+        {
             return mb_strimwidth($el, 0, $length, $strEnd, $encoding);
         };
         return is_array($var)
@@ -467,7 +494,7 @@ class Filter {
 
 
     /**
-     * Получение подстроки $str, заключенной между $sMarker и $fMarker
+     * Получение подстроки $str, заключенной между $sMarker и $fMarker. Регистрозависима
      * @param string $str Строка, в которой ищется подстрока
      * @param string $sMarker Маркер начала
      * @param string $fMarker Маркер конца
@@ -475,14 +502,16 @@ class Filter {
      * @return string
      * Похоже, что тут вызов от массива строк не нужен
      */
-    public static function strBetween($str, $sMarker, $fMarker, $initOffset = 0) {
+    public static function strBetween($str, $sMarker, $fMarker, $initOffset = 0)
+    {
         $result = '';
-        $s = stripos($str, $sMarker, $initOffset);
+        $s = strpos($str, $sMarker, $initOffset);
         if ($s !== false) {
             $s += strlen($sMarker);
-            $f = stripos($str, $fMarker, $s);
-            if ($f !== false)
+            $f = strpos($str, $fMarker, $s);
+            if ($f !== false) {
                 $result = substr($str, $s, $f - $s);
+            }
         }
         return $result;
     }
@@ -491,7 +520,8 @@ class Filter {
 
     /**
      * Увеличение строки до $padLength символов. Многобайтовая версия
-     * Под linux на русских символах РАБОТАЕТ НЕПРАВИЛЬНО
+     * Под linux и PHP 5.5.xx на русских символах РАБОТАЕТ НЕПРАВИЛЬНО
+     * @todo Господь-Вседержитель, да вы только посмотрите на этот код... Тем более, что, кажется, на 7 PHP проблема не актуальна
      * @param string|array $var Исходная строка, или массив строк
      * @param int $padLength Длина, до которой будет дополняться исходная строка
      * @param string $padStr Строка, которой будет дополняться исходная строка
@@ -500,9 +530,11 @@ class Filter {
      * @return string
      * @see http://php.net/manual/ru/function.str-pad.php#116244
      */
-    public static function strPad($var, $padLength, $padStr = ' ', $direct = STR_PAD_RIGHT, $encoding = null){
-        $encoding = $encoding === null ? mb_internal_encoding() : $encoding;
-        $func = function ($el) use ($padLength, $padStr, $direct, $encoding) {
+    public static function strPad($var, $padLength, $padStr = ' ', $direct = STR_PAD_RIGHT, $encoding = null)
+    {
+        $encoding = $encoding !== null ?: mb_internal_encoding();
+        $func = function ($el) use ($padLength, $padStr, $direct, $encoding)
+        {
             $padBefore = $direct === STR_PAD_BOTH || $direct === STR_PAD_LEFT;
             $padAfter = $direct === STR_PAD_BOTH || $direct === STR_PAD_RIGHT;
             $padLength -= mb_strlen($el, $encoding);
@@ -518,6 +550,5 @@ class Filter {
             ? $func($var)
             : self::map($func, $var);
     }
-
 }
 

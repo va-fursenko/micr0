@@ -10,12 +10,30 @@ require_once(__DIR__ . '/lib/init.common.php');
 // Генерим контент
 $content = Tpl::parseFile(
     [
-        'lines' => '' // Log::line("Импорт xls: $filename")
+        'lines' => 'Hello, world!',
+        'button_text' => 'Жмакни меня',
+        'email' => 'helloworld@mail.ru',
+        'rows' => [
+            [
+                'city'       => 'Belgorod',
+                'country'    => 'Russia',
+                'population' => '360k'
+            ],
+            [
+                'city'       => 'St. Peterburg',
+                'country'    => 'Russia',
+                'population' => '5kk'
+            ],
+            ['New York', 'USA', '10kk'],
+            ['Las Vegas', 'USA', '2kk'],
+            ['London', 'Great Britain', '12kk'],
+        ],
+        'place_button' => true,
+        'some_flag' => 'warning'
     ],
-    'base.php'
+    'base'
 );
 
-Tpl::cacheFile('base.php');
 
 
 

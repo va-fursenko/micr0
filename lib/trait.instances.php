@@ -14,12 +14,9 @@
 
 require_once (__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
-
-
-
-
-
-class InstancesException extends BaseException{
+/** Класс исключения для методов трейта */
+class InstancesException extends BaseException
+{
     # Языковые константы
     /** @const Неизвестный инстанс */
     const L_UNKNOWN_INSTANCE = 'Неизвестный инстанс класса';
@@ -36,8 +33,8 @@ class InstancesException extends BaseException{
  * @version   1.0.0
  * @package   Micr0
  */
-trait Instances {
-
+trait Instances
+{
     # Статические свойства
     /** Список экземпляров класса */
     protected static $_instances = [];
@@ -48,24 +45,23 @@ trait Instances {
 
 
 
-
-
-
     /**
      * Установка, или получение индекса инстанса для объекта
      * @param string $index Новый индекс
      * @return string|true
      * @throws InstancesException
      */
-    public function instanceIndex($index = null){
-        if (func_num_args() == 0){
+    public function instanceIndex($index = null)
+    {
+        if (func_num_args() == 0) {
             return $this->_instanceIndex;
 
-        }else{
-            if ($index === null || $index === ''){
+        } else {
+            if ($index === null || $index === '') {
                 $index = strval(count(self::$_instances));
-            }else if (!self::isValidInstanceIndex($index)){
+            } elseif (!self::isValidInstanceIndex($index)) {
                 throw new InstancesException(InstancesException::L_WRONG_PARAMETERS . ": '$index'");
+
             }
             if ($index !== $this->_instanceIndex) {
                 if ($this->_instanceIndex !== null) {
@@ -86,8 +82,9 @@ trait Instances {
      * @return mixed Инстанс указанного объекта
      * @throws InstancesException
      */
-    public static function getInstance($index){
-        if (!isset(self::$_instances[$index])){
+    public static function getInstance($index)
+    {
+        if (!isset(self::$_instances[$index])) {
             throw new InstancesException(InstancesException::L_UNKNOWN_INSTANCE . __CLASS__ . ": '$index'");
         }
         return self::$_instances[$index];
@@ -100,7 +97,8 @@ trait Instances {
      * @param string $index Индекс инстанса
      * @return true
      */
-    public static function clearInstance($index){
+    public static function clearInstance($index)
+    {
         unset(self::$_instances[$index]);
         return true;
     }
@@ -112,8 +110,8 @@ trait Instances {
      * @param string $index
      * @return bool
      */
-    protected static function isValidInstanceIndex($index){
+    protected static function isValidInstanceIndex($index)
+    {
         return (is_string($index) && strlen($index) < 33) || is_int($index); // Лично я хочу видеть в индексах только строки до 33 символов, или целые числа
     }
-
 } 

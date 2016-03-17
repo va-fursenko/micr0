@@ -1,0 +1,53 @@
+<div class="row log-row">
+    <h4 class="log-caption">micro :) '{{button_text}}'</h4>
+    <img class="log-caption log-loader" id="logLoader" src="img/loader.gif">
+    <a id="beginBtn" class="log-caption btn btn-primary" href="javascript:void(0);">Красная кнопка</a>
+</div>
+
+<div class="container">
+    <table class="table table-striped table-condensed table-bordered table-hover">
+        <caption>Таблица с какой-то залупой</caption>
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Город</th>
+                <th>Страна</th>
+                <th>Обмудков живёт</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{[rows]}}
+            <tr>
+                <td>{{#number}}</td>
+                <td>{{city}}</td>
+                <td>{{country}}</td>
+                <td>{{population}}</td>
+            </tr>
+            {{;rows}}
+        </tbody>
+    </table>
+</div>
+
+<div class="container">
+    {{?place_button}}
+        <a class="btn btn-success" href="javascript:void(0);">{{button_text}}</a>
+    {{!place_button}}
+        <input type="email" class="form-control" value="{{email}}" placeholder="Введи имайлку"/>
+    {{;place_button}}
+</div>
+
+<div>
+    {{?some_flag=1}}
+        <span class="label">first label</span>
+    {{?some_flag=warning}}
+        <span class="label label-warning">Some warning label</span>
+    {{?some_flag='{{place_button}}'}}
+        <span class="label label-success">Some success label</span>
+    {{?some_flag={{place_button}}}}
+        <span class="label label-success">Some success label</span>
+    {{!some_flag}}
+        <span class="label label-important">DEFAULT LABEL</span>
+    {{;some_flag}}
+</div>
+
+<pre class="log-container" id="logPre">{{lines}}</pre>

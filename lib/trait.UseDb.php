@@ -14,19 +14,14 @@
 
 require_once (__DIR__ . DIRECTORY_SEPARATOR . 'class.Db.php');
 
-
-
-
-
-
-
 /**
- * Трейт для статического использования одной БД
+ * Трейт для статического использования объекта Db
  * @author    viktor
  * @version   1.0.0
  * @package   Micr0
  */
-trait UseDb {
+trait UseDb
+{
 
     /** @var Db Дескриптор соединения с БД */
     static protected $_db = null;
@@ -39,9 +34,10 @@ trait UseDb {
      * Геттер дескриптора соединения
      * @return Db
      */
-    public static function db(){
+    public static function db()
+    {
         // Получаем дескриптор. Если он ешё не инициализован, пробуем получить его у Db::getInstance()
-        if (self::$_db === null){
+        if (self::$_db === null) {
             self::$_db = Db::getInstance(self::$_dbInstanceIndex);
         }
         return self::$_db;
@@ -53,8 +49,8 @@ trait UseDb {
      * Сеттер индекса инстанса БД
      * @param string $index
      */
-    public static function setDbInstanceIndex($index){
+    public static function setDbInstanceIndex($index)
+    {
         self::$_dbInstanceIndex = $index;
     }
-
 } 
