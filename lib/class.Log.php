@@ -19,7 +19,8 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'trait.UseDb.php');
 
 
 /** Собственное исключение для класса */
-class LogException extends BaseException{
+class LogException extends BaseException
+{
     # Языковые константы класса
     const L_LOG_FILE_UNREADABLE = 'Файл лога недоступен для чтения';
     const L_LOG_FILE_UNWRITABLE = 'Файл лога недоступен для записи';
@@ -37,10 +38,10 @@ class LogException extends BaseException{
  * @version   2.4.0
  * @package   Micr0
  */
-class Log{
+class Log
+{
     # Подключаем трейты
     use UseDb; # Статическое свойство для работы с БД
-
 
 
     # Собственные константы
@@ -109,7 +110,8 @@ class Log{
      * Получение заголовков всех доступных полей (атрибутов) отдельной записи лога
      * @return array
      */
-    public static function attributeLabels(){
+    public static function attributeLabels()
+    {
         return [
             self::A_DATETIME              => '',
             self::A_EVENT_TYPE            => 'Тип события',
@@ -152,30 +154,29 @@ class Log{
      * @param array $messageArray Сообщение в виде массива
      * @return string
      */
-    public static function parseMessage($messageArray) {
+    public static function parseMessage($messageArray)
+    {
         $captions = self::attributeLabels();
         $result = '<table>';
-        if (is_array($messageArray)){
-            foreach ($messageArray as $caption => $data){
+        if (is_array($messageArray)) {
+            foreach ($messageArray as $caption => $data) {
 
-                switch ($caption){
+                switch ($caption) {
                     case self::A_DATETIME : $data = "<b>$data</b>";
                         break;
-
                     case self::A_PHP_TRACE :
                     case self::A_PHP_CONTEXT :
                         // Пропишем стили для наглядного вывода лога в log/index.php и css/log.css, но и здесь на всякий случай оставим
                         // <div style="min-height:100px; max-height:400px; overflow-x:scroll; overflow-y:scroll; font-size:7pt; border:1px dashed; padding:2px 0px 4px 6px; background-color:#dddddd;">
                         $data = self::printObject($data, true);
                         break;
-
                     default:
                         $res = self::printObject($data, false);
                         $data = is_array($data) ? "<pre>$res</pre>" : $res;
                 }
 
                 // В пустых строках толку нет
-                if ($data !== ''){
+                if ($data !== '') {
                     $result .=
                         '<tr>' . // Стиль "text-align:right; vertical-align:top; font-weight: bold;" перенесён в css/log.css
                             '<td class="l-col">' .
@@ -187,7 +188,7 @@ class Log{
             }
             $result .= '</table>';
 
-        }else{
+        } else {
             $result = self::L_EMPTY_MESSAGE;
         }
         return $result . self::MESSAGE_HTML_SEPARATOR;
@@ -202,15 +203,16 @@ class Log{
      * @return bool
      * @throws Exception
      */
-    protected static function toFile($filename, $messageArray) {
+    protected static function toFile($filename, $messageArray)
+    {
         // Открывать тут можно не абы какой файл, а только в папке логов
         $filePath = self::DIR . $filename;
-        try{
-            if (!is_writable($filePath)){
+        try {
+            if (!is_writable($filePath)) {
                 fopen($filePath, "w");
             }
             return file_put_contents($filePath, Filter::slashesAdd(serialize($messageArray)) . self::MESSAGE_SEPARATOR, FILE_APPEND);
-        }catch (Exception $e){
+        } catch (Exception $e) {
             throw new LogException(LogException::L_LOG_FILE_UNWRITABLE . ' - ' . $filename);
         }
     }
@@ -222,7 +224,8 @@ class Log{
      * @param array $messageArray Сообщение, записываемое в лог
      * @return bool
      */
-    protected static function toDb($messageArray){
+    protected static function toDb($messageArray)
+    {
         $messageArray = Filter::slashesAdd($messageArray);
         /** @todo Дописать нормальную работу с БД */
         $result = self::db()->query($messageArray);
@@ -237,13 +240,14 @@ class Log{
      * @param mixed $filename,.. Имя файла логов
      * @return bool
      */
-    public static function save(array $object, $filename = null){
+    public static function save(array $object, $filename = null)
+    {
         if (!isset($object[self::A_DATETIME])) {
             $object = [self::A_DATETIME => date("Y-m-d H:i:s")] + $object;// Дата должна идти первой в сообщении
         }
-        if (self::USE_DB){
+        if (self::USE_DB) {
             return (bool)self::toDb($object);
-        }else{
+        } else {
             return (bool)self::toFile($filename ? $filename : CONFIG::LOG_FILE, $object);
         }
     }
@@ -258,7 +262,8 @@ class Log{
      * @param bool $descOrder,.. Флаг - порядок вывода записей(обратный или прямой)
      * @return string
      */
-    public static function showLogDb($typeName, $startFrom, $limit, $descOrder = true) {
+    public static function showLogDb($typeName, $startFrom, $limit, $descOrder = true)
+    {
         /** @todo Дописать нормальную работу с БД */
         return self::db()->query($typeName, $startFrom, $limit, 'datetime', $descOrder);
     }   
@@ -270,7 +275,8 @@ class Log{
      * @param string $typeName Тип логов
      * @return bool
      */
-    public static function isLogEmpty($typeName){
+    public static function isLogEmpty($typeName)
+    {
         /** @todo Дописать нормальную работу с БД */
         return self::db()->query($typeName);
     }
@@ -284,7 +290,8 @@ class Log{
      * @return string
      * @throws Exception
      */
-    public static function showLogFile($fileName, $descOrder = true) {
+    public static function showLogFile($fileName, $descOrder = true)
+    {
         // Открывать тут можно не абы какой файл, а только в папке логов
         $filePath = self::DIR . $fileName;
         try {
@@ -323,7 +330,8 @@ class Log{
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string
      */
-    public static function dumpObject($object, $withPre = false) {
+    public static function dumpObject($object, $withPre = false)
+    {
         ob_start();
         var_dump($object);
         $strObject = ob_get_contents();
@@ -341,7 +349,8 @@ class Log{
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string
      */
-    public static function exportObject($object, $withPre = false) {
+    public static function exportObject($object, $withPre = false)
+    {
         $result = var_export($object, true);
         return $withPre
             ? '<pre>' . $result . '</pre>'
@@ -356,7 +365,8 @@ class Log{
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string Строковое представление элемента, или bool в случае вывода его в буфер вывода
      */
-    public static function printObject($object, $withPre = false) {
+    public static function printObject($object, $withPre = false)
+    {
         $result = print_r($object, true);
         return $withPre
             ? '<pre>' . $result . '</pre>'
@@ -370,14 +380,15 @@ class Log{
      * @param mixed $param Переменная для перевода в строку
      * @return string
      */
-    public static function showObject($param){
-        if (Filter::isString($param)){
+    public static function showObject($param)
+    {
+        if (Filter::isString($param)) {
             return "'$param'";
         }
-        if (Filter::isBool($param)){
+        if (Filter::isBool($param)) {
             return $param ? 'true' : 'false';
         }
-        if (Filter::isNumeric($param) || Filter::isDate($param) || Filter::isDatetime($param)){
+        if (Filter::isNumeric($param) || Filter::isDate($param) || Filter::isDatetime($param)) {
             return strval($param);
         }
         return self::dumpObject($param, false);
@@ -390,7 +401,8 @@ class Log{
      * @param Exception $e
      * @return array
      */
-    public static function dumpException(Exception $e){
+    public static function dumpException(Exception $e)
+    {
         return [
             self::A_EVENT_TYPE           => self::T_PHP_EXCEPTION,
             self::A_EXCEPTION            => $e->__toString(),
@@ -415,9 +427,9 @@ class Log{
      * @param string $message
      * @return string
      */
-    public static function line($message){
+    public static function line($message)
+    {
         return '[' . date("H:i:s") . '] ' . $message; // date("Y-m-d H:i:s")
     }
-
 }
 

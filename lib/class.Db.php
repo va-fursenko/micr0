@@ -24,8 +24,8 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.BaseException.php");
  * Класс исключения для объектной работы с БД
  * @see http://php.net/manual/ru/class.pdoexception.php PDOException
  */
-class DbException extends BaseException{
-
+class DbException extends BaseException
+{
     # Сообщения класса
     /** @const Server unreachable */
     const L_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
@@ -56,28 +56,30 @@ class DbException extends BaseException{
      * Конструктор класса
      * @param string $message Текстовое сообщение об ошибке
      * @param string|PDOStatement|Db $obj Подготовленное выражение, которое, вероятно, вызвало исключение, объект БД, или просто код ошибки
+     * @param bool $traceble Флаг доступности для исключения метода getTrace(). Если true, то он вернёт
      * @param Exception $prev Предыдущее исключение
      */
-    public function __construct($message, $obj = null, Exception $prev = null){
+    public function __construct($message, $obj = null, Exception $prev = null, $traceble = true)
+    {
         $numArgs = func_num_args();
-        if ($numArgs == 1){
+        if ($numArgs == 1) {
             parent::__construct($message);
 
-        }else if ($numArgs > 1){
-            if ($obj instanceof PDOStatement){
+        } elseif ($numArgs > 1) {
+            if ($obj instanceof PDOStatement) {
                 $this->lastStatement = $obj; 
                 $this->errorInfo = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
                 $this->lastQuery = $this->lastStatement->queryString;
                 $this->rowCount = $this->lastStatement->rowCount();
                 parent::__construct($message, $this->lastStatement->errorCode(), $prev);
 
-            }else if ($obj instanceof Db){
+            } elseif ($obj instanceof Db) {
                 $this->db = $obj;
                 $this->errorInfo = $this->db->lastError();
                 $this->lastQuery = $this->db->lastQuery();
                 parent::__construct($message, $this->db->errorCode(), $prev);
 
-            }else{
+            } else {
                 parent::__construct($message, Log::showObject($obj), $prev);
             }
         }
@@ -90,7 +92,8 @@ class DbException extends BaseException{
      * @param string $action Текстовое сообщение об ошибке от программиста
      * @return array
      */
-    public function toArray($action = null){
+    public function toArray($action = null)
+    {
         $result = Log::dumpException($this);
         $result[Log::A_EVENT_TYPE]        = Log::T_DB_EXCEPTION;
         $result[Log::A_DB_ROWS_AFFECTED]  = $this->rowCount;
@@ -98,21 +101,21 @@ class DbException extends BaseException{
         $result[Log::A_DB_LAST_QUERY]     = $this->lastQuery;
 
         // Строковый параметр пишем, как сообщение, массив добавляем
-        if (is_string($action) && $action !== ''){
+        if (is_string($action) && $action !== '') {
             $result[Log::A_TEXT_MESSAGE] = $action;
-        }else if (is_array($action) && count($action) > 0){
+        } elseif (is_array($action) && count($action) > 0) {
             $result = $result + $action;
         }
 
         // Из БД или подготовленного выражения тянем все интересные данные
-        if ($this->db instanceof Db){
+        if ($this->db instanceof Db) {
             $result[Log::A_DB_LAST_ERROR]  = $this->db->lastError();
             $result[Log::A_DB_SERVER_INFO] = $this->db->serverInfo();
-            if ($this->db->user()){
+            if ($this->db->user()) {
                 $result[Log::A_DB_USERNAME] = $this->db->user();
             }
 
-        }else if ($this->lastStatement instanceof PDOStatement){
+        } elseif ($this->lastStatement instanceof PDOStatement) {
             $result[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
             $result[Log::A_DB_ROWS_AFFECTED] = $this->lastStatement->rowCount();
             $str = Db::debugDumpParams($this->lastStatement);
@@ -146,7 +149,8 @@ class DbException extends BaseException{
  * @see http://ruseller.com/lessons.php?id=610&rub=28 Примеры fetch
  * @see https://github.com/f3ath/LazyPDO/
  */
-class Db {
+class Db
+{
     # Подключаем трейты
     use Instances; # Работа с инстансами
 
@@ -205,15 +209,15 @@ class Db {
         // Пробуем подключиться, переделывая возможные исключения в DbException
         try {
             $this->db = new PDO($dsn, $userName, $userPass, $options);
-        }catch (Exception $e){
+        } catch (Exception $e) {
             if (CONFIG::DB_DEBUG) {
                 throw new DbException($e->getMessage(), $e->getCode(), $e);
-            }else{
+            } else {
                 trigger_error($e->getMessage() . ': ' . $e->getCode(), E_USER_ERROR);
             }
         }
         $this->instanceIndex(isset($options[self::ATTR_INSTANCE_INDEX]) ? $options[self::ATTR_INSTANCE_INDEX] : null);
-        if ($this->debug()){
+        if ($this->debug()) {
             $this->log('db_connect');
         }
     }
@@ -225,7 +229,8 @@ class Db {
      * @param mixed $action Строковый алиас действия или объект результата
      * @return bool
      */
-    public function log($action = null){
+    public function log($action = null)
+    {
         $arr = [
             Log::A_EVENT_TYPE             => Log::T_DB_QUERY,
             Log::A_SESSION_ID            => session_id(),
@@ -238,7 +243,7 @@ class Db {
         ];
 
         // Если передано выражение PDOStatement, выбираем из него знакомые поля
-        if ($action instanceof PDOStatement){
+        if ($action instanceof PDOStatement) {
             $arr[Log::A_DB_ROWS_AFFECTED] = $action->rowCount();
             $arr[Log::A_DB_STATUS] = $this->lastError($action);
             // Попробуем посмотреть, не будет ли здесь расхождений
@@ -249,7 +254,7 @@ class Db {
                 ];
             }
 
-        }else if (is_string($action)){
+        } elseif (is_string($action)) {
             $arr[Log::A_DB_QUERY_TYPE] = $action;
         }
 
@@ -263,10 +268,11 @@ class Db {
 
 
     /** Закрытие коннекта */
-    public function close(){
+    public function close()
+    {
         $this->_lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
-        if ($this->debug()){
+        if ($this->debug()) {
             $this->log('db_close');
         }
         $this->db = null;
@@ -288,35 +294,36 @@ class Db {
      * @see http://php.net/manual/ru/pdo.constants.php Список предопределённых констант
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
-    public function query($query, $fetchType = null){
+    public function query($query, $fetchType = null)
+    {
         $this->_lastQuery = $query;
         $numArgs = func_num_args();
 
-        if ($numArgs == 1){
+        if ($numArgs == 1) {
             $result = $this->db->query($query);
 
-        }else if ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_LAZY, PDO::FETCH_COLUMN, PDO::FETCH_UNIQUE, PDO::FETCH_KEY_PAIR, PDO::FETCH_NAMED, PDO::FETCH_ASSOC, PDO::FETCH_OBJ, PDO::FETCH_BOTH, PDO::FETCH_NUM])){
+        } elseif ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_LAZY, PDO::FETCH_COLUMN, PDO::FETCH_UNIQUE, PDO::FETCH_KEY_PAIR, PDO::FETCH_NAMED, PDO::FETCH_ASSOC, PDO::FETCH_OBJ, PDO::FETCH_BOTH, PDO::FETCH_NUM])) {
             $result = $this->db->query($query, $fetchType);
 
-        }else if ($numArgs == 3 && in_array($fetchType, [PDO::FETCH_COLUMN, PDO::FETCH_INTO])){
+        } elseif ($numArgs == 3 && in_array($fetchType, [PDO::FETCH_COLUMN, PDO::FETCH_INTO])) {
             $result = $this->db->query($query, $fetchType, func_get_arg(2));
 
-        }else if ($numArgs == 4 && $fetchType == PDO::FETCH_CLASS){
+        } elseif ($numArgs == 4 && $fetchType == PDO::FETCH_CLASS) {
             $result = $this->db->query($query, $fetchType, func_get_arg(2), func_get_arg(3));
 
         // Неверные входные данные
-        }else{
+        } else {
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
-        if ($this->debug()){
+        if ($this->debug()) {
             $this->log($result);
         }
 
-        if ($result === false){
+        if ($result === false) {
             throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY);
         }
-        if ($result instanceof PDOStatement && $result->errorCode() !== PDO::ERR_NONE){
+        if ($result instanceof PDOStatement && $result->errorCode() !== PDO::ERR_NONE) {
             throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY, $result);
         }
         return $result;
@@ -331,9 +338,10 @@ class Db {
      * @return mixed
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
-    public function scalarQuery($query, $defaultValue = false){
+    public function scalarQuery($query, $defaultValue = false)
+    {
         $result = $this->query($query, PDO::FETCH_NUM);
-        if ($result->rowCount() > 0){
+        if ($result->rowCount() > 0) {
             return $result->fetchColumn(0);
         }
         return $defaultValue;
@@ -350,10 +358,11 @@ class Db {
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      * @see http://php.net/manual/ru/pdo.constants.php
      */
-    public function assocQuery($query, $fetchType = null){
+    public function assocQuery($query, $fetchType = null)
+    {
         $numArgs = func_num_args();
 
-        switch ($numArgs){
+        switch ($numArgs) {
             case 1: $result = $this->query($query); break;
             case 2: $result = $this->query($query, $fetchType); break;
             case 3: $result = $this->query($query, $fetchType, func_get_arg(2)); break;
@@ -362,11 +371,11 @@ class Db {
                 throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
-        if ($result->rowCount() > 1){
+        if ($result->rowCount() > 1) {
             return $result->fetchAll($fetchType);
-        }else if ($result->rowCount() == 1){
+        } elseif ($result->rowCount() == 1) {
             return $result->fetch($fetchType);
-        }else{
+        } else {
             return false;
         }
     }
@@ -380,14 +389,15 @@ class Db {
      * @throws DbException
      * Использование, как минимум, с пользовательскими данными не рекомендовано
      */
-    public function execQuery($statement){
+    public function execQuery($statement)
+    {
         $statement = $this->quote($statement);
         $this->_lastQuery = $statement;
         $result = $this->db->exec($statement);
-        if ($this->debug()){
+        if ($this->debug()) {
             $this->log($result);
         }
-        if ($result === false){
+        if ($result === false) {
             throw new DbException(DbException::L_UNABLE_TO_PROCESS_QUERY);
         }
     }
@@ -398,7 +408,8 @@ class Db {
      * Возвращает последний ID, добавленный в БД
      * @return string
      */
-    public function lastInsertId(){
+    public function lastInsertId()
+    {
         return $this->db !== null ? $this->db->lastInsertId() : false;
     }
 
@@ -414,7 +425,8 @@ class Db {
      * @return string Возвращает экранированную строку, или false, если драйвер СУБД не поддерживает экранирование
      * @throws DbException Кидает исключение, если дескриптор БД недоступен
      */
-    public function quote($unescapedString, $parameterType = PDO::PARAM_STR){
+    public function quote($unescapedString, $parameterType = PDO::PARAM_STR)
+    {
         return $this->db->quote($unescapedString, $parameterType);
     }
 
@@ -425,18 +437,17 @@ class Db {
      * @param string $escapedString
      * @return string
      */
-    public static function unQuote($escapedString) {
+    public static function unQuote($escapedString)
+    {
         // Нечего разэкранировать
-        if (mb_strpos($escapedString, '\\', 0, 'UTF-8') === false ){
+        if (mb_strpos($escapedString, '\\', 0, 'UTF-8') === false ) {
             return $escapedString;
         }
-
         // Проверка на JSON
-        if (is_string($escapedString) && in_array($escapedString[0], ['{', '[']) && json_decode($escapedString, true)){
+        if (is_string($escapedString) && in_array($escapedString[0], ['{', '[']) && json_decode($escapedString, true)) {
             $escapedString = str_replace('\\', '\\\\', $escapedString);
             $escapedString = str_replace('\"', '\\\"', $escapedString);
         }
-
         return stripslashes($escapedString);
     }
 
@@ -454,12 +465,13 @@ class Db {
      * @return PDOStatement|bool Подготовленное выражение, или false
      * @throws PDOException
      */
-    public function prepare($statement , $driverOptions = []){
+    public function prepare($statement , $driverOptions = [])
+    {
         $this->_lastQuery = [
             'PREPARE',
             $statement
         ];
-        if (is_array($driverOptions) && count($driverOptions) > 0){
+        if (is_array($driverOptions) && count($driverOptions) > 0) {
             $this->_lastQuery[] = Log::printObject($driverOptions);
         }
         return $this->db->prepare($statement, $driverOptions);
@@ -475,25 +487,26 @@ class Db {
      * @return bool Флаг успешного, или неуспешного выполнения запроса
      * @throws PDOException|DbException
      */
-    public function execute($statement , $inputParameters = null){
+    public function execute($statement , $inputParameters = null)
+    {
         $this->_lastQuery = ['EXEC'];
-        if ($statement instanceof PDOStatement){
+        if ($statement instanceof PDOStatement) {
             $this->_lastQuery[] = $statement->queryString;
 
         // Если на входе строка, пробуем подготовить из неё выражение и выполнить
-        }else if (is_string($statement)){
+        } elseif (is_string($statement)) {
             $this->_lastQuery[] = $statement;
             $statement = $this->prepare($statement);
 
-        }else{
+        } else {
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
 
         // Проверяем параметры и добавляем в лог
-        if ($inputParameters !== null && !is_array($inputParameters)){
+        if ($inputParameters !== null && !is_array($inputParameters)) {
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
-        if (count($inputParameters) > 0){
+        if (count($inputParameters) > 0) {
             $this->_lastQuery[] = Log::printObject($inputParameters);
         }
 
@@ -512,31 +525,36 @@ class Db {
      * @param int $autocommitMode
      * @return mixed
      */
-    public function autocommitMode($autocommitMode = null){
+    public function autocommitMode($autocommitMode = null)
+    {
         if (func_num_args() == 0) {
             return $this->attribute(PDO::ATTR_AUTOCOMMIT);
-        }else{
+        } else {
             return $this->attribute(PDO::ATTR_AUTOCOMMIT, $autocommitMode);
         }
     }
 
     /** Начало транзакции */
-    public function beginTransaction(){
+    public function beginTransaction()
+    {
         return $this->db->beginTransaction();
     }
 
     /** Подтверждение изменений */
-    public function commit(){
+    public function commit()
+    {
         return $this->db->commit();
     }
 
     /** Отмена внесенных изменений */
-    public function rollBack(){
+    public function rollBack()
+    {
         return $this->db->rollBack();
     }
 
     /** Проверка на наличие открытой транзакии */
-    public function inTransaction(){
+    public function inTransaction()
+    {
         return $this->db->inTransaction();
     }
 
@@ -552,7 +570,8 @@ class Db {
      * @see http://php.net/manual/ru/pdo.errorcode.php
      * @return string
      */
-    public function errorCode(){
+    public function errorCode()
+    {
         return $this->db->errorCode();
     }
 
@@ -561,7 +580,8 @@ class Db {
      * @see http://php.net/manual/ru/pdo.errorinfo.php
      * @return array
      */
-    public function errorInfo(){
+    public function errorInfo()
+    {
         return $this->db->errorInfo();
     }
 
@@ -570,32 +590,37 @@ class Db {
      * @param PDOStatement $st Выражение, из которого получается информация
      * @return mixed
      */
-    public function lastError(PDOStatement $st = null){
-        if ($st){
+    public function lastError(PDOStatement $st = null)
+    {
+        if ($st) {
             $e = ($st instanceof PDOStatement) ? $st->errorInfo() : false;
-        }else{
+        } else {
             $e = $this->db->errorInfo();
         }
         return self::formatLastErrorMessage($e);
     }
 
     /** Информация о сервере */
-    public function serverInfo(){
+    public function serverInfo()
+    {
         return '[' . $this->attribute(PDO::ATTR_SERVER_VERSION) . '] ' . $this->attribute(PDO::ATTR_SERVER_INFO);
     }
 
     /** Информация о клиенте */
-    public function clientVersion(){
+    public function clientVersion()
+    {
         return $this->attribute(PDO::ATTR_CLIENT_VERSION);
     }
 
     /** Информация о драйвере СУБД */
-    public function driverName(){
+    public function driverName()
+    {
         return $this->attribute(PDO::ATTR_DRIVER_NAME);
     }
 
     /** Возвращает текст последнего запроса */
-    public function lastQuery(){
+    public function lastQuery()
+    {
         return $this->_lastQuery;
     }
 
@@ -603,7 +628,8 @@ class Db {
      * Возвращает имя пользователя, с которым осуществлено подключение
      * @return string
      */
-    public function user(){
+    public function user()
+    {
         return $this->_userName;
     }
 
@@ -611,7 +637,8 @@ class Db {
      * Получение списка доступных драйверов для различных СУБД
      * @return array
      */
-    public static function availableDrivers(){
+    public static function availableDrivers()
+    {
         return PDO::getAvailableDrivers();
     }
 
@@ -623,10 +650,11 @@ class Db {
      * @see http://php.net/manual/ru/pdo.getattribute.php
      * @throws PDOException
      */
-    public function attribute($attrName, $attrValue = null){
+    public function attribute($attrName, $attrValue = null)
+    {
         if (func_num_args() == 1) {
             return $this->db->getAttribute($attrName);
-        }else{
+        } else {
             return $this->db->setAttribute($attrName, $attrValue);
         }
     }
@@ -636,10 +664,11 @@ class Db {
      * @param  bool $debug Флаг логгирования
      * @return bool Флаг логгирования, или true в случае установки этого флага
      */
-    public function debug($debug = null){
-        if (func_num_args() == 0){
+    public function debug($debug = null)
+    {
+        if (func_num_args() == 0) {
             return $this->_debug;
-        }else{
+        } else {
             $this->_debug = boolval($debug);
             return true;
         }
@@ -658,7 +687,8 @@ class Db {
      * @return string
      * @see http://phpfaq.ru/pdo#fetchcolumn - внизу страницы
      */
-    public static function strIN(array $params){
+    public static function strIN(array $params)
+    {
         return str_repeat('?,', count($params) - 1) . '?';
     }
 
@@ -669,10 +699,11 @@ class Db {
      * @param array $data Ассоциативный массив параметров вставки
      * @return string
      */
-    protected function _formInsertQuery($data){
+    protected function _formInsertQuery($data)
+    {
         $t = each($data);
         $result = is_numeric($t[1]) || $t[1] == 'null' ? $t[1] : "'{$t[1]}'";
-        while ($t = each($data)){
+        while ($t = each($data)) {
             $result .= ', ' . (is_numeric($t[1]) || $t[1] == 'null' ? $t[1] : "'{$t[1]}'");
         }
         return $result;
@@ -686,7 +717,8 @@ class Db {
      * @return string
      * Открыта, чтобы использовать в классе исключения
      */
-    public static function formatLastErrorMessage($errorMessage){
+    public static function formatLastErrorMessage($errorMessage)
+    {
         return is_array($errorMessage) && count($errorMessage) == 3
             ? isset($errorMessage[1]) && $errorMessage[1] !== null
                 ? "[{$errorMessage[0]}] {$errorMessage[1]}: " . isset($errorMessage[2]) && $errorMessage
@@ -704,7 +736,8 @@ class Db {
      * @param bool $withPre Флаг - оборачивать или нет результат тегами <pre>
      * @return string
      */
-    public static function debugDumpParams(PDOStatement $stmt, $withPre = false){
+    public static function debugDumpParams(PDOStatement $stmt, $withPre = false)
+    {
         ob_start();
         $stmt->debugDumpParams();
         $result = ob_get_contents();
@@ -726,22 +759,23 @@ class Db {
      * @throws DbException
      * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
      */
-    public function arrayQuery($action, $sourceName, $params, $target = null){
+    public function arrayQuery($action, $sourceName, $params, $target = null)
+    {
         $action = strtoupper($action);
-        switch ($action){
+        switch ($action) {
             // Команда вставки данных из массива
             case 'INSERT':
                 $paramsCount = count($params);
-                if (!$paramsCount){
+                if (!$paramsCount) {
                     throw new DbException(DbException::L_WRONG_PARAMETERS);
                 }
                 // Если массив данных двухмерный
-                if (is_array(reset($params))){
+                if (is_array(reset($params))) {
                     $qParams = array(0 => '`' . implode('`, `', array_keys(current($params))) . '`', '');
                     $data = array();
-                    foreach ($params as $rowArr){
+                    foreach ($params as $rowArr) {
                         $row = array();
-                        foreach ($rowArr as $el){
+                        foreach ($rowArr as $el) {
                             $row[] = $el === null ? 'null' : "'$el'";
                         }
                         $data[] = '(' . implode(', ', $row) . ')';
@@ -762,12 +796,12 @@ class Db {
             // Команда обновления данных из массива
             case 'UPDATE':
                 $paramsCount = count($params);
-                if (!($paramsCount)){
+                if (!($paramsCount)) {
                     throw new DbException(DbException::L_WRONG_PARAMETERS);
                 }
                 $t = each($params);
                 $qParams = '`' . $t[0] . '` = ' . ($t[1] === null ? 'null' : "'{$t[1]}'");
-                while ($t = each($params)){
+                while ($t = each($params)) {
                     $qParams .= ', `' . $t[0] . '` = ' . ($t[1] === null ? 'null' : "'{$t[1]}'");
                 }
                 $line = "UPDATE $sourceName SET $qParams WHERE `id` = $target LIMIT 1";
@@ -776,7 +810,7 @@ class Db {
             // Команда выборки данны из таблицы
             case 'SELECT':
                 $line = "SELECT `" . implode('`, `', $params) . "` FROM $sourceName";
-                if ($target !== null){
+                if ($target !== null) {
                     $line .= " WHERE `id` = $target";
                 }
                 break;
@@ -805,16 +839,17 @@ class Db {
      * @throws DbException
      * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
      */
-    public function arraySQuery($action, $sourceName, $params, $target = null){
+    public function arraySQuery($action, $sourceName, $params, $target = null)
+    {
         // Пока не реализована обработка сложных условий, а только сравнивание с id, оставим проверку такой
-        if (($target !== null) && !is_numeric($target)){
+        if (($target !== null) && !is_numeric($target)) {
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         $action = $this->quote($action);
         $sourceName = $this->quote($sourceName);
         $sequredParams = array();
-        foreach ($params as $key => $value){
-            if ($value){
+        foreach ($params as $key => $value) {
+            if ($value) {
                 $sequredParams[$this->quote($key)] = $this->quote($value);
             } else {
                 $sequredParams[$this->quote($key)] = $value;
@@ -822,7 +857,5 @@ class Db {
         }
         return $this->arrayQuery($action, $sourceName, $sequredParams, $target);
     }
-
-
 }
 

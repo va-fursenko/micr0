@@ -24,17 +24,18 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
  * @param Exception $e
  * @return void
  */
-function customExceptionHandler(Exception $e){
+function customExceptionHandler(Exception $e)
+{
     // Если исключение из нашей иерархии, воспользуемся его собственным методом
-    if ($e instanceof BaseException){
+    if ($e instanceof BaseException) {
         $mArr = $e->toArray();
 
     // Иначе выводим всю стандартную информацию
-    }else{
+    } else {
         $mArr = Log::dumpException($e);
     }
     // Без вьюх пока только так
-    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log " . CONFIG::ERROR_LOG_FILE . "<br/><br/>";
+    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\"<br/><br/>";
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE
@@ -55,7 +56,8 @@ function customExceptionHandler(Exception $e){
  * @param array  $errContext Массив всех переменных, существующих в области видимости, где произошла ошибка
  * @return void
  */
-function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = null){
+function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = null)
+{
     $mArr = [
         Log::A_EVENT_TYPE           => Log::T_PHP_ERROR,
         Log::A_PHP_ERROR_MESSAGE    => $errStr,
@@ -69,11 +71,11 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
         Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
         Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
     ];
-    if ($errContext){
+    if ($errContext) {
         $mArr[Log::A_PHP_CONTEXT] = $errContext;
     }
     // Без вьюх пока только так
-    echo "Error occurred: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\". Check log " . CONFIG::ERROR_LOG_FILE . "<br/><br/>";
+    echo "Error occurred: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\"<br/><br/>";
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE
@@ -88,10 +90,11 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
 /**
  * Обработчик завершения скрипта и фатальных ошибок
  */
-function customShutdownHandler(){
+function customShutdownHandler()
+{
     $error = error_get_last();
     // Ошибка таки-произошла
-    if (isset($error["type"]) && $error["type"] == E_ERROR){
+    if (isset($error["type"]) && $error["type"] == E_ERROR) {
         $mArr = [
             Log::A_EVENT_TYPE           => Log::T_PHP_FATAL_ERROR,
             Log::A_PHP_ERROR_MESSAGE    => $error["message"],
@@ -123,7 +126,8 @@ function customShutdownHandler(){
  * @author    viktor
  * @package   Micr0
  */
-class ErrorHandler{
+class ErrorHandler
+{
     /** Режим отладки */
     protected static $_debugMode = true;
 
@@ -135,14 +139,14 @@ class ErrorHandler{
     protected static $_exceptionHandler = null;
 
 
-
     /**
      * Устанавливает обработчик на программные ошибки
      * @param callable $func Обработчик ошибок вида bool function (int $errno, string $errstr [, string $errfile [, int $errline [, array $errcontext ]]] )
      * @return mixed
      * @see http://php.net/manual/ru/function.set-error-handler.php
      */
-    public static function setErrorHandler(callable $func){
+    public static function setErrorHandler(callable $func)
+    {
         self::$_errorHandler = $func;
         return set_error_handler($func, E_ALL);
     }
@@ -155,7 +159,8 @@ class ErrorHandler{
      * @return callable
      * @see http://php.net/manual/ru/function.set-exception-handler.php
      */
-    public static function setExceptionHandler(callable $func){
+    public static function setExceptionHandler(callable $func)
+    {
         self::$_exceptionHandler = $func;
         return set_exception_handler($func);
     }
@@ -168,7 +173,8 @@ class ErrorHandler{
      * @param mixed $params Возможные параметры обработчика
      * @return void
      */
-    public static function setShutdownHandler(callable $func, $params = null){
+    public static function setShutdownHandler(callable $func, $params = null)
+    {
         self::$_shutdownHandlers[] = $func;
         register_shutdown_function($func);
     }
@@ -180,14 +186,14 @@ class ErrorHandler{
      * @param bool $debugMode
      * @return bool|void
      */
-    public static function debugMode($debugMode = null){
-        if (func_num_args() == 1){
+    public static function debugMode($debugMode = null)
+    {
+        if (func_num_args() == 1) {
             self::$_debugMode = $debugMode;
-        }else{
+        } else {
             return self::$_debugMode;
         }
     }
-
  }
 
 

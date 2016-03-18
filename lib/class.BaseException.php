@@ -20,8 +20,8 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
  * @package     Micr0
  * @version     1.2.0
  */
-class BaseException extends Exception {
-
+class BaseException extends Exception
+{
     /** @const Файл лога для данных исключений */
     const LOG_FILE = CONFIG::ERROR_LOG_FILE;
 
@@ -68,7 +68,8 @@ class BaseException extends Exception {
      * @param int $code Числовой код исключения
      * @param Exception $previous Предыдущее исключение в цепочке вызовов
      */
-    function __construct($message, $code = 0, Exception $previous = null) {
+    function __construct($message, $code = 0, Exception $previous = null)
+    {
         parent::__construct($message, $code, $previous);
     }
 
@@ -78,10 +79,11 @@ class BaseException extends Exception {
      * Строковое представление исключения. Если доступны предыдущие исключения, они тоже рекурсивно выводятся
      * @return string
      */
-    public function __toString(){
+    public function __toString()
+    {
         $result = __CLASS__ . ": [{$this->code}]: {$this->message}";
         // Собираем предыдущие исключения
-        if ($prev = $this->getPrevious()){
+        if ($prev = $this->getPrevious()) {
             // Собираем в цепочку все вызовы исключения, унаследованные от BaseException
             // Из этой строчки видно, что рекурсия закончится на первом стандартном исключении
             $result = Log::printObject(
@@ -100,7 +102,8 @@ class BaseException extends Exception {
     /**
      * Обработчик дебага для класса
      */
-    public function __debugInfo(){
+    public function __debugInfo()
+    {
         return $this->toArray();
     }
 
@@ -111,9 +114,10 @@ class BaseException extends Exception {
      * @param string $action Текстовое сообщение
      * @return array
      */
-    public function toArray($action = null){
+    public function toArray($action = null)
+    {
         $result = Log::dumpException($this);
-        if ($action !== null){
+        if ($action !== null) {
             $result[Log::A_TEXT_MESSAGE] = $action;
         }
         return $result;
@@ -126,13 +130,13 @@ class BaseException extends Exception {
      * @param string $action Текстовое сообщение
      * @return bool|int
      */
-    public function toLog($action = null){
+    public function toLog($action = null)
+    {
         return Log::save(
             $this->toArray($action),
             self::LOG_FILE
         );
     }
-
 }
 
 

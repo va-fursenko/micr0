@@ -7,11 +7,11 @@
  */
 
 /* Base libs */
-require_once(CONFIG::ROOT . '/lib/class.BaseException.php');
-require_once(CONFIG::ROOT . '/lib/class.Log.php');
-require_once(CONFIG::ROOT . '/lib/class.Db.php');
-require_once(CONFIG::ROOT . '/lib/class.Tpl.php');
-require_once(CONFIG::ROOT . '/lib/class.ErrorHandler.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.BaseException.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Log.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Db.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.Tpl.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'class.ErrorHandler.php');
 
 
 

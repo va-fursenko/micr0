@@ -4,6 +4,12 @@
     <a id="beginBtn" class="log-caption btn btn-primary" href="javascript:void(0);">Красная кнопка</a>
 </div>
 
+{{?echo_bool}}
+<span>ПРАВДА</span>
+{{!echo_bool}}
+<span>ЛОЖЬ</span>
+{{;echo_bool}}
+
 <div class="container">
     <table class="table table-striped table-condensed table-bordered table-hover">
         <caption>Таблица с какой-то залупой</caption>
@@ -49,5 +55,10 @@
         <span class="label label-important">DEFAULT LABEL</span>
     {{;some_flag}}
 </div>
+
+
+{{?flag3}}
+Если флаг3 истина, то вывести эту бессмыслицу
+{{;flag3}}
 
 <pre class="log-container" id="logPre">{{lines}}</pre>

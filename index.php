@@ -9,6 +9,7 @@ require_once(__DIR__ . '/lib/init.common.php');
 
 // Генерим контент
 $content = Tpl::parseFile(
+    'base',
     [
         'lines' => 'Hello, world!',
         'button_text' => 'Жмакни меня',
@@ -29,12 +30,11 @@ $content = Tpl::parseFile(
             ['London', 'Great Britain', '12kk'],
         ],
         'place_button' => true,
+        'echo_bool'    => true,
+        'flag3'        => 0,
         'some_flag' => 'warning'
-    ],
-    'base'
+    ]
 );
-
-
 
 
 
