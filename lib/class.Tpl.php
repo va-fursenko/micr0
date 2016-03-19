@@ -17,13 +17,6 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Filter.php');
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
 
-/*
- * При работе в режиме отладки темплейты хранятся в файлах. Возможно расположение несольких темплейтов в одном файле
- * Фрагменты html-кода заключены в именованных блоках, выделяемых тегами [$имя блока] и [/$имя блока]
- * Языковые константы обозначатся тегами {L_ИМЯ_КОНСТАНТЫ}
- * Прочие фрагменты текста - {имя фрагмента}
- */
-
 
 /** Собственное исключение класса */
 class TplException extends BaseException
@@ -38,6 +31,8 @@ class TplException extends BaseException
 /** @todo Добавить скрипт создания связанной таблицы БД */
 /** @todo Закончить работу с БД */
 /** @todo Добавить кеширование шаблонов */
+/** @todo Транслячция шаблонов в PHP-код */
+/** @todo Блоки с множественными альтернативами (switch) */
 
 
 
@@ -73,33 +68,36 @@ class Tpl
 
 
     /**
-     * Замена в тексте шаблона &$tplString строковых и числовых переменных данными из массива $dataItems
-     * @param string &$tplString Шаблон в строке. Изменяется по ссылке
-     * @param array $dataItems Массив с параметрами шаблона
-     * @return int Число заменённых вхождений переменных
+     * Замена в тексте шаблона $tplString строковых и числовых переменных данными из массива $dataItems
+     * @param string $tplString Шаблон в строке
+     * @param array  $dataItems Ассоциативный массив с контекстом шаблона
+     * @return string
      */
-    protected static function _parseVars(&$tplString, $dataItems)
+    protected static function _parseStrings($tplString, $dataItems)
     {
-        $result = 0;
-        // Сначала заменяем все строковые переменные, потому что они могут участвовать в других выражениях
-        foreach ($dataItems as $key => $value) {
+        /**
+         * str_replace('{{имя_переменной}}', $dataItems['имя_переменной'], $tplString)
+         * Вообще в классе имя_переменной ожидается из символов \w - буквы, цифры, подчёркивание,
+         * но в данном методе для скорости используется str_replace, которая может заменить всё, что угодно
+         */
+        foreach ($dataItems as $varName => $value) {
             if (is_string($value) || is_numeric($value)) {
-                $tplString = str_replace('{{' . $key . '}}', $value, $tplString, $count);
-                $result += $count;
+                $tplString = str_replace('{{' . $varName . '}}', $value, $tplString);
             }
         }
-        return $result;
+        return $tplString;
     }
 
 
 
     /**
-     * Замена в тексте шаблона &$tplString условных операторов данными из массива $dataItems
-     * @param string &$tplString Шаблон в строке. Изменяется по ссылке
-     * @param array $dataItems Массив с параметрами шаблона
-     * @return int|false Число найденных в шаблоне блоков или false в случае ошибки
+     * Замена в тексте шаблона $tplString условных блоков данными из массива $dataItems
+     * Флаг проверяется
+     * @param string $tplString Шаблон в строке
+     * @param array  $dataItems Ассоциативный массив с контекстом шаблона
+     * @return string
      */
-    protected static function _parseConditionals(&$tplString, $dataItems)
+    protected static function _parseConditionals($tplString, $dataItems)
     {
         /**
          * Регулярное выражение для условных операторов if () {} else {}
@@ -107,51 +105,146 @@ class Tpl
          * или сокращённый вариант:
          * {{?имя_блока}}...                 {{;имя_блока}}
          * имя_блока состоит из символов \w - буквы, цифры, подчёркивание
-         *
+
         /
-        \{\{\?(?<block_name>\w+)\}\}  # {{?имя_блока}}
-        (?<true>.*?)              # Контент для положительного варианта
-        (?<has_else>                  # Если данный блок пуст, значит второй части шаблона нет
-        \{\{\!\g<block_name>\}\}  # {{!имя_блока}}
-        (?<false>.*?)             # Контент для отрицательного варианта
-        )?                            # 0 или 1
-        \{\{\;\g<block_name>\}\}      # {{;имя_блока}}
-        /msx                              # РегистроЗАВИСИМЫЙ, многострочный, \. включает в себя \n, неэкранированные пробелы и комментарии опускаются
-         *
+            \{\{\?(?<block_name>\w+)\}\} # {{?имя_блока}}
+                (?<block_true>.*?)       # Контент для положительного варианта
+            (?<has_false>                # Если данный блок пуст, значит второй части шаблона нет
+            \{\{\!\g<block_name>\}\}     # {{!имя_блока}}
+                (?<block_true>.*?)       # Контент для отрицательного варианта
+            )?                           # 0 или 1
+            \{\{\;\g<block_name>\}\}     # {{;имя_блока}}
+        /msx                             # /i - РегистроНЕзависимый
+                                           /m - многострочный,
+                                           /s - \. включает в себя \n,
+                                           /x - неэкранированные пробелы и комментарии после # опускаются
+
+         * Доступ к маске по номеру: \1, \g1 или \g{1}
+         * Маска левее места вызова: \g{-2}
+         * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
+         * Вызов именованной маски: (?P=name), \k<name>, \k'name', \k{name}, \g{name}
+         */
+        if (preg_match_all(
+            '/\{\{\?(?<block_name>\w+)\}\}(?<block_true>.*?)(?<has_false>\{\{\!\g<block_name>\}\}(?<block_false>.*?))?\{\{\;\g<block_name>\}\}/ms',
+            $tplString,
+            $matches
+        )) {
+            // Проходим по всем найденным блокам
+            foreach ($matches[0] as $blockIndex => $blockDeclaration) {
+                // Если искомой переменной в параметрах шаблона нет, пропускам итерацию
+                if (!array_key_exists($matches['block_name'][$blockIndex], $dataItems)) {
+                    continue;
+                }
+
+                // Положительный вариант
+                if ($dataItems[$matches['block_name'][$blockIndex]]) {
+                    $tplString = str_replace($blockDeclaration, $matches['block_true'][$blockIndex], $tplString);
+
+                // В случае отрицательного варианта проверяем существование подблока для него
+                } elseif (strlen($matches['has_false'][$blockIndex]) > 0) {
+                    $tplString = str_replace($blockDeclaration, $matches['block_false'][$blockIndex], $tplString);
+
+                // Если положительное условие не выполнено, а подблока для отрицательного нет, удаляем весь блок
+                } else {
+                    $tplString = str_replace($blockDeclaration, '', $tplString);
+                }
+            }
+        }
+        return $tplString;
+    }
+
+
+
+    /**
+     * Замена в тексте шаблона &$tplString повторяющихся блоков данными из массива $dataItems
+     * @param string $tplString Шаблон в строке
+     * @param array  $dataItems Ассоциативный массив с контекстом шаблона
+     * @return string
+     * @throws TplException
+     */
+    protected static function _parseArrays($tplString, $dataItems)
+    {
+        /**
+         * Регулярное выражение для повторяющихся блоков
+         * {{[имя_блока]}} ... {{переменная_1}}, {{переменная_2}} ... {{;имя_блока}}
+         * имя_блока состоит из символов \w - буквы, цифры, подчёркивание
+
+        /
+            \{\{\[(?<block_name>\w+)\]\}\}  # {{[имя_блока]}}
+                (?<block>.*?)               # Контент повторяющегося блока
+            \{\{\;\g<block_name>\}\}        # {{;имя_блока}}
+        /msx                                # /i - РегистроНЕзависимый
+                                              /m - многострочный,
+                                              /s - \. включает в себя \n,
+                                              /x - неэкранированные пробелы и комментарии после # опускаются
+
          * На всякий случай,
          * Доступ к маске по номеру: \1, \g1 или \g{1}
          * Маска левее места вызова: \g{-2}
          * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
          * Вызов именованной маски: (?P=name), \k<name>, \k'name', \k{name}, \g{name}
          */
-        $result = preg_match_all(
-            '/\{\{\?(?<block_name>\w+)\}\}(?<true>.*?)(?<has_else>\{\{\!\g<block_name>\}\}(?<false>.*?))?\{\{\;\g<block_name>\}\}/ms',
+        if (preg_match_all(
+            '/\{\{\[(?<block_name>\w+)\]\}\}(?<block>.*?)\{\{\;\g<block_name>\}\}/ms',
             $tplString,
             $matches
-        );
-        if ($result) {
-            // Проходим по всем найденным условным операторам
-            foreach ($matches[0] as $i => $match) {
+        )) {
+            // Проходим по всем найденным блокам
+            foreach ($matches[0] as $blockIndex => $blockDeclaration) {
+                $blockName = $matches['block_name'][$blockIndex];
                 // Если искомой переменной в параметрах шаблона нет, пропускам итерацию
-                if (!array_key_exists($matches['block_name'][$i], $dataItems)) {
+                if (!array_key_exists($blockName, $dataItems)) {
+                    continue;
+                }
+                // Если вместо массива передано что-то другое, стоит или пропустить итерацию, или бросить исключение
+                if (!is_array($dataItems[$blockName])) {
+                    throw new TplException(TplException::L_WRONG_PARAMETERS);
+                }
+                // Если массив входных параметров для данного блока пустой, удаляем блок из шаблона и переходим к следующей итерации
+                if (count($dataItems[$blockName]) == 0) {
+                    $tplString = str_replace($blockDeclaration, '', $tplString);
                     continue;
                 }
 
-                // Положительный вариант
-                if ($dataItems[$matches['block_name'][$i]]) {
-                    $tplString = str_replace($matches[0][$i], $matches['true'][$i], $tplString);
+                $blocks = '';
+                $blockHTML = trim($matches['block'][$blockIndex]);
 
-                    // В случае отрицательного варианта проверяем существование подблока для него
-                } elseif (array_key_exists('has_else', $matches[$i]) && strlen($matches[$i]['has_else']) > 0) {
-                    $tplString = str_replace($matches[0][$i], $matches['false'][$i], $tplString);
-
-                    // Если положительное условие не выполнено, а подблока для отрицательного нет, удаляем весь блок
-                } else {
-                    $tplString = str_replace($matches[0][$i], '', $tplString);
+                // Найдём все переменные блока и переиндексируем входные данные именами найденных переменных,
+                // чтобы не обязательно было передавать на вход ассоциативный массив
+                if (preg_match_all('/\{\{(?<var_name>\w+)\}\}/ms', $blockHTML, $blockVars)) {
+                    // Проходим по всем найденным в блоке переменным
+                    foreach ($blockVars['var_name'] as $varIndex => $varName) {
+                        // Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
+                        // но есть переменная с таким же порядковым номером,
+                        // то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][$index]
+                        foreach ($dataItems[$blockName] as $rowIndex => &$dataRow) {
+                            if (!isset($dataRow[$varName]) && isset($dataRow[$varIndex])) {
+                                $dataRow[$varName] = &$dataRow[$varIndex];
+                            }
+                        }
+                    }
                 }
+
+                // Парсим блок для каждого ряда массива $dataItems[$blockName]
+                // Если в блоке присутствует автосчётчик, инициализируем его
+                if (strpos($blockHTML, '{{#number}}') !== false) {
+                    $counter = 1; // Инициализуем порядковый счётчик
+                }
+                // Заполняем блок переменными и прибавляем к представлению
+                foreach ($dataItems[$blockName] as $rowItems) {
+                    // Вообще ожидается, что имя пользовательской переменной во входных данных
+                    // не может содержать знак '#', но это не проверяется
+                    if (isset($counter)) {
+                        $rowItems['#number'] = $counter++;
+                    }
+                    $blocks .= self::_parseStrings($blockHTML, $rowItems);
+                }
+
+                // Заменяем объявление блока в тексте шаблона на полученное представление
+                $tplString = str_replace($blockDeclaration, $blocks, $tplString);
             }
         }
-        return $result;
+        return $tplString;
     }
 
 
@@ -159,20 +252,17 @@ class Tpl
     /**
      * Заполнение текстового шаблона данными из массива
      * @param string $tplString Шаблон в строке
-     * @param array $dataItems Массив с параметрами шаблона
+     * @param array  $dataItems Ассоциативный массив с контекстом шаблона
      * @return string
      */
     protected static function _parseString($tplString, $dataItems)
     {
-        // Поскольку, защищённые методы нигде более не будут вызываться, без риска запутать других и запутаться самому мы можем
-        // передавать текст шаблона по ссылке и менять его в одном месте, вместо того, чтобы каждый раз создавать локальную копию
-
         // Сначала заменяем все строковые переменные, потому что они могут участвовать в других выражениях
-        self::_parseVars($tplString, $dataItems);
-
-        // Далее обрабатываем условные операторы
-        self::_parseConditionals($tplString, $dataItems);
-
+        $tplString = self::_parseStrings($tplString, $dataItems);
+        // Далее обрабатываем условные блоки
+        $tplString = self::_parseConditionals($tplString, $dataItems);
+        // В самом конце обрабатываем повторяющиеся блоки
+        $tplString = self::_parseArrays($tplString, $dataItems);
         return $tplString;
     }
 
@@ -181,14 +271,14 @@ class Tpl
     /**
      * Заполнение контейнера, заданного именем секции
      * @param string $containerName Имя блока шаблона
-     * @param array $data Массив с полями шаблона
+     * @param array  $dataItems Массив с полями шаблона
      * @return string
      */
-    public static function parseBlock($containerName, $data)
+    public static function parseBlock($containerName, $dataItems)
     {
         return self::_parseString(
             self::getBlock($containerName),
-            $data
+            $dataItems
         );
     }
 
@@ -196,19 +286,19 @@ class Tpl
 
     /**
      * Обработка целого файла или одного блока в нём
-     * @param string $filename Имя файла для парсинга
-     * @param array $data Массив с полями шаблона
+     * @param string $filename  Имя файла для парсинга
+     * @param array  $dataItems Массив с  шаблона
      * @param string $blockName Имя блока
      * @return string
      * @throws TplException
      */
-    public static function parseFile($filename, $data, $blockName = '')
+    public static function parseFile($filename, $dataItems, $blockName = '')
     {
         return self::_parseString(
             $blockName ?
                   Filter::strBetween(self::getFile($filename), '[[$' . $blockName . ']]', '[[/$' . $blockName . ']]')
                 : self::getFile($filename),
-            $data
+            $dataItems
         );
     }
 

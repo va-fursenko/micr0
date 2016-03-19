@@ -363,10 +363,18 @@ class Db
         $numArgs = func_num_args();
 
         switch ($numArgs) {
-            case 1: $result = $this->query($query); break;
-            case 2: $result = $this->query($query, $fetchType); break;
-            case 3: $result = $this->query($query, $fetchType, func_get_arg(2)); break;
-            case 4: $result = $this->query($query, $fetchType, func_get_arg(2), func_get_arg(3)); break;
+            case 1:
+                $result = $this->query($query);
+                break;
+            case 2:
+                $result = $this->query($query, $fetchType);
+                break;
+            case 3:
+                $result = $this->query($query, $fetchType, func_get_arg(2));
+                break;
+            case 4:
+                $result = $this->query($query, $fetchType, func_get_arg(2), func_get_arg(3));
+                break;
             default:
                 throw new DbException(DbException::L_WRONG_PARAMETERS);
         }

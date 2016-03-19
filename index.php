@@ -15,22 +15,14 @@ $content = Tpl::parseFile(
         'button_text' => 'Жмакни меня',
         'email' => 'helloworld@mail.ru',
         'rows' => [
-            [
-                'city'       => 'Belgorod',
-                'country'    => 'Russia',
-                'population' => '360k'
-            ],
-            [
-                'city'       => 'St. Peterburg',
-                'country'    => 'Russia',
-                'population' => '5kk'
-            ],
+            ['Belgorod', 'Russia', '360k'],
+            ['St. Peterburg','Russia','5kk'],
             ['New York', 'USA', '10kk'],
             ['Las Vegas', 'USA', '2kk'],
             ['London', 'Great Britain', '12kk'],
         ],
         'place_button' => true,
-        'echo_bool'    => true,
+        'echo_bool'    => false,
         'flag3'        => 0,
         'some_flag' => 'warning'
     ]

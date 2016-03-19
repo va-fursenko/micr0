@@ -24,7 +24,7 @@
         <tbody>
             {{[rows]}}
             <tr>
-                <td>{{#number}}</td>
+                <td>{{#number}}.</td>
                 <td>{{city}}</td>
                 <td>{{country}}</td>
                 <td>{{population}}</td>
@@ -47,7 +47,7 @@
         <span class="label">first label</span>
     {{?some_flag=warning}}
         <span class="label label-warning">Some warning label</span>
-    {{?some_flag='{{place_button}}'}}
+    {{?some_flag=place_button}}
         <span class="label label-success">Some success label</span>
     {{?some_flag={{place_button}}}}
         <span class="label label-success">Some success label</span>
