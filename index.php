@@ -28,7 +28,13 @@ $content = Tpl::parseFile(
     ]
 );
 
-
-
 // Рисуем шаблон
 require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::TPL_DIR . '/layout.main.php');
+
+
+/*
+(?<case_block>
+    \{\{\? (?<block_name>\w+) ((?<sign>=|==|>|>=|<|<=) (?<q>[\'"`]?) (?<condition>\w+) \g<q> )? \}\}    # {{?имя_блока}}
+        (?<block_true>.*?)                                     # Контент для положительного варианта
+)+
+*/

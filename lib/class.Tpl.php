@@ -111,7 +111,7 @@ class Tpl
                 (?<block_true>.*?)       # Контент для положительного варианта
             (?<has_false>                # Если данный блок пуст, значит второй части шаблона нет
             \{\{\!\g<block_name>\}\}     # {{!имя_блока}}
-                (?<block_true>.*?)       # Контент для отрицательного варианта
+                (?<block_false>.*?)       # Контент для отрицательного варианта
             )?                           # 0 или 1
             \{\{\;\g<block_name>\}\}     # {{;имя_блока}}
         /msx                             # /i - РегистроНЕзависимый
@@ -348,60 +348,3 @@ class Tpl
         return $result;
     }
 }
-
-
-/*
- * Какая-то неудачная идея
- *
- *
-
-    /**
-     * Рекурсивное кеширование обдного блока
-     * @param string $dir Директория для кеширования
-     * @param string $blockName Имя блока
-     * @param string $blockContent Контент блока
-     * @return string
-     * @throws TplException
-     *
-protected static function cacheBlock($dir, $blockName, $blockContent)
-{
-    preg_match_all("/<\\!\\-\\-(\\w+)\\[\\-\\->(.*?)<\\!\\-\\-\\]\\1\\-\\->/ims", $blockContent, $matches, PREG_OFFSET_CAPTURE | PREG_PATTERN_ORDER);
-    if (!is_array($matches) || !isset($matches[1]) || count($matches[1]) == 0) {
-        return false;
-    }
-    foreach ($matches[1] as $index => $block){
-        $blockContent = substr_replace($blockContent, "<!--{$block[0]}[]-->", $matches[0][$index][1], strlen($matches[0][$index][0]));
-        self::cacheBlock(
-            $dir . $blockName . DIRECTORY_SEPARATOR,
-            $block[0],
-            $matches[2][$index][0]
-        );
-    }
-    if (!file_exists($dir) && !mkdir($dir, 0777, true)) {
-        throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ": $dir");
-    }
-    if (!file_put_contents($dir . $blockName . '.html', $blockContent)) {
-        throw new TplException(TplException::L_TPL_FILE_UNREACHABLE . ": $dir$blockName.html");
-    }
-    return true;
-}
-
-
-
-    /**
-     * Загрузка содержимого файла в отдельные файлы блоков
-     * @param string $filename Имя файла для загрузки данных
-     * @return bool
-     * @throws TplException
-     *
-    public static function cacheFile($filename)
-{
-    self::cacheBlock(
-        self::DIR,
-        basename($filename, '.php'),
-        self::getFile($filename)
-    );
-    return true;
-}
-
-*/
