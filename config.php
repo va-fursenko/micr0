@@ -18,10 +18,10 @@ define('HOST', 'http://' . $_SERVER['HTTP_HOST'] . '/');
 /**
  * Класс конфига со статическими свойствами. Так будет проще с ним потом работать
  * @see http://php.net/manual/ru/language.oop5.magic.php#language.oop5.magic.debuginfo
- * @todo Закрыть данные от дебага с помощью магических методов
+ * @todo Попытаться закрыть данные от дебага с помощью магических методов
  */
-class CONFIG{
-
+class CONFIG
+{
     # Общие
     /** @const bool Флаг дебага */
     const DEBUG = true;
@@ -31,22 +31,13 @@ class CONFIG{
     const HOST = HOST;
 
 
+
     # Страница
     /** @const string Кодировка страниц */
     const PAGE_CHARSET = 'UTF-8';
     /** @const string Общий заголовок страниц */
     const PAGE_TITLE = 'micro';
 
-
-    # Логи
-    /** @const bool Флаг логгирования в БД или файл */
-    const LOG_USE_DB = false;
-    /** @const string Директория логов */
-    const LOG_DIR = 'log';
-    /** @const string Лог */
-    const LOG_FILE = 'common.log';
-    /** @const string Лог ошибок */
-    const ERROR_LOG_FILE = 'error.log';
 
 
     # БД
@@ -72,20 +63,26 @@ class CONFIG{
     const DB_ERROR_LOG_FILE = 'db.error.log';
 
 
+
+    # Логи
+    /** @const bool Флаг логгирования в БД или файл */
+    const LOG_USE_DB = false;
+    /** @const string Директория логов */
+    const LOG_DIR = 'log';
+    /** @const string Лог */
+    const LOG_FILE = 'common.log';
+    /** @const string Лог ошибок */
+    const ERROR_LOG_FILE = 'error.log';
+
+
+
     # Шаблонизатор
     /** @const bool Флаг дебага шаблонизатора */
-    const TPL_DEBUG = true;
-    /** @const string Язык интерфейса по умолчанию */
-    const TPL_DEFAULT_LANGUAGE = 'RU';
+    const VIEW_DEBUG = true;
     /** @const string Директория шаблонов */
-    const TPL_DIR = 'tpl';
-    /** @const bool Флаг чтения шаблонов из БД */
-    const TPL_USE_DB = false;
-    /** @const string Таблица БД, в которой хранятся темплейты */
-    const TPL_DB_TABLE = '`interface_templates`';
-    /** @const Таблица в бд с описанием языковых констант */
-    const TPL_LANGUAGE_DB_TABLE = '`interface_languages_constants`';
+    const VIEW_DIR = 'view';
+    /** @const string Язык интерфейса по умолчанию */
+    const VIEW_DEFAULT_LANGUAGE = 'RU';
     /** @const Таблица в БД со справочником доступных языков интерфейса */
-    const TPL_LANGUAGES_DB_DICTIONARY = '`interface_languages`';
-
+    const VIEW_LANGUAGES_DB_DICTIONARY = '`interface_languages`';
 }

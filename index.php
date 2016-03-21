@@ -8,7 +8,7 @@ require_once(__DIR__ . '/lib/init.common.php');
 //require_once(__DIR__ . '/work/report.php');
 
 // Генерим контент
-$content = Tpl::parseFile(
+$content = View::parseFile(
     'base',
     [
         'lines' => 'Hello, world!',
@@ -29,7 +29,7 @@ $content = Tpl::parseFile(
 );
 
 // Рисуем шаблон
-require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::TPL_DIR . '/layout.main.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.main.php');
 
 
 /*

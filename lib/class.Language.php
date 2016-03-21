@@ -12,146 +12,64 @@
  */
 
 
-require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Db.php');
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Filter.php');
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
 
 /** @todo Оживить Франкенштейна */
-/** @todo Добавить скрипт создания связанной таблицы БД */
+
+/** Собственное исключение класса */
+class LanguageException extends BaseException{
+    # Языковые константы класса
+    const L_LANGUAGE_FILE_UNREACHABLE = 'Файл с языковыми данными недоступен';
+}
 
 
 /**
- * Класс для работы с мультиязычностью интерфейса web-приложений.
- * Использует подключение к БД, название таблицы с языковыми данными.
- * Таблица с языковыми константами должна иметь следующую структуру:
- * -----------------------------------------------------------------------------
- * id | sysname | RU | EN | UA |....
- * -----------------------------------------------------------------------------
- * sysname - название константы
- * RU, EN,... - значение на Русском языке (например)
- * Пример запроса получения всех русскоязычных констант:
- * SELECT sysname, RU FROM tbl_language;
- * -----------------------------------------------------------------------------
+ * Класс для работы с языками интерфейса
  * @version   1.2
  * @copyright viktor
  * @package   Micr0
  */
-class Language {
-
-
+class Language
+{
     /** Текущий язык [RU, UA, EN ...] */
-    protected $language = '';
-    /** Дискриптор соединения с БД */
-    protected $db = null;
+    protected static $_language = '';
 
+    /** Массив языковых констант для текущего языка */
+    protected static $_data = [];
 
-    /** @const Таблица в бд с описанием языковых констант */
-    const LANGUAGE_DB_TABLE = CONFIG::TPL_LANGUAGE_DB_TABLE;
-    /** @const Таблица в бд со справочником доступных языков интерфейса */
-    const LANGUAGES_DB_DICTIONARY = CONFIG::TPL_LANGUAGES_DB_DICTIONARY;
 
 
     /**
-     * Конструктор класса
-     * @param object $db Дискриптор БД
-     * @param string $language Язык
+     * Установка массива языковых констант для выбранного языка
+     * @param string $varsArray Массив языковых констант
      */
-    public function __construct($db, $language){
-        $this->db = $db;
-        $this->language = $language;
-    }
-
-    /**
-     * Деструктор класса
-     * @return void
-     */
-    public function __destruct() {
-        $this->db = null;
-        $this->language = null;
-    }
-
-    /**
-     * Определяет, поддерживает ли БД указаный язык. Проверяется наличие столбца с таким именем в таблице констант
-     * @param string $lang Обозначение проверяемого языка (RU, EN, UA..)
-     * @return bool
-     */
-    public function hasLanguage($lang) {
-        /** @todo Определить, содержит ли таблица self::LANGUAGE_TABLE_NAME столбец $lang */
-    }
-
-    /**
-     * Получает из БД список поддерживаемых языков
-     * @param bool $visibleOnly Флаг - выбирать только видимые языки или нет
-     * @return array
-     */
-    public function getLanguagesList($visibleOnly = true){
-        return $this->db()->associateQuery("SELECT `id`, `code`, `name`, `caption`, `flag`, `visible`, `order`, `description` FROM " . self::LANGUAGES_DB_DICTIONARY . ($visibleOnly ? " WHERE `visible` = 1 ORDER BY `order`" : ''));
-    }
-
-    /**
-     * Получает значение языковых констант
-     * @param array $params Список запрашиваемых констант  array(CONST1, CONST2, ...)
-     * @return array
-     */
-    public function getLanguageValues($params) {
-        $result = [];
-        if (!count($params)) {
-            return $result;
-        }
-        // Массив преобразовываем в строку для запроса к БД
-        $whereArr = "'" . implode("', '", $params) . "'";
-        $currLang = $this->getLanguage();
-        $result = $this->db()->associateQuery(
-            "SELECT `name`, `" . $currLang . "` FROM " . self::LANGUAGE_DB_TABLE . " WHERE `name` IN (" . $whereArr . ")",
-            0
-        );
-        // Формируем данные в массив в виде [имя константы => значение]
-        return Filter::arrayReindex($result, 'name');
+    public static function setVars($varsArray)
+    {
+        /** @todo Сделать array_merge для обработки ситуаций, когда применяемый язык имеет не все константы базового */
+        self::$_data = $varsArray;
     }
 
 
-    /**
-     * Получает значение языковых констант
-     * @param string $currLang Текущий язык интерфейса
-     * @param array $params Список запрашиваемых констант  array(CONST1, CONST2, ...)
-     * @return array
-     */
-    public function getValues($currLang, $params) {
-        $result = [];
-        if (!count($params)) {
-            return $result;
-        }
-        // Массив преобразовываем в строку для запроса к БД
-        $whereArr = "'" . implode("', '", $params) . "'";
-        $result = $this->db()->associateQuery("SELECT `name`, `" . $currLang . "` FROM " . self::LANGUAGE_DB_TABLE . " WHERE `name` IN (" . $whereArr . ")");
-        // Формируем данные в массив в виде [имя константы => значение]
-        return Filter::arrayReindex($result, 'name');
-    }
 
     /**
-     * Получает значение языковой константы
-     * @param string $name Имя константы
-     * @param string $currLang Текущий язык интерфейса
+     * Установка языка интерфейса
+     * @param string $language Аббривеатура устанавливаемого языка RU, EN, UA...
+     */
+    public static function set($language)
+    {
+        self::$_language = $language;
+    }
+
+
+
+    /**
+     * Получение аббривеатуры языка интерфейса
      * @return string
      */
-    public function getValue($name, $currLang){
-        return $this->db()->scalarQuery(
-            "SELECT `name`, `" . $currLang . "` FROM " . self::LANGUAGE_DB_TABLE . " WHERE `name` = '" . $name . "'",
-            ''
-        );
+    public static function get()
+    {
+        return self::$_language;
     }
-
-//------------------------------------------- Геттеры ----------------------------------------------------//
-
-    /** Получает дескриптор соединения с БД */
-    function db(){
-        return $this->db;
-    }
-
-    /** Возвращает текущий язык */
-    public function getLanguage() {
-        return $this->language;
-    }
-
 }
