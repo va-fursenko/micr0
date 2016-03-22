@@ -24,9 +24,9 @@ trait UseDb
 {
 
     /** @var Db Дескриптор соединения с БД */
-    static protected $_db = null;
+    static protected $db = null;
     /** @var string Индекс инстанса соединения с БД */
-    static protected $_dbInstanceIndex = 0;
+    static protected $dbInstanceIndex = 0;
 
 
 
@@ -37,10 +37,10 @@ trait UseDb
     public static function db()
     {
         // Получаем дескриптор. Если он ешё не инициализован, пробуем получить его у Db::getInstance()
-        if (self::$_db === null) {
-            self::$_db = Db::getInstance(self::$_dbInstanceIndex);
+        if (self::$db === null) {
+            self::$db = Db::getInstance(self::$dbInstanceIndex);
         }
-        return self::$_db;
+        return self::$db;
     }
 
 
@@ -51,6 +51,6 @@ trait UseDb
      */
     public static function setDbInstanceIndex($index)
     {
-        self::$_dbInstanceIndex = $index;
+        self::$dbInstanceIndex = $index;
     }
 } 

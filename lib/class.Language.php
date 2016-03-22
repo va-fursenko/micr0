@@ -34,10 +34,10 @@ class LanguageException extends BaseException{
 class Language
 {
     /** Текущий язык [RU, UA, EN ...] */
-    protected static $_language = '';
+    protected static $language = '';
 
     /** Массив языковых констант для текущего языка */
-    protected static $_data = [];
+    protected static $data = [];
 
 
 
@@ -48,18 +48,18 @@ class Language
     public static function setVars($varsArray)
     {
         /** @todo Сделать array_merge для обработки ситуаций, когда применяемый язык имеет не все константы базового */
-        self::$_data = $varsArray;
+        self::$data = $varsArray;
     }
 
 
 
     /**
      * Установка языка интерфейса
-     * @param string $language Аббривеатура устанавливаемого языка RU, EN, UA...
+     * @param string $languageAbbr Аббривеатура устанавливаемого языка RU, EN, UA...
      */
-    public static function set($language)
+    public static function set($languageAbbr)
     {
-        self::$_language = $language;
+        self::$language = $languageAbbr;
     }
 
 
@@ -70,6 +70,6 @@ class Language
      */
     public static function get()
     {
-        return self::$_language;
+        return self::$language;
     }
 }

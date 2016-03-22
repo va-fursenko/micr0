@@ -162,7 +162,7 @@ class Db
 
     # Закрытые данные
     /** Текст последнего запроса к БД */
-    protected $_lastQuery = '';
+    protected $lastQuery = '';
     /** Флаг логгирования */
     protected $_debug = false;
     /** Строка подключения */
@@ -200,12 +200,12 @@ class Db
             PDO::ATTR_CASE               => PDO::CASE_LOWER,
         ]
     ){
-        $this->_lastQuery    = 'CONNECT';
-        $this->_debug        = isset($options[self::ATTR_DEBUG])          ? $options[self::ATTR_DEBUG]          : CONFIG::DB_DEBUG;
-        $this->_logFile      = isset($options[self::ATTR_LOG_FILE])       ? $options[self::ATTR_LOG_FILE]       : CONFIG::DB_LOG_FILE;
-        $this->_errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
-        $this->_dsn = $dsn;
-        $this->_userName = $userName;
+        $this->lastQuery    = 'CONNECT';
+        $this->debug        = isset($options[self::ATTR_DEBUG])          ? $options[self::ATTR_DEBUG]          : CONFIG::DB_DEBUG;
+        $this->logFile      = isset($options[self::ATTR_LOG_FILE])       ? $options[self::ATTR_LOG_FILE]       : CONFIG::DB_LOG_FILE;
+        $this->errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
+        $this->dsn = $dsn;
+        $this->userName = $userName;
         // Пробуем подключиться, переделывая возможные исключения в DbException
         try {
             $this->db = new PDO($dsn, $userName, $userPass, $options);
@@ -270,7 +270,7 @@ class Db
     /** Закрытие коннекта */
     public function close()
     {
-        $this->_lastQuery = 'CLOSE';
+        $this->lastQuery = 'CLOSE';
         self::clearInstance($this->instanceIndex());
         if ($this->debug()) {
             $this->log('db_close');
@@ -296,7 +296,7 @@ class Db
      */
     public function query($query, $fetchType = null)
     {
-        $this->_lastQuery = $query;
+        $this->lastQuery = $query;
         $numArgs = func_num_args();
 
         if ($numArgs == 1) {
@@ -400,7 +400,7 @@ class Db
     public function execQuery($statement)
     {
         $statement = $this->quote($statement);
-        $this->_lastQuery = $statement;
+        $this->lastQuery = $statement;
         $result = $this->db->exec($statement);
         if ($this->debug()) {
             $this->log($result);
@@ -475,12 +475,12 @@ class Db
      */
     public function prepare($statement , $driverOptions = [])
     {
-        $this->_lastQuery = [
+        $this->lastQuery = [
             'PREPARE',
             $statement
         ];
         if (is_array($driverOptions) && count($driverOptions) > 0) {
-            $this->_lastQuery[] = Log::printObject($driverOptions);
+            $this->lastQuery[] = Log::printObject($driverOptions);
         }
         return $this->db->prepare($statement, $driverOptions);
     }
@@ -497,13 +497,13 @@ class Db
      */
     public function execute($statement , $inputParameters = null)
     {
-        $this->_lastQuery = ['EXEC'];
+        $this->lastQuery = ['EXEC'];
         if ($statement instanceof PDOStatement) {
-            $this->_lastQuery[] = $statement->queryString;
+            $this->lastQuery[] = $statement->queryString;
 
         // Если на входе строка, пробуем подготовить из неё выражение и выполнить
         } elseif (is_string($statement)) {
-            $this->_lastQuery[] = $statement;
+            $this->lastQuery[] = $statement;
             $statement = $this->prepare($statement);
 
         } else {
@@ -515,7 +515,7 @@ class Db
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
         if (count($inputParameters) > 0) {
-            $this->_lastQuery[] = Log::printObject($inputParameters);
+            $this->lastQuery[] = Log::printObject($inputParameters);
         }
 
         return $statement->execute($statement, $inputParameters);
@@ -629,7 +629,7 @@ class Db
     /** Возвращает текст последнего запроса */
     public function lastQuery()
     {
-        return $this->_lastQuery;
+        return $this->lastQuery;
     }
 
     /**
@@ -638,7 +638,7 @@ class Db
      */
     public function user()
     {
-        return $this->_userName;
+        return $this->userName;
     }
 
     /**
@@ -675,9 +675,9 @@ class Db
     public function debug($debug = null)
     {
         if (func_num_args() == 0) {
-            return $this->_debug;
+            return $this->debug;
         } else {
-            $this->_debug = boolval($debug);
+            $this->debug = boolval($debug);
             return true;
         }
     }
