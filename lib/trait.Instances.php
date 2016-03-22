@@ -37,11 +37,11 @@ trait Instances
 {
     # Статические свойства
     /** Список экземпляров класса */
-    protected static $_instances = [];
+    protected static $instances = [];
 
     # Закрытые данные
     /** Индекс экземпляра класса */
-    protected $_instanceIndex  = null;
+    protected $instanceIndex  = null;
 
 
 
@@ -54,21 +54,21 @@ trait Instances
     public function instanceIndex($index = null)
     {
         if (func_num_args() == 0) {
-            return $this->_instanceIndex;
+            return $this->instanceIndex;
 
         } else {
             if ($index === null || $index === '') {
-                $index = strval(count(self::$_instances));
+                $index = strval(count(self::$instances));
             } elseif (!self::isValidInstanceIndex($index)) {
                 throw new InstancesException(InstancesException::L_WRONG_PARAMETERS . ": '$index'");
 
             }
-            if ($index !== $this->_instanceIndex) {
-                if ($this->_instanceIndex !== null) {
-                    self::clearInstance($this->_instanceIndex);
+            if ($index !== $this->instanceIndex) {
+                if ($this->instanceIndex !== null) {
+                    self::clearInstance($this->instanceIndex);
                 }
                 self::$_instances[$index] = &$this;
-                $this->_instanceIndex = $index;
+                $this->instanceIndex = $index;
             }
         }
         return true;
@@ -84,10 +84,10 @@ trait Instances
      */
     public static function getInstance($index)
     {
-        if (!isset(self::$_instances[$index])) {
+        if (!isset(self::$instances[$index])) {
             throw new InstancesException(InstancesException::L_UNKNOWN_INSTANCE . __CLASS__ . ": '$index'");
         }
-        return self::$_instances[$index];
+        return self::$instances[$index];
     }
 
 
@@ -99,7 +99,7 @@ trait Instances
      */
     public static function clearInstance($index)
     {
-        unset(self::$_instances[$index]);
+        unset(self::$instances[$index]);
         return true;
     }
 

@@ -129,14 +129,14 @@ function customShutdownHandler()
 class ErrorHandler
 {
     /** Режим отладки */
-    protected static $_debugMode = true;
+    protected static $debugMode = true;
 
     /** Обработчик ошибок */
-    protected static $_errorHandler = null;
+    protected static $errorHandler = null;
     /** Обработчики завершения работы скрипта */
-    protected static $_shutdownHandlers = [];
+    protected static $shutdownHandlers = [];
     /** Обработчик исключений */
-    protected static $_exceptionHandler = null;
+    protected static $exceptionHandler = null;
 
 
     /**
@@ -147,7 +147,7 @@ class ErrorHandler
      */
     public static function setErrorHandler(callable $func)
     {
-        self::$_errorHandler = $func;
+        self::$errorHandler = $func;
         return set_error_handler($func, E_ALL);
     }
 
@@ -161,7 +161,7 @@ class ErrorHandler
      */
     public static function setExceptionHandler(callable $func)
     {
-        self::$_exceptionHandler = $func;
+        self::$exceptionHandler = $func;
         return set_exception_handler($func);
     }
 
@@ -175,7 +175,7 @@ class ErrorHandler
      */
     public static function setShutdownHandler(callable $func, $params = null)
     {
-        self::$_shutdownHandlers[] = $func;
+        self::$shutdownHandlers[] = $func;
         register_shutdown_function($func);
     }
 
@@ -189,9 +189,9 @@ class ErrorHandler
     public static function debugMode($debugMode = null)
     {
         if (func_num_args() == 1) {
-            self::$_debugMode = $debugMode;
+            self::$debugMode = $debugMode;
         } else {
-            return self::$_debugMode;
+            return self::$debugMode;
         }
     }
  }
