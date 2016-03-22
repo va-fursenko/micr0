@@ -24,6 +24,7 @@ require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 
 
 /* Initialization */
 
+/*
 new Db(
     CONFIG::DB_DSN,
     CONFIG::DB_USER,
@@ -32,3 +33,4 @@ new Db(
         Db::ATTR_INSTANCE_INDEX => 'main',
     ]
 );
+*/

@@ -80,7 +80,7 @@ class CONFIG
     /** @const bool Флаг дебага шаблонизатора */
     const VIEW_DEBUG = true;
     /** @const string Директория шаблонов */
-    const VIEW_DIR = 'view';
+    const VIEW_DIR = 'views';
     /** @const string Язык интерфейса по умолчанию */
     const VIEW_DEFAULT_LANGUAGE = 'RU';
     /** @const Таблица в БД со справочником доступных языков интерфейса */

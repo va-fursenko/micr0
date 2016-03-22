@@ -29,7 +29,7 @@ $content = View::parseFile(
 );
 
 // Рисуем шаблон
-require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.main.php');
+require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
 
 /*
