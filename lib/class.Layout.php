@@ -8,7 +8,7 @@
 
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
-require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.View.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.ViewParser.php');
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Language.php');
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Filter.php');
 

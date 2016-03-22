@@ -14,7 +14,7 @@ $act = $_GET['action'];
 
 // Конфиг
 require_once(__DIR__ . '/config.php');
-require_once(__DIR__ . '/lib/init.common.php');
+require_once(__DIR__ . '/lib/autoload.php');
 
 // Рабочий модуль
 require_once(__DIR__ . '/work/report.php');

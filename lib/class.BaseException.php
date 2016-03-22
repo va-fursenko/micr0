@@ -15,7 +15,7 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 
 
 /**
- * Класс общего исключения логики проекта
+ * Базовый класс исключения для логики проекта
  * @author      viktor
  * @package     Micr0
  * @version     1.2.0
