@@ -22,14 +22,13 @@ class ViewParserException extends BaseException
 {
     # Языковые константы класса
     const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
-    const L_TPL_DB_UNREACHABLE   = 'База данных с темплейтами недоступна';
     const L_TPL_BLOCK_UNKNOWN    = 'Шаблон не найден';
 }
 
 
 /** @todo Класс View как объединение фукционала */
-/** @todo Блоки с множественными альтернативами (switch) */
-/** @todo Подумать насчёт того, чтобы скопировать синтаксис блоков с твига */
+/** @todo Модификаторы вывода переменных |raw */
+/** @todo Полноценный парсинг переменных через регулярки */
 
 
 
@@ -40,71 +39,8 @@ class ViewParserException extends BaseException
  * @version     2.5
  * @package     Micr0
  */
-class ViewParser
+class ViewParser extends ViewBase
 {
-    # Собственные константы
-    /** @const Режим дебага шаблонов */
-    const DEBUG = CONFIG::VIEW_DEBUG;
-    /** @const Расширение файлов шаблонов */
-    const FILE_EXT = '.html';
-    /** @const Папка для хранения шаблонов */
-    const DIR = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . DIRECTORY_SEPARATOR;
-
-
-
-    # Параметры регулярных выражения
-    # Переменные
-    /**
-     * @const Регулярное выражение простой переменной
-     * {{ имя_переменной }}
-     */
-    const EXPR_VAR_BEGIN = '\{\{';
-    const EXPR_VAR_END   = '\}\}';
-    const EXPR_VAR = '(?<var_name>\w+|#)';
-
-
-    # Блоки
-    const EXPR_BLOCK_BEGIN = '\{%';
-    const EXPR_BLOCK_END   = '%\}';
-    # if else
-    /**
-     * @const Регулярное выражение условного блока
-     * {% if имя_блока %}
-     */
-    const EXPR_IF =     'if\s(?<block_name>\w+)';
-
-    /**
-     * @const Регулярное выражение условного блока
-     * {% else %} или {% else имя_блока %}
-     */
-    const EXPR_ELSE =   'else(\s\g<block_name>)?';
-
-    /**
-     * @const Регулярное выражение условного блока
-     * {% endif %} или {% endif имя_блока %}
-     */
-    const EXPR_ENDIF =  'endif(\s\g<block_name>)?';
-
-
-
-    # for a in b
-    /**
-     * @const Регулярное выражение блока-итератора
-     * {% for имя_ряда in имя_блока %}
-     */
-    const EXPR_FOR =    'for\s(?<row_name>\w+)\sin\s(?<block_name>\w+)';
-
-    /**
-     * @const Регулярное выражение блока-итератора
-     * {% endfor %} или {% endfor имя_блока %}
-     */
-    const EXPR_ENDFOR = 'endfor(\s\g<block_name>)?';
-
-
-
-
-
-
     /**
      * Замена в тексте шаблона $tplString строковых и числовых переменных данными из массива $dataItems
      * @param string $tplString Шаблон в строке
@@ -112,16 +48,20 @@ class ViewParser
      * @param string $prefix Префикс имён переменных, например 'row', добавляемый с точкой: {{ row.var_name }}
      * @return string
      */
-    protected static function parseStrings($tplString, $dataItems, $prefix = '')
+    protected static function replaceStrings($tplString, $dataItems, $prefix = '')
     {
         /**
-         * str_replace('{{ имя_переменной }}', $dataItems['имя_переменной'], $tplString)
+         * str_replace('{{ var_name }}', "var_value", $tplString)
          * Вообще в классе имя_переменной ожидается из символов \w - буквы, цифры, подчёркивание,
          * но в данном методе для скорости используется str_replace, которая может заменить всё, что угодно
          */
         foreach ($dataItems as $varName => $value) {
             if (is_string($value) || is_numeric($value)) {
-                $tplString = str_replace('{{ ' . (strlen($prefix) > 0 ? $prefix . '.' : '') . $varName . ' }}', $value, $tplString);
+                $tplString = str_replace(
+                    self::VAR_BEGIN . ' ' . (strlen($prefix) > 0 ? $prefix . '.' : '') . $varName . ' ' . self::EXPR_VAR_END,
+                    $value,
+                    $tplString
+                );
             }
         }
         return $tplString;
@@ -130,50 +70,72 @@ class ViewParser
 
 
     /**
+     * Замена в тексте шаблона $tplString строковых и числовых переменных данными из массива $dataItems
+     * @param string $tplString Шаблон в строке
+     * @param array  $dataItems Ассоциативный массив с контекстом шаблона
+     * @return string
+     * @throws ViewParserException
+     */
+    protected static function parseStrings($tplString, $dataItems)
+    {
+        // Получаем результат выполнения регулярного выражения поиска переменных
+        if ($matches = self::pregMatchStrings($tplString)) {
+
+            // Проходим по всем найденным переменным
+            foreach ($matches['var_name'] as $varIndex => $varName) {
+
+                // Если искомой переменной в параметрах шаблона нет, пропускам итерацию
+                if (!array_key_exists($varName, $dataItems)) {
+                    continue;
+                }
+
+                // Если у переменной в шаблоне нет индекса, просто вставляем её
+                if (strlen($matches['var_index'][$varIndex]) == 0) {
+                    $replacement = $dataItems[$varName];
+
+                // У переменной в шаблоне есть индекс и это массив. Возвращаем элемент
+                } elseif (is_array($dataItems[$varName])) {
+                    $replacement = $dataItems[$varName][$matches['var_index'][$varIndex]];
+
+                // У переменной в шаблоне есть индекс и это объект. Возвращаем свойство
+                } elseif (is_object($dataItems[$varName])) {
+                    $replacement = $dataItems[$varName]->$matches['var_index'][$varIndex];
+
+                // Значит во входных данных что-то неприемлемое
+                } else {
+                    throw new ViewParserException(
+                        ViewParserException::L_WRONG_PARAMETERS .
+                        ': ' . $matches['var_name'][$varIndex] . '.' . $matches['var_index'][$varIndex]
+                    );
+                }
+
+                // Применяем модификатор, если он есть
+                // raw - Экранирование html
+                if (self::AUTO_ESCAPE || $matches['modifier'][$varIndex] == 'raw'){
+                    $replacement = htmlspecialchars($replacement);
+                }
+
+                // Меняем выбранную переменную
+                $tplString = str_replace($matches[0][$varIndex], $replacement, $tplString);
+            }
+        }
+
+        return $tplString;
+    }
+
+
+
+    /**
      * Замена в тексте шаблона $tplString условных блоков данными из массива $dataItems
-     * Флаг проверяется
+     * Флаг проверяется как bool
      * @param string $tplString Шаблон в строке
      * @param array  $dataItems Ассоциативный массив с контекстом шаблона
      * @return string
      */
     protected static function parseConditionals($tplString, $dataItems)
     {
-        /**
-         * Регулярное выражение для условных операторов if () {} else {}
-         * {% if block_name %}...{% else %}...{% endif %}
-         * или сокращённый вариант:
-         * {% if block_name %}...             {% endif %}
-         * имя_блока состоит из символов \w - буквы, цифры, подчёркивание
-
-        /
-            \{%\sif\s(?<block_name>\w+)\s%\}        # {% if block_name %}
-                (?<block_true>.*?)                  # Контент для положительного варианта
-            (?<has_false>                           # Если данный блок пуст, значит второй части шаблона нет
-            \{%\selse\s(\g<block_name>\s)?%\}       # {% else %} или {% else block_name %}
-                (?<block_false>.*?)                 # Контент для отрицательного варианта
-            )?                                      # Отрицательного варианта может и не быть
-            \{%\sendif\s(\g<block_name>\s)?%\}      # {% endif %} или {% endif block_name %}
-        /msx                                        # /i - РегистроНЕзависимый
-                                                      /m - многострочный,
-                                                      /s - \. включает в себя \n,
-                                                      /x - неэкранированные пробелы и комментарии после # опускаются
-
-         * Доступ к маске по номеру: \1, \g1 или \g{1}
-         * Маска левее места вызова: \g{-2}
-         * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
-         * Вызов именованной маски: (?P=name), \k<name>, \k'name', \k{name}, \g{name}
-         */
-        if (preg_match_all(
-            '/' .
-                self::EXPR_BLOCK_BEGIN . '\s' . self::EXPR_IF . '\s' . self::EXPR_BLOCK_END .
-                    '(?<block_true>.*?)(?<has_false>' .
-                self::EXPR_BLOCK_BEGIN . '\s' . self::EXPR_ELSE . '\s' . self::EXPR_BLOCK_END .
-                    '(?<block_false>.*?))?' .
-                self::EXPR_BLOCK_BEGIN . '\s' . self::EXPR_ENDIF . '\s' . self::EXPR_BLOCK_END .
-            '/ms',
-            $tplString,
-            $matches
-        )) {
+        // Получаем результат выполнения регулярного выражения поиска условных блоков
+        if ($matches = self::pregMatchConditionals($tplString)) {
             // Проходим по всем найденным блокам
             foreach ($matches[0] as $blockIndex => $blockDeclaration) {
                 // Если искомой переменной в параметрах шаблона нет, пропускам итерацию
@@ -201,7 +163,7 @@ class ViewParser
 
 
     /**
-     * Замена в тексте шаблона &$tplString повторяющихся блоков данными из массива $dataItems
+     * Замена в тексте шаблона $tplString повторяющихся блоков данными из массива $dataItems
      * @param string $tplString Шаблон в строке
      * @param array  $dataItems Ассоциативный массив с контекстом шаблона
      * @return string
@@ -209,35 +171,8 @@ class ViewParser
      */
     protected static function parseArrays($tplString, $dataItems)
     {
-        /**
-         * Регулярное выражение для повторяющихся блоков
-         * {% for row_name in block_name %} ... {{ row_name.var1 }}, {{ row_name.var2 }} ... {% endfor %}
-         * имя_блока состоит из символов \w - буквы, цифры, подчёркивание
-
-        /
-            \{%\sfor\s(?<row_name>\w+)\sin\s(?<block_name>\w+)\s%\}     # {% for row_name in block_name %}
-                (?<block>.*?)                                           # Контент повторяющегося блока
-            \{%\sendfor\s(\g<block_name>\s)?%\}                         # {% endfor %} или {% endfor block_name %}
-        /msx                                                            # /i - РегистроНЕзависимый
-                                                                          /m - многострочный,
-                                                                          /s - \. включает в себя \n,
-                                                                          /x - неэкранированные пробелы и комментарии после # опускаются
-
-         * На всякий случай,
-         * Доступ к маске по номеру: \1, \g1 или \g{1}
-         * Маска левее места вызова: \g{-2}
-         * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
-         * Вызов именованной маски: (?P=name), \k<name>, \k'name', \k{name}, \g{name}
-         */
-        if (preg_match_all(
-            '/' .
-                self::EXPR_BLOCK_BEGIN . '\s' . self::EXPR_FOR . '\s' . self::EXPR_BLOCK_END .
-                    '(?<block>.*?)' .
-                self::EXPR_BLOCK_BEGIN . '\s' . self::EXPR_ENDFOR . '\s' . self::EXPR_BLOCK_END .
-            '/ms',
-            $tplString,
-            $matches
-        )) {
+        // Получаем результат выполнения регулярного выражения поиска повторяющихся блоков
+        if ($matches = self::pregMatchArrays($tplString)) {
             // Проходим по всем найденным блокам
             foreach ($matches[0] as $blockIndex => $blockDeclaration) {
                 $blockName = $matches['block_name'][$blockIndex];
@@ -265,7 +200,7 @@ class ViewParser
                  */
                 if (preg_match_all(
                     '/' . self::EXPR_VAR_BEGIN . '\s' .
-                        $matches['row_name'][$blockIndex] . '\.' . self::EXPR_VAR .
+                        $matches['row_name'][$blockIndex] . '\.' . self::EXPR_VAR_FOR .
                     '\s' .self::EXPR_VAR_END . '/ms',
                     $blockHTML,
                     $blockVars
@@ -294,7 +229,7 @@ class ViewParser
                  */
                 if (strpos(
                         $blockHTML,
-                        stripslashes(self::EXPR_VAR_BEGIN . ' ' . $matches['row_name'][$blockIndex] . '.# ' . self::EXPR_VAR_END)
+                        self::VAR_BEGIN . ' ' . $matches['row_name'][$blockIndex] . '.# ' . self::VAR_END
                     ) !== false
                 ) {
                     $counter = 1;    // Инициализуем порядковый счётчик
@@ -304,11 +239,16 @@ class ViewParser
                 // Заполняем блок переменными и прибавляем к представлению
                 foreach ($dataItems[$blockName] as $rowItems) {
                     // Вообще ожидается, что имя пользовательской переменной во входных данных
-                    // не может содержать знак '#', но это не проверяется
+                    // не может содержать знак '#', но это не проверяется. В любом случае, затираем
                     if (isset($counter)) {
                         $rowItems['#'] = $counter++;
                     }
-                    $blocks .= self::parseStrings($blockHTML, $rowItems, $matches['row_name'][$blockIndex]);
+                    $blocks .= self::parseStrings(
+                        $blockHTML,
+                        [
+                            $matches['row_name'][$blockIndex] => $rowItems
+                        ]
+                    );
                 }
 
                 // Заменяем объявление блока в тексте шаблона на полученное представление

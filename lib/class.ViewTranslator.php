@@ -36,16 +36,17 @@ class ViewTranslatorException extends BaseException
  * @version     1.0
  * @package     Micr0
  */
-class ViewTranslator
+class ViewTranslator extends ViewBase
 {
 
     /**
      * Замена в тексте шаблона $tplString строковых и числовых переменных PHP-кодом вставки данных из массива $dataItems
      * @param string $tplString Шаблон в строке
      * @param array  $dataItems Ассоциативный массив с контекстом шаблона
+     * @param string $prefix Префикс имён переменных, например 'row', добавляемый с точкой: {{ row.var_name }}
      * @return string
      */
-    protected static function translateStrings($tplString, $dataItems)
+    protected static function translateStrings($tplString, $dataItems, $prefix = '')
     {
         /**
          * str_replace('{{ имя_переменной }}', "?> echo self::getVar('имя_переменной'); <?php", $tplString)
@@ -54,7 +55,7 @@ class ViewTranslator
          */
         foreach ($dataItems as $varName => $value) {
             if (is_string($value) || is_numeric($value)) {
-                $tplString = str_replace('{{ ' . $varName . ' }}', "?> echo self::getVar('$varName'); <?php", $tplString);
+                $tplString = str_replace(self::VAR_BEGIN . ' ' . $varName . ' ' . self::EXPR_VAR_END, "?> echo self::getVar('$varName'); <?php", $tplString);
             }
         }
         return $tplString;
