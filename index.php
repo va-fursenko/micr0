@@ -22,8 +22,8 @@ $content = ViewParser::parseFile(
             ['London', 'Great Britain', '12kk'],
         ],
         'place_button' => true,
-        'echo_bool'    => false,
-        'flag3'        => 0,
+        'echo_bool'    => 0,
+        'flag3'        => 1,
         'some_flag' => 'warning'
     ]
 );
