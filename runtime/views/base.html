@@ -1,14 +1,10 @@
 <div class="row log-row">
-    <h4 class="log-caption">micro :) '{{ button.text|e }}'</h4>
+    <h4 class="log-caption">micro :) '<?= self::getVar("button", "text", true); ?>'</h4>
     <img class="log-caption log-loader" id="logLoader" src="img/loader.gif">
     <a id="beginBtn" class="log-caption btn btn-primary" href="javascript:void(0);">Красная кнопка</a>
 </div>
 
-{% if echo_bool %}
-<span>ПРАВДА</span>
-{% else %}
-<span>ЛОЖЬ</span>
-{% endif %}
+<?php if (self::getVar("echo_bool", "", false)): ?><span>ПРАВДА</span><?php else: ?><span>ЛОЖЬ</span><?php endif; ?>
 
 <div class="container">
     <table class="table table-striped table-condensed table-bordered table-hover">
@@ -24,10 +20,10 @@
         <tbody>
             {% for row in rows %}
             <tr>
-                <td>{{ row.# }}.</td>
-                <td>{{ row.city }}</td>
-                <td>{{ row.country }}</td>
-                <td>{{ row.population }}</td>
+                <td><?= self::getVar("row", "#", false); ?>.</td>
+                <td><?= self::getVar("row", "city", false); ?></td>
+                <td><?= self::getVar("row", "country", false); ?></td>
+                <td><?= self::getVar("row", "population", false); ?></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -35,14 +31,10 @@
 </div>
 
 <div class="container">
-    {% if place_button %}
-        <a class="btn btn-success" href="javascript:void(0);">{{ button.text }}</a>
-    {% else place_button %}
-        <input type="email" class="form-control" value="{{ email }}" placeholder="Введи имайлку"/>
-    {% endif place_button %}
+    <?php if (self::getVar("place_button", "", false)): ?><a class="btn btn-success" href="javascript:void(0);"><?= self::getVar("button", "text", false); ?></a><?php else: ?><input type="email" class="form-control" value="<?= self::getVar("email", "", false); ?>" placeholder="Введи имайлку"/><?php endif; ?>
 </div>
 
-        {{ some_data }}
+        <?= self::getVar("some_data", "", false); ?>
 
 <div>
 <!--
@@ -61,8 +53,6 @@
 </div>
 
 
-{% if flag3 %}
-Если флаг3 истина, то вывести эту бессмыслицу
-{% endif %}
+<?php if (self::getVar("flag3", "", false)): ?>Если флаг3 истина, то вывести эту бессмыслицу<?php endif; ?>
 
-<pre class="log-container" id="logPre">{{ lines }}</pre>
+<pre class="log-container" id="logPre"><?= self::getVar("lines", "", false); ?></pre>

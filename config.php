@@ -29,6 +29,8 @@ class CONFIG
     const ROOT = __DIR__;
     /** @const Домен проекта */
     const HOST = HOST;
+    /** @const Папка кэша */
+    const RUNTIME_DIR = 'runtime';
 
 
 

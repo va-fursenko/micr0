@@ -1,13 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Виктор
- * Date: 24.03.2016
- * Time: 0:57
- */
-
-/** @todo pregStrings */
-
 
 /**
  * Абстрактный класс-предок для видов (Господи, слово-то какое непривычное...)
@@ -26,6 +17,9 @@ abstract class ViewBase
     const FILE_EXT = '.html';
     /** @const Папка для хранения шаблонов */
     const DIR = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . DIRECTORY_SEPARATOR;
+    /** @const Папка для хранения кэша шаблонов */
+    const DIR_RUNTIME = CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::RUNTIME_DIR .
+        DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . DIRECTORY_SEPARATOR;
 
 
 
@@ -39,7 +33,9 @@ abstract class ViewBase
     const VAR_END   = '}}';
     const EXPR_VAR_BEGIN = '\{\{'; # Предыдущие 2 константы, экранированные для регулярных выражений
     const EXPR_VAR_END   = '\}\}';
-    const EXPR_VAR = '(?<var_name>\w+)(\.(?<var_index>\w+|#))?(\|(?<modifier>raw))?'; // Пока из модификаторов поддерживается только raw - неэкранированный вывод
+    const EXPR_VAR_MODIFIER = '(\|(?<modifier>raw|e))?';
+    const EXPR_VAR_INDEX = '(\.(?<var_index>\w+|#))?';
+    const EXPR_VAR = '(?<var_name>\w+)' . self::EXPR_VAR_INDEX . self::EXPR_VAR_MODIFIER; // Пока из модификаторов поддерживается только raw - неэкранированный вывод
 
 
     # Блоки
@@ -101,10 +97,10 @@ abstract class ViewBase
     {
         /**
          * Регулярное выражение для переменных
-         * {{ var_name }} или {{ var_name.var_index }} или {{ # }}
+         * {{ var_name }} {{ var_name.var_index }} {{ # }} {{ var_name|raw }} {{ var_name|e }}
          * var_name и var_index состоят из символов \w - буквы, цифры, подчёркивание
 
-            /\{\{\s(?<var_name>\w+)(\.(?<var_index>\w+))?(?<modifier>\|raw)?\s\}\}/msx
+            /\{\{\s(?<var_name>\w+)(\.(?<var_index>\w+))?(\|(?<modifier>raw|e))?\s\}\}/msx
 
          */
         if (preg_match_all(
@@ -190,7 +186,6 @@ abstract class ViewBase
                                                                           /s - \. включает в себя \n,
                                                                           /x - неэкранированные пробелы и комментарии после # опускаются
 
-         * На всякий случай,
          * Доступ к маске по номеру: \1, \g1 или \g{1}
          * Маска левее места вызова: \g{-2}
          * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
@@ -208,5 +203,27 @@ abstract class ViewBase
             return $matches;
         }
         return false;
+    }
+
+
+
+    /**
+     * Чтение файла в директории шаблонов self::DIR
+     * Если имя файла не оканчивается на расширение self::FILE_EXT, оно будет добавлено автоматически.
+     * Сравнение регистрозависимое. По умоланию self::FILE_EXT == '.html'
+     * @param string $filename
+     * @return string
+     * @throws ViewParserException
+     */
+    public static function getFile($filename)
+    {
+        // Если имя файла не оканчивается ожидаемым расширением, добавляем его
+        if (strlen($filename) < 6 || '.' . pathinfo($filename, PATHINFO_EXTENSION) != self::FILE_EXT) {
+            $filename .= self::FILE_EXT;
+        }
+        if (!is_readable(self::DIR . $filename)) {
+            throw new ViewParserException(ViewParserException::L_TPL_FILE_UNREACHABLE . ': ' . $filename, E_USER_WARNING);
+        }
+        return file_get_contents(self::DIR . $filename);
     }
 } 

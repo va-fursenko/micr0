@@ -33,6 +33,8 @@ $content = ViewParser::parseFile(
 require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
 
+//ViewTranslator::translateFile('base');
+
 /*
 (?<case_block>
     \{\{\? (?<block_name>\w+) ((?<sign>=|==|>|>=|<|<=) (?<q>[\'"`]?) (?<condition>\w+) \g<q> )? \}\}    # {{?имя_блока}}
