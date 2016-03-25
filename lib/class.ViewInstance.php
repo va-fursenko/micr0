@@ -5,7 +5,7 @@ class ViewInstanceException extends BaseException
 {
     # Языковые константы класса
     const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
-    const L_TPL_BLOCK_UNKNOWN    = 'Шаблон не найден';
+    const L_TPL_BLOCK_UNKNOWN = 'Шаблон не найден';
 }
 
 /**
@@ -24,9 +24,9 @@ abstract class ViewInstance
 
     /**
      * Метод вывода в PHP одной переменной
-     * @param string $varName  Имя переменной (индекс в массиве контекста self::$data)
+     * @param string $varName Имя переменной (индекс в массиве контекста self::$data)
      * @param string $varIndex Индекс переменной (если есть) - индекс в подмассиве, или свойство
-     * @param bool   $escape Флаг экранирования html
+     * @param bool $escape Флаг экранирования html
      * @return string
      * @throws ViewInstanceException
      */
@@ -52,17 +52,16 @@ abstract class ViewInstance
         } elseif (is_object(self::$data[$varName])) {
             $result = self::$data[$varName]->$varIndex;
 
-        // Значит во входных данных что-то неприемлемое
+            // Значит во входных данных что-то неприемлемое
         } else {
             throw new ViewInstanceException(
                 ViewInstanceException::L_WRONG_PARAMETERS .
-                    ": '$varName'" . ($varIndex ? ".'$varIndex'" : '')
+                ": '$varName'" . ($varIndex ? ".'$varIndex'" : '')
             );
         }
 
         return $escape ? htmlspecialchars($result) : $result;
     }
-
 
 
     /**

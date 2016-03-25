@@ -17,11 +17,12 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Filter.php');
  */
 
 /** Собственное исключение класса */
-class LayoutException extends BaseException{
+class LayoutException extends BaseException
+{
     # Языковые константы класса
     const L_VIEW_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
-    const L_VIEW_DB_UNREACHABLE   = 'База данных с темплейтами недоступна';
-    const L_VIEW_BLOCK_UNKNOWN    = 'Шаблон не найден';
+    const L_VIEW_DB_UNREACHABLE = 'База данных с темплейтами недоступна';
+    const L_VIEW_BLOCK_UNKNOWN = 'Шаблон не найден';
 }
 
 
@@ -35,7 +36,6 @@ class Layout
 {
     # Подключаем трейты
     use UseDb; # Статическое свойство и методы для работы с объектом Db
-
 
 
     protected $language = '';      # Алиас языка для работы с мультиязычностью

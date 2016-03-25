@@ -3,8 +3,8 @@
  * Interface language class (PHP 5 >= 5.0.0)
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2011-2016
- * Email		    vinjoy@bk.ru
- * Version		    2.4.0
+ * Email            vinjoy@bk.ru
+ * Version            2.4.0
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -19,7 +19,8 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 /** @todo Оживить Франкенштейна */
 
 /** Собственное исключение класса */
-class LanguageException extends BaseException{
+class LanguageException extends BaseException
+{
     # Языковые константы класса
     const L_LANGUAGE_FILE_UNREACHABLE = 'Файл с языковыми данными недоступен';
 }
@@ -40,7 +41,6 @@ class Language
     protected static $data = [];
 
 
-
     /**
      * Установка массива языковых констант для выбранного языка
      * @param string $varsArray Массив языковых констант
@@ -52,7 +52,6 @@ class Language
     }
 
 
-
     /**
      * Установка языка интерфейса
      * @param string $languageAbbr Аббривеатура устанавливаемого языка RU, EN, UA...
@@ -61,7 +60,6 @@ class Language
     {
         self::$language = $languageAbbr;
     }
-
 
 
     /**

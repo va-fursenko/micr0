@@ -12,7 +12,7 @@
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once (__DIR__ . DIRECTORY_SEPARATOR . 'class.Db.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Db.php');
 
 /**
  * Трейт для статического использования объекта Db
@@ -29,7 +29,6 @@ trait UseDb
     static protected $dbInstanceIndex = 0;
 
 
-
     /**
      * Геттер дескриптора соединения
      * @return Db
@@ -42,7 +41,6 @@ trait UseDb
         }
         return self::$db;
     }
-
 
 
     /**

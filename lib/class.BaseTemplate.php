@@ -7,7 +7,6 @@
  */
 
 
-
 /** Собственное исключение класса */
 class BaseTemplateException extends BaseException
 {
@@ -34,7 +33,6 @@ abstract class BaseTemplate
     {
         return '';
     }
-
 
 
     /**

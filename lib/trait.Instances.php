@@ -12,7 +12,7 @@
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once (__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
 /** Класс исключения для методов трейта */
 class InstancesException extends BaseException
@@ -21,10 +21,6 @@ class InstancesException extends BaseException
     /** @const Неизвестный инстанс */
     const L_UNKNOWN_INSTANCE = 'Неизвестный инстанс класса';
 }
-
-
-
-
 
 
 /**
@@ -41,8 +37,7 @@ trait Instances
 
     # Закрытые данные
     /** Индекс экземпляра класса */
-    protected $instanceIndex  = null;
-
+    protected $instanceIndex = null;
 
 
     /**
@@ -75,7 +70,6 @@ trait Instances
     }
 
 
-
     /**
      * Получение указанного экземпляра класса
      * @param string $index Индекс инстанса
@@ -91,7 +85,6 @@ trait Instances
     }
 
 
-
     /**
      * Очищение инстанса
      * @param string $index Индекс инстанса
@@ -102,7 +95,6 @@ trait Instances
         unset(self::$instances[$index]);
         return true;
     }
-
 
 
     /**

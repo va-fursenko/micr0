@@ -3,8 +3,8 @@
  * Templates to PHP translator сlass (PHP 5 >= 5.6.0)
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2016-2016
- * Email		    vinjoy@bk.ru
- * Version		    1.0.0
+ * Email            vinjoy@bk.ru
+ * Version            1.0.0
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -13,8 +13,6 @@
 
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
-
-
 
 
 /** Собственное исключение класса */
@@ -30,8 +28,6 @@ class ViewTranslatorException extends BaseException
 /** @todo Работа с версией инстанса шаблона */
 
 
-
-
 /**
  * Класс транслятора шаблонов в PHP-код
  * @author      viktor
@@ -43,16 +39,12 @@ class ViewTranslator extends ViewBase
     /**
      * Константные теги
      */
-    const TAG_ELSE   = '<?php else: ?>';
-    const TAG_ENDIF  = '<?php endif; ?>';
+    const TAG_ELSE = '<?php else: ?>';
+    const TAG_ENDIF = '<?php endif; ?>';
     const TAG_ENDFOR = '<?php endforeach; ?>';
 
     /** @const Версия шаблона. Переопределяется в потомках */
     const INSTANCE_VERSION = '';
-
-
-
-
 
 
     /**
@@ -82,7 +74,6 @@ class ViewTranslator extends ViewBase
     }
 
 
-
     /**
      * Замена в тексте шаблона $tplString условных блоков PHP-кодом
      * вставки данных из контекста генерируемого шаблона
@@ -99,19 +90,18 @@ class ViewTranslator extends ViewBase
                 $tplString = str_replace(
                     $blockDeclaration,
                     self::tagIf($matches['block_name'][$blockIndex]) .
-                        trim($matches['block_true'][$blockIndex]) .
-                        (strlen($matches['has_false'][$blockIndex]) > 0
-                            ? self::TAG_ELSE . trim($matches['block_false'][$blockIndex])
-                            : ''
-                        ) .
-                        self::TAG_ENDIF,
+                    trim($matches['block_true'][$blockIndex]) .
+                    (strlen($matches['block_false'][$blockIndex]) > 0
+                        ? self::TAG_ELSE . trim($matches['block_false'][$blockIndex])
+                        : ''
+                    ) .
+                    self::TAG_ENDIF,
                     $tplString
                 );
             }
         }
         return $tplString;
     }
-
 
 
     /**
@@ -128,7 +118,6 @@ class ViewTranslator extends ViewBase
     }
 
 
-
     /**
      * Вставка в код страницы PHP-тега с булевым флагом
      * @param mixed $varName
@@ -139,7 +128,6 @@ class ViewTranslator extends ViewBase
     {
         return '<?php if (self::getVar("' . addslashes($varName) . '", "' . addslashes($varIndex) . '", false)): ?>';
     }
-
 
 
     /**
@@ -164,7 +152,6 @@ class ViewTranslator extends ViewBase
         }
         return '<?= self::getVar("' . addslashes($varName) . '", "' . addslashes($varIndex) . '", ' . $escape . '); ?>';
     }
-
 
 
     /**

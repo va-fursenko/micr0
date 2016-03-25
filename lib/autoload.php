@@ -21,9 +21,6 @@ require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 
 /* External libs */
 
 
-
-
-
 /* Initialization */
 
 /*
