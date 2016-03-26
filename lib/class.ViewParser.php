@@ -203,9 +203,11 @@ class ViewParser extends ViewBase
                             $varsOmitted++;
                             continue;
                         }
-                        // Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
-                        // но есть переменная с таким же порядковым номером,
-                        // то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][$index]
+                        /*
+                         * Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
+                         * но есть переменная с таким же порядковым номером,
+                         * то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][$index]
+                         */
                         foreach ($data[$blockName] as $rowIndex => &$dataRow) {
                             if (!isset($dataRow[$varName]) && isset($dataRow[$varIndex - $varsOmitted])) {
                                 $dataRow[$varName] = &$dataRow[$varIndex - $varsOmitted];

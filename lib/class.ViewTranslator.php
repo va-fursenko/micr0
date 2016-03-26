@@ -4,7 +4,7 @@
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2016-2016
  * Email            vinjoy@bk.ru
- * Version            1.0.0
+ * Version          1.0.0
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -23,11 +23,6 @@ class ViewTranslatorException extends BaseException
 }
 
 
-/** @todo Трансляция шаблонов в PHP-код */
-/** @todo Формат имени файла кешированного шаблона, который указывал бы на имя оригинального шаблона */
-/** @todo Работа с версией инстанса шаблона */
-
-
 /**
  * Класс транслятора шаблонов в PHP-код
  * @author      viktor
@@ -39,12 +34,47 @@ class ViewTranslator extends ViewBase
     /**
      * Константные теги
      */
-    const TAG_ELSE = '<?php else: ?>';
-    const TAG_ENDIF = '<?php endif; ?>';
-    const TAG_ENDFOR = '<?php endforeach; ?>';
+    const TAG_ELSE = "\n} else {\n";
+    const TAG_ENDIF = "\n}\n";
+    const TAG_ENDFOR = "\n}\n";
 
-    /** @const Версия шаблона. Переопределяется в потомках */
-    const INSTANCE_VERSION = '';
+    /** @const Расширение файлов шаблонов */
+    const FILE_EXT = '.php';
+
+
+    /**
+     * Замена в повторяющемся блоке строковых и числовых переменных
+     * @param string $tplString Шаблон в строке
+     * @param string $rowName Имя переменной, означаяющей ряд
+     * @return string
+     * @throws ViewTranslatorException
+     */
+    protected static function translateArrayStrings($tplString, $rowName)
+    {
+        // Получаем результат выполнения регулярного выражения поиска переменных
+        if ($matches = self::pregMatchStrings($tplString)) {
+            foreach ($matches['var_name'] as $varIndex => $varName) {
+                $indexes = array_flip(
+                    array_values(
+                        array_filter(
+                            $matches['var_index'],
+                            function ($el) {return $el != '#';}
+                        )
+                    )
+                );
+                if ($rowName == $varName) {
+                    $tplString = str_replace(
+                        $matches[0][$varIndex],
+                        $matches['var_index'][$varIndex] == '#'
+                            ? "' . (\$index + 1) . '"
+                            : "' . (isset(\${$rowName}['" . $matches['var_index'][$varIndex] . "']) ? \${$rowName}['" . $matches['var_index'][$varIndex] . "'] : \${$rowName}[" . $indexes[$matches['var_index'][$varIndex]] . "]) . '",
+                        $tplString
+                    );
+                }
+            }
+        }
+        return $tplString;
+    }
 
 
     /**
@@ -90,12 +120,45 @@ class ViewTranslator extends ViewBase
                 $tplString = str_replace(
                     $blockDeclaration,
                     self::tagIf($matches['block_name'][$blockIndex]) .
-                    trim($matches['block_true'][$blockIndex]) .
+                    "\$result .= '" . trim($matches['block_true'][$blockIndex]) . "';" .
                     (strlen($matches['block_false'][$blockIndex]) > 0
-                        ? self::TAG_ELSE . trim($matches['block_false'][$blockIndex])
+                        ? self::TAG_ELSE . "\$result .=  '" . trim($matches['block_false'][$blockIndex]) . "';"
                         : ''
                     ) .
-                    self::TAG_ENDIF,
+                    self::TAG_ENDIF .
+                    "\$result .=  '",
+                    $tplString
+                );
+            }
+        }
+        return $tplString;
+    }
+
+
+    /**
+     * Замена в тексте шаблона $tplString повторяющихся блоков PHP-кодом
+     * вставки данных из контекста генерируемого шаблона
+     * @param string $tplString Шаблон в строке
+     * @return string
+     */
+    protected static function translateArrays($tplString)
+    {
+        // Получаем результат выполнения регулярного выражения поиска условных блоков
+        if ($matches = self::pregMatchArrays($tplString)) {
+            foreach ($matches[0] as $blockIndex => $blockDeclaration) {
+
+                $tplString = str_replace(
+                    $blockDeclaration,
+                    self::tagFor(
+                            $matches['block_name'][$blockIndex],
+                            '',
+                            $matches['row_name'][$blockIndex]
+                        ) .
+                        "\$result .= '" . self::translateArrayStrings(
+                                        trim($matches['block'][$blockIndex]),
+                                        $matches['row_name'][$blockIndex]
+                                   ) .
+                        "';" . self::TAG_ENDFOR . "\$result .= '",
                     $tplString
                 );
             }
@@ -114,7 +177,7 @@ class ViewTranslator extends ViewBase
      */
     protected static function tagFor($varName, $varIndex = '', $rowName = 'row')
     {
-        return '<?php foreach(self::getVar("' . addslashes($varName) . '", "' . addslashes($varIndex) . '", false) as $' . $rowName . '): ?>';
+        return "';\nforeach (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false) as \$index => $$rowName) {\n";
     }
 
 
@@ -126,7 +189,7 @@ class ViewTranslator extends ViewBase
      */
     protected static function tagIf($varName, $varIndex = '')
     {
-        return '<?php if (self::getVar("' . addslashes($varName) . '", "' . addslashes($varIndex) . '", false)): ?>';
+        return "';\nif (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false)) {\n";
     }
 
 
@@ -150,34 +213,64 @@ class ViewTranslator extends ViewBase
             default:
                 $escape = self::AUTO_ESCAPE ? 'true' : 'false';
         }
-        return '<?= self::getVar("' . addslashes($varName) . '", "' . addslashes($varIndex) . '", ' . $escape . '); ?>';
+        return "' . self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', $escape) . '";
+    }
+
+
+    /**
+     * Получение имени класса в кешированном шаболне по его имени
+     * @param string $filename
+     * @return string
+     */
+    public static function getTplClassName($filename)
+    {
+        return 'Tpl_' . md5($filename) . '_Class';
+    }
+
+
+
+    /**
+     * Формирование текста класса для шаблона
+     * @param string $tplString
+     * @param string $className
+     * @return string
+     */
+    protected static function formTplClass($tplString, $className){
+        $result = "<?php\n" .
+            "class $className extends ViewInstance\n{\n" .
+            "\tpublic static function display(\$data)\n\t{\n" .
+            "\t\tparent::display(\$data); \n" .
+            "\$result = '$tplString';\n" .
+            "return \$result;\n" .
+            "\t}\n}";
+        return $result;
     }
 
 
     /**
      * Трансляция шаблона в исполняемый файл PHP
      * @param string $filename
+     * Да, я понимаю, что там не должно быть ни пробелов, ни чего-то подобного, но это просто экспериментальный класс
      * @return int|false Число записанных ф вайл байт, или false в случае неудачи
      * @throws ViewTranslatorException
      */
     public static function translateFile($filename)
     {
-        // Если имя файла не оканчивается ожидаемым расширением, добавляем его
-        if (strlen($filename) < 6 || '.' . pathinfo($filename, PATHINFO_EXTENSION) != self::FILE_EXT) {
-            $filename .= self::FILE_EXT;
-        }
-        /** @todo Убрать это, а взамен создавать файл автоматически */
-        if (!is_writable(self::DIR_RUNTIME . $filename)) {
+        $f = fopen(self::DIR_RUNTIME . $filename . self::FILE_EXT, 'w');
+        if (!$f) {
             throw new ViewTranslatorException(ViewTranslatorException::L_TPL_FILE_UNREACHABLE .
-                ': ' . CONFIG::RUNTIME_DIR . DIRECTORY_SEPARATOR . self::DIR . DIRECTORY_SEPARATOR . $filename
+                ': ' . CONFIG::RUNTIME_DIR . DIRECTORY_SEPARATOR . self::DIR . DIRECTORY_SEPARATOR . $filename . self::FILE_EXT
             );
         }
+        fclose($f);
         // Не будем городить макаронку
-        $tplString = self::getFile($filename);
-        $tplString = self::translateStrings($tplString);
+        $tplString = addcslashes(self::getFile($filename), "'");
         $tplString = self::translateConditionals($tplString);
+        $tplString = self::translateArrays($tplString);
+        $tplString = self::translateStrings($tplString);
+        $tplString = self::formTplClass($tplString, self::getTplClassName($filename));
         return file_put_contents(
-            self::DIR_RUNTIME . $filename,
+            self::DIR_RUNTIME . $filename . self::FILE_EXT,
             $tplString
         );
     }

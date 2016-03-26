@@ -1,4 +1,18 @@
 <?php
+/**
+ * Templates manager (PHP 5 >= 5.6.0)
+ * Special thanks to: all, http://www.php.net
+ * Copyright (c)    viktor Belgorod, 2016-2016
+ * Email            vinjoy@bk.ru
+ * Version          1.0.0
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the MIT License (MIT)
+ * @see https://opensource.org/licenses/MIT
+ */
+
+/** @todo Сложные переменные в тегах {% %} */
+/** @todo ЛОгические выражения в условных операторах */
 
 /**
  * Абстрактный класс-предок для видов (Господи, слово-то какое непривычное...)
@@ -192,10 +206,11 @@ abstract class ViewBase
      * Если имя файла не оканчивается на расширение self::FILE_EXT, оно будет добавлено автоматически.
      * Сравнение регистрозависимое. По умоланию self::FILE_EXT == '.html'
      * @param string $filename
+     * @param string $dir Базовая директория для файла
      * @return string
      * @throws ViewParserException
      */
-    public static function getFile($filename)
+    public static function getFile($filename, $dir = '')
     {
         // Если имя файла не оканчивается ожидаемым расширением, добавляем его
         if (strlen($filename) < 6 || '.' . pathinfo($filename, PATHINFO_EXTENSION) != self::FILE_EXT) {
