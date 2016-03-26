@@ -15,7 +15,7 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 
 
 /**
- * Класс общего исключения логики проекта
+ * Базовый класс исключения для логики проекта
  * @author      viktor
  * @package     Micr0
  * @version     1.2.0
@@ -28,38 +28,37 @@ class BaseException extends Exception
 
     # Языковые константы
     /** @const Wrong parameters */
-    const L_WRONG_PARAMETERS              = 'Неверные параметры';
+    const L_WRONG_PARAMETERS = 'Неверные параметры';
     /** @const Error occurred */
-    const L_ERROR_OCCURRED                = 'Произошла ошибка';
+    const L_ERROR_OCCURRED = 'Произошла ошибка';
 
 
     # Строковые коды ошибок
-    const E_BAD_DATA              = 'bad_data';
-    const E_BAD_SESSION           = 'bad_session';
-    const E_TIMEOUT_ERROR         = 'timeout_error';
-    const E_ALIKE_FULL_NAME       = 'alike_full_name';
-    const E_ALIKE_NAME            = 'alike_name';
-    const E_ALIKE_NICK            = 'alike_nick';
-    const E_ALIKE_SYS_NAME        = 'alike_sys_name';
-    const E_ALIKE_LOGIN           = 'alike_login';
-    const E_ALIKE_EMAIL           = 'alike_email';
-    const E_UNKNOWN_COMMAND       = 'unknown_command';
-    const E_ACCESS_DENIED         = 'access_denied';
-    const E_ACCOUNT_BANNED        = 'account_banned';
-    const E_ACCOUNT_INACTIVE      = 'account_inactive';
-    const E_FILE_NOT_UPLOADED     = 'file_not_uploaded';
-    const E_ALIKE_FILE_NAME       = 'alike_file_name';
-    const E_UNKNOWN_FILE          = 'unknown_file';
-    const E_UNKNOWN_EMAIL         = 'unknown_email';
-    const E_EMAIL_NOT_SEND        = 'email_not_send';
-    const E_BAD_AUTHORISATION     = 'bad_authorisation';
-    const E_DB_UNREACHABLE        = 'db_unreachable';
-    const E_BAD_URL               = 'bad_url';
-    const E_UNKNOWN_ITEM          = 'unknown_item';
-    const E_WRONG_CAPTCHA         = 'wrong_captcha';
+    const E_BAD_DATA = 'bad_data';
+    const E_BAD_SESSION = 'bad_session';
+    const E_TIMEOUT_ERROR = 'timeout_error';
+    const E_ALIKE_FULL_NAME = 'alike_full_name';
+    const E_ALIKE_NAME = 'alike_name';
+    const E_ALIKE_NICK = 'alike_nick';
+    const E_ALIKE_SYS_NAME = 'alike_sys_name';
+    const E_ALIKE_LOGIN = 'alike_login';
+    const E_ALIKE_EMAIL = 'alike_email';
+    const E_UNKNOWN_COMMAND = 'unknown_command';
+    const E_ACCESS_DENIED = 'access_denied';
+    const E_ACCOUNT_BANNED = 'account_banned';
+    const E_ACCOUNT_INACTIVE = 'account_inactive';
+    const E_FILE_NOT_UPLOADED = 'file_not_uploaded';
+    const E_ALIKE_FILE_NAME = 'alike_file_name';
+    const E_UNKNOWN_FILE = 'unknown_file';
+    const E_UNKNOWN_EMAIL = 'unknown_email';
+    const E_EMAIL_NOT_SEND = 'email_not_send';
+    const E_BAD_AUTHORISATION = 'bad_authorisation';
+    const E_DB_UNREACHABLE = 'db_unreachable';
+    const E_BAD_URL = 'bad_url';
+    const E_UNKNOWN_ITEM = 'unknown_item';
+    const E_WRONG_CAPTCHA = 'wrong_captcha';
     const E_CANNOT_PERFORM_ACTION = 'cannot_perform_action';
-    const E_UNKNOWN_ERROR         = 'unknown_error';
-
+    const E_UNKNOWN_ERROR = 'unknown_error';
 
 
     /**
@@ -72,7 +71,6 @@ class BaseException extends Exception
     {
         parent::__construct($message, $code, $previous);
     }
-
 
 
     /**
@@ -98,7 +96,6 @@ class BaseException extends Exception
     }
 
 
-
     /**
      * Обработчик дебага для класса
      */
@@ -106,7 +103,6 @@ class BaseException extends Exception
     {
         return $this->toArray();
     }
-
 
 
     /**
@@ -123,7 +119,6 @@ class BaseException extends Exception
         return $result;
     }
 
-        
 
     /**
      * Запись исключения в лог

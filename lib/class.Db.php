@@ -16,7 +16,6 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.Log.php");
 require_once(__DIR__ . DIRECTORY_SEPARATOR . "class.BaseException.php");
 
 
-
 //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //  -       ПРИ ИСКЛЮЧЕНИИ ВО ВРЕМЯ КОННЕКТА МОЖЕТ УШАТАТЬ В ЛОГ КАК ЛОГИН, ТАК И ПАРОЛЬ!       -
 //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -28,11 +27,11 @@ class DbException extends BaseException
 {
     # Сообщения класса
     /** @const Server unreachable */
-    const L_SERVER_UNREACHABLE            = 'Сервер базы данных недоступен';
+    const L_SERVER_UNREACHABLE = 'Сервер базы данных недоступен';
     /** @const DB unreachable */
-    const L_DB_UNREACHABLE                = 'База данных недоступна';
+    const L_DB_UNREACHABLE = 'База данных недоступна';
     /** @const Unable to process query */
-    const L_UNABLE_TO_PROCESS_QUERY       = 'Невозможно обработать запрос';
+    const L_UNABLE_TO_PROCESS_QUERY = 'Невозможно обработать запрос';
 
 
     /** @property string Файл лога для данных исключений */
@@ -40,16 +39,15 @@ class DbException extends BaseException
 
 
     /** @property Db Дескриптор соединения, если передана в конструктор */
-    public $db            = null;
+    public $db = null;
     /** @property string Информация об ошибке */
-    public $errorInfo     = '';
+    public $errorInfo = '';
     /** @property PDOStatement Последнее подготовленное выражение, если передано в конструктор */
     public $lastStatement = null;
     /** @property string Текст последнего запроса */
-    public $lastQuery     = '';
+    public $lastQuery = '';
     /** @property int Число строк, затронутых последним запросом */
-    public $rowCount      = '';
-
+    public $rowCount = '';
 
 
     /**
@@ -67,7 +65,7 @@ class DbException extends BaseException
 
         } elseif ($numArgs > 1) {
             if ($obj instanceof PDOStatement) {
-                $this->lastStatement = $obj; 
+                $this->lastStatement = $obj;
                 $this->errorInfo = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
                 $this->lastQuery = $this->lastStatement->queryString;
                 $this->rowCount = $this->lastStatement->rowCount();
@@ -86,7 +84,6 @@ class DbException extends BaseException
     }
 
 
-
     /**
      * Выжимка исключения в массив
      * @param string $action Текстовое сообщение об ошибке от программиста
@@ -95,10 +92,10 @@ class DbException extends BaseException
     public function toArray($action = null)
     {
         $result = Log::dumpException($this);
-        $result[Log::A_EVENT_TYPE]        = Log::T_DB_EXCEPTION;
-        $result[Log::A_DB_ROWS_AFFECTED]  = $this->rowCount;
+        $result[Log::A_EVENT_TYPE] = Log::T_DB_EXCEPTION;
+        $result[Log::A_DB_ROWS_AFFECTED] = $this->rowCount;
         $result[Log::A_PHP_ERROR_MESSAGE] = $this->errorInfo;
-        $result[Log::A_DB_LAST_QUERY]     = $this->lastQuery;
+        $result[Log::A_DB_LAST_QUERY] = $this->lastQuery;
 
         // Строковый параметр пишем, как сообщение, массив добавляем
         if (is_string($action) && $action !== '') {
@@ -109,19 +106,19 @@ class DbException extends BaseException
 
         // Из БД или подготовленного выражения тянем все интересные данные
         if ($this->db instanceof Db) {
-            $result[Log::A_DB_LAST_ERROR]  = $this->db->lastError();
+            $result[Log::A_DB_LAST_ERROR] = $this->db->lastError();
             $result[Log::A_DB_SERVER_INFO] = $this->db->serverInfo();
             if ($this->db->user()) {
                 $result[Log::A_DB_USERNAME] = $this->db->user();
             }
 
         } elseif ($this->lastStatement instanceof PDOStatement) {
-            $result[Log::A_DB_LAST_ERROR]  = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
+            $result[Log::A_DB_LAST_ERROR] = Db::formatLastErrorMessage($this->lastStatement->errorInfo());
             $result[Log::A_DB_ROWS_AFFECTED] = $this->lastStatement->rowCount();
             $str = Db::debugDumpParams($this->lastStatement);
             if ($result[Log::A_DB_LAST_QUERY] != $str) {
                 $result[Log::A_DB_LAST_QUERY] = [
-                    'Ex'    => $result[Log::A_DB_LAST_QUERY],
+                    'Ex' => $result[Log::A_DB_LAST_QUERY],
                     'debug' => $str,
                 ];
             }
@@ -172,37 +169,40 @@ class Db
 
 
     # Алиасы параметров класса
-    const ATTR_DEBUG            = 'DB_ATTR_DEBUG';
-    const ATTR_LOG_FILE         = 'DB_ATTR_LOG_FILE';
-    const ATTR_ERROR_LOG_FILE   = 'DB_ATTR_ERROR_LOG_FILE';
-    const ATTR_INSTANCE_INDEX   = 'DB_ATTR_INSTANCE_INDEX';
-
+    const ATTR_DEBUG = 'DB_ATTR_DEBUG';
+    const ATTR_LOG_FILE = 'DB_ATTR_LOG_FILE';
+    const ATTR_ERROR_LOG_FILE = 'DB_ATTR_ERROR_LOG_FILE';
+    const ATTR_INSTANCE_INDEX = 'DB_ATTR_INSTANCE_INDEX';
 
 
     # Методы класса
     /**
      * Определение параметров БД, определение кодировки по умолчанию
-     * @param string $dsn       СУБД или строка подключения
-     * @param string $userName  Пользователь
-     * @param string $userPass  Пароль
-     * @param array  $options   Массив опций подключения
+     * @param string $dsn СУБД или строка подключения
+     * @param string $userName Пользователь
+     * @param string $userPass Пароль
+     * @param array $options Массив опций подключения
      * @return Db
      * @throws DbException
      *
      * @see http://php.net/manual/ru/pdo.constants.php Предопределённые константы, в том числе, используемые при подключении
      * @see http://php-zametki.ru/php-prodvinutym/58-pdo-konstanty-atributy.html разжёвано по-русски
      */
-    public function __construct($dsn, $userName = '', $userPass = '', $options =
+    public function __construct(
+        $dsn,
+        $userName = '',
+        $userPass = '',
+        $options =
         [
-            PDO::ATTR_PERSISTENT         => false,
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_SILENT,
+            PDO::ATTR_PERSISTENT => false,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_NAMED,
-            PDO::ATTR_CASE               => PDO::CASE_LOWER,
+            PDO::ATTR_CASE => PDO::CASE_LOWER,
         ]
-    ){
-        $this->lastQuery    = 'CONNECT';
-        $this->debug        = isset($options[self::ATTR_DEBUG])          ? $options[self::ATTR_DEBUG]          : CONFIG::DB_DEBUG;
-        $this->logFile      = isset($options[self::ATTR_LOG_FILE])       ? $options[self::ATTR_LOG_FILE]       : CONFIG::DB_LOG_FILE;
+    ) {
+        $this->lastQuery = 'CONNECT';
+        $this->debug = isset($options[self::ATTR_DEBUG]) ? $options[self::ATTR_DEBUG] : CONFIG::DB_DEBUG;
+        $this->logFile = isset($options[self::ATTR_LOG_FILE]) ? $options[self::ATTR_LOG_FILE] : CONFIG::DB_LOG_FILE;
         $this->errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
         $this->dsn = $dsn;
         $this->userName = $userName;
@@ -223,7 +223,6 @@ class Db
     }
 
 
-
     /**
      * Логгирование результата и текста запроса
      * @param mixed $action Строковый алиас действия или объект результата
@@ -232,14 +231,14 @@ class Db
     public function log($action = null)
     {
         $arr = [
-            Log::A_EVENT_TYPE             => Log::T_DB_QUERY,
-            Log::A_SESSION_ID            => session_id(),
-            Log::A_DB_LAST_QUERY         => $this->lastQuery(),
-            Log::A_HTTP_REQUEST_METHOD   => $_SERVER['REQUEST_METHOD'],
-            Log::A_HTTP_SERVER_NAME      => $_SERVER['SERVER_NAME'],
-            Log::A_HTTP_REQUEST_URI      => $_SERVER['REQUEST_URI'],
-            Log::A_HTTP_USER_AGENT       => $_SERVER['HTTP_USER_AGENT'],
-            Log::A_HTTP_REMOTE_ADDRESS   => $_SERVER['REMOTE_ADDR']
+            Log::A_EVENT_TYPE => Log::T_DB_QUERY,
+            Log::A_SESSION_ID => session_id(),
+            Log::A_DB_LAST_QUERY => $this->lastQuery(),
+            Log::A_HTTP_REQUEST_METHOD => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS => $_SERVER['REMOTE_ADDR']
         ];
 
         // Если передано выражение PDOStatement, выбираем из него знакомые поля
@@ -264,7 +263,6 @@ class Db
             CONFIG::DB_LOG_FILE
         );
     }
-
 
 
     /** Закрытие коннекта */
@@ -302,7 +300,18 @@ class Db
         if ($numArgs == 1) {
             $result = $this->db->query($query);
 
-        } elseif ($numArgs == 2 && in_array($fetchType, [PDO::FETCH_LAZY, PDO::FETCH_COLUMN, PDO::FETCH_UNIQUE, PDO::FETCH_KEY_PAIR, PDO::FETCH_NAMED, PDO::FETCH_ASSOC, PDO::FETCH_OBJ, PDO::FETCH_BOTH, PDO::FETCH_NUM])) {
+        } elseif ($numArgs == 2 && in_array($fetchType, [
+                PDO::FETCH_LAZY,
+                PDO::FETCH_COLUMN,
+                PDO::FETCH_UNIQUE,
+                PDO::FETCH_KEY_PAIR,
+                PDO::FETCH_NAMED,
+                PDO::FETCH_ASSOC,
+                PDO::FETCH_OBJ,
+                PDO::FETCH_BOTH,
+                PDO::FETCH_NUM
+            ])
+        ) {
             $result = $this->db->query($query, $fetchType);
 
         } elseif ($numArgs == 3 && in_array($fetchType, [PDO::FETCH_COLUMN, PDO::FETCH_INTO])) {
@@ -311,7 +320,7 @@ class Db
         } elseif ($numArgs == 4 && $fetchType == PDO::FETCH_CLASS) {
             $result = $this->db->query($query, $fetchType, func_get_arg(2), func_get_arg(3));
 
-        // Неверные входные данные
+            // Неверные входные данные
         } else {
             throw new DbException(DbException::L_WRONG_PARAMETERS);
         }
@@ -330,7 +339,6 @@ class Db
     }
 
 
-
     /**
      * SQL запрос к БД для получения одной скалярной величины
      * @param string $query Текст запроса
@@ -346,7 +354,6 @@ class Db
         }
         return $defaultValue;
     }
-
 
 
     /**
@@ -389,7 +396,6 @@ class Db
     }
 
 
-
     /**
      * Текстовый SQL-запрос без вовзращения табличного результата
      * @param string $statement Текст запроса
@@ -411,7 +417,6 @@ class Db
     }
 
 
-
     /**
      * Возвращает последний ID, добавленный в БД
      * @return string
@@ -422,14 +427,13 @@ class Db
     }
 
 
-
     /**
      * Экранирует специальные символы в строке, не принимая во внимание кодировку соединения
      * Не все PDO драйверы реализуют этот метод (особенно PDO_ODBC).
      * Предполагается, что вместо него будут использоваться подготавливаемые запросы.
      * http://php.net/manual/ru/pdo.quote.php
      * @param string $unescapedString Входная строка
-     * @param int $parameterType,.. Представляет подсказку о типе данных первого параметра для драйверов, которые имеют альтернативные способы экранирования
+     * @param int $parameterType ,.. Представляет подсказку о типе данных первого параметра для драйверов, которые имеют альтернативные способы экранирования
      * @return string Возвращает экранированную строку, или false, если драйвер СУБД не поддерживает экранирование
      * @throws DbException Кидает исключение, если дескриптор БД недоступен
      */
@@ -437,7 +441,6 @@ class Db
     {
         return $this->db->quote($unescapedString, $parameterType);
     }
-
 
 
     /**
@@ -448,7 +451,7 @@ class Db
     public static function unQuote($escapedString)
     {
         // Нечего разэкранировать
-        if (mb_strpos($escapedString, '\\', 0, 'UTF-8') === false ) {
+        if (mb_strpos($escapedString, '\\', 0, 'UTF-8') === false) {
             return $escapedString;
         }
         // Проверка на JSON
@@ -473,7 +476,7 @@ class Db
      * @return PDOStatement|bool Подготовленное выражение, или false
      * @throws PDOException
      */
-    public function prepare($statement , $driverOptions = [])
+    public function prepare($statement, $driverOptions = [])
     {
         $this->lastQuery = [
             'PREPARE',
@@ -486,7 +489,6 @@ class Db
     }
 
 
-
     /**
      * Выполнение подготовленного выражения
      * В логике проекта объекты PDOStatement лучше выполнять через этот метод, чтобы шло логгирование запросов при дебаге
@@ -495,13 +497,13 @@ class Db
      * @return bool Флаг успешного, или неуспешного выполнения запроса
      * @throws PDOException|DbException
      */
-    public function execute($statement , $inputParameters = null)
+    public function execute($statement, $inputParameters = null)
     {
         $this->lastQuery = ['EXEC'];
         if ($statement instanceof PDOStatement) {
             $this->lastQuery[] = $statement->queryString;
 
-        // Если на входе строка, пробуем подготовить из неё выражение и выполнить
+            // Если на входе строка, пробуем подготовить из неё выражение и выполнить
         } elseif (is_string($statement)) {
             $this->lastQuery[] = $statement;
             $statement = $this->prepare($statement);
@@ -653,7 +655,7 @@ class Db
     /**
      * Получение или установка одного атрибута PDO
      * @param int $attrName Имя атрибута
-     * @param mixed $attrValue  Значение атрибута
+     * @param mixed $attrValue Значение атрибута
      * @return mixed
      * @see http://php.net/manual/ru/pdo.getattribute.php
      * @throws PDOException
@@ -701,7 +703,6 @@ class Db
     }
 
 
-
     /**
      * Формирование одной строки запроса вставки. В данном методе фильтрация не производится
      * @param array $data Ассоциативный массив параметров вставки
@@ -716,7 +717,6 @@ class Db
         }
         return $result;
     }
-
 
 
     /**
@@ -737,7 +737,6 @@ class Db
     }
 
 
-
     /**
      * Возвращение в текстовом виде информации о подготовленном выражении
      * @param PDOStatement $stmt Подготовленное выражение
@@ -754,7 +753,6 @@ class Db
     }
 
 
-
     /**
      * Запрос(на изменение БД), составляемый из входных параметров - действия, таблицы и массива параметров
      * ВНИМАНИЕ! Автоматического экранирования данных нет. Контролируйте все параметры процедуры!
@@ -762,7 +760,7 @@ class Db
      * @param string $action Тип запроса
      * @param string $sourceName Название таблицы или хранимой процедуры
      * @param array $params Столбцы выборки, записи
-     * @param mixed $target,.. Параметры выборки или действия
+     * @param mixed $target ,.. Параметры выборки или действия
      * @return PDOStatement
      * @throws DbException
      * @deprecated ОСОБАЯ ФИЧА! Метод актуален только тогда, когда доллар стоит меньше 30 рублей
@@ -792,7 +790,7 @@ class Db
                 } else {
                     $t = each($params);
                     $qParams = array('`' . $t[0] . '`', $t[1] === null ? 'null' : "'{$t[1]}'");
-                    while ($t = each($params)){
+                    while ($t = each($params)) {
                         $qParams[0] .= ', `' . $t[0] . '`';
                         $qParams[1] .= ', ' . ($t[1] === null ? 'null' : "'{$t[1]}'");
                     }
@@ -833,7 +831,6 @@ class Db
         }
         return $this->query($line);
     }
-
 
 
     /**

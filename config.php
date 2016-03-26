@@ -29,6 +29,8 @@ class CONFIG
     const ROOT = __DIR__;
     /** @const Домен проекта */
     const HOST = HOST;
+    /** @const Папка кэша */
+    const RUNTIME_DIR = 'runtime';
 
 
 
@@ -79,6 +81,8 @@ class CONFIG
     # Шаблонизатор
     /** @const bool Флаг дебага шаблонизатора */
     const VIEW_DEBUG = true;
+    /** @const bool Флаг автоэкранирования шаблонизатора */
+    const VIEW_AUTO_ESCAPE = false;
     /** @const string Директория шаблонов */
     const VIEW_DIR = 'views';
     /** @const string Язык интерфейса по умолчанию */

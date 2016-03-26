@@ -17,8 +17,6 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
 /** @todo Добавить возвращение или отрисовку сообщений об ошибках - как в гет, так и пост, в зависимости от режиме дебага */
 
 
-
-
 /**
  * Обработчик неперехваченных исключений
  * @param Exception $e
@@ -30,7 +28,7 @@ function customExceptionHandler(Exception $e)
     if ($e instanceof BaseException) {
         $mArr = $e->toArray();
 
-    // Иначе выводим всю стандартную информацию
+        // Иначе выводим всю стандартную информацию
     } else {
         $mArr = Log::dumpException($e);
     }
@@ -43,33 +41,29 @@ function customExceptionHandler(Exception $e)
 }
 
 
-
-
-
-
 /**
  * Обработчик ошибок php
- * @param int    $errNo      Уровень ошибки
- * @param string $errStr     Сообщение об ошибке
- * @param string $errFile    Файл с ошибкой
- * @param int    $errLine    Строка с ошибкой
- * @param array  $errContext Массив всех переменных, существующих в области видимости, где произошла ошибка
+ * @param int $errNo Уровень ошибки
+ * @param string $errStr Сообщение об ошибке
+ * @param string $errFile Файл с ошибкой
+ * @param int $errLine Строка с ошибкой
+ * @param array $errContext Массив всех переменных, существующих в области видимости, где произошла ошибка
  * @return void
  */
 function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = null)
 {
     $mArr = [
-        Log::A_EVENT_TYPE           => Log::T_PHP_ERROR,
-        Log::A_PHP_ERROR_MESSAGE    => $errStr,
-        Log::A_PHP_ERROR_CODE       => $errNo,
-        Log::A_PHP_FILE_NAME        => $errFile,
-        Log::A_PHP_FILE_LINE        => $errLine,
-        Log::A_SESSION_ID           => session_id(),
-        Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
-        Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
-        Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
-        Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
-        Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
+        Log::A_EVENT_TYPE => Log::T_PHP_ERROR,
+        Log::A_PHP_ERROR_MESSAGE => $errStr,
+        Log::A_PHP_ERROR_CODE => $errNo,
+        Log::A_PHP_FILE_NAME => $errFile,
+        Log::A_PHP_FILE_LINE => $errLine,
+        Log::A_SESSION_ID => session_id(),
+        Log::A_HTTP_REQUEST_METHOD => $_SERVER['REQUEST_METHOD'],
+        Log::A_HTTP_SERVER_NAME => $_SERVER['SERVER_NAME'],
+        Log::A_HTTP_REQUEST_URI => $_SERVER['REQUEST_URI'],
+        Log::A_HTTP_USER_AGENT => $_SERVER['HTTP_USER_AGENT'],
+        Log::A_HTTP_REMOTE_ADDRESS => $_SERVER['REMOTE_ADDR'],
     ];
     if ($errContext) {
         $mArr[Log::A_PHP_CONTEXT] = $errContext;
@@ -83,10 +77,6 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
 }
 
 
-
-
-
-
 /**
  * Обработчик завершения скрипта и фатальных ошибок
  */
@@ -96,17 +86,17 @@ function customShutdownHandler()
     // Ошибка таки-произошла
     if (isset($error["type"]) && $error["type"] == E_ERROR) {
         $mArr = [
-            Log::A_EVENT_TYPE           => Log::T_PHP_FATAL_ERROR,
-            Log::A_PHP_ERROR_MESSAGE    => $error["message"],
-            Log::A_PHP_ERROR_CODE       => $error["type"],
-            Log::A_PHP_FILE_NAME        => $error["file"],
-            Log::A_PHP_FILE_LINE        => $error["line"],
-            Log::A_SESSION_ID           => session_id(),
-            Log::A_HTTP_REQUEST_METHOD  => $_SERVER['REQUEST_METHOD'],
-            Log::A_HTTP_SERVER_NAME     => $_SERVER['SERVER_NAME'],
-            Log::A_HTTP_REQUEST_URI     => $_SERVER['REQUEST_URI'],
-            Log::A_HTTP_USER_AGENT      => $_SERVER['HTTP_USER_AGENT'],
-            Log::A_HTTP_REMOTE_ADDRESS  => $_SERVER['REMOTE_ADDR'],
+            Log::A_EVENT_TYPE => Log::T_PHP_FATAL_ERROR,
+            Log::A_PHP_ERROR_MESSAGE => $error["message"],
+            Log::A_PHP_ERROR_CODE => $error["type"],
+            Log::A_PHP_FILE_NAME => $error["file"],
+            Log::A_PHP_FILE_LINE => $error["line"],
+            Log::A_SESSION_ID => session_id(),
+            Log::A_HTTP_REQUEST_METHOD => $_SERVER['REQUEST_METHOD'],
+            Log::A_HTTP_SERVER_NAME => $_SERVER['SERVER_NAME'],
+            Log::A_HTTP_REQUEST_URI => $_SERVER['REQUEST_URI'],
+            Log::A_HTTP_USER_AGENT => $_SERVER['HTTP_USER_AGENT'],
+            Log::A_HTTP_REMOTE_ADDRESS => $_SERVER['REMOTE_ADDR'],
         ];
         Log::save(
             $mArr,
@@ -114,10 +104,6 @@ function customShutdownHandler()
         );
     }
 }
-
-
-
-
 
 
 /**
@@ -152,7 +138,6 @@ class ErrorHandler
     }
 
 
-
     /**
      * Устанавливает обработчик на программные ошибки
      * @param callable $func Обработчик исключений вида void function (Exception $e){}
@@ -164,7 +149,6 @@ class ErrorHandler
         self::$exceptionHandler = $func;
         return set_exception_handler($func);
     }
-
 
 
     /**
@@ -180,7 +164,6 @@ class ErrorHandler
     }
 
 
-
     /**
      * Установка режима отладки
      * @param bool $debugMode
@@ -194,7 +177,7 @@ class ErrorHandler
             return self::$debugMode;
         }
     }
- }
+}
 
 
 // Назначаем обработчики различных ошибок
