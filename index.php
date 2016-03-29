@@ -24,6 +24,7 @@ $data = [
 
 // Генерим контент
 //$content = ViewParser::parseFile('base', $data);
+ViewTranslator::translateFile('base');
 $content = View::display('base', $data);
 
 // Рисуем шаблон

@@ -34,9 +34,9 @@ class ViewTranslator extends ViewBase
     /**
      * Константные теги
      */
-    const TAG_ELSE = "\n} else {\n";
-    const TAG_ENDIF = "\n}\n";
-    const TAG_ENDFOR = "\n}\n";
+    const TAG_ELSE   = "\n\t\t} else {\n";
+    const TAG_ENDIF  = "\n\t\t}\n";
+    const TAG_ENDFOR = "\n\t\t}\n";
 
     /** @const Расширение файлов шаблонов */
     const FILE_EXT = '.php';
@@ -120,13 +120,13 @@ class ViewTranslator extends ViewBase
                 $tplString = str_replace(
                     $blockDeclaration,
                     self::tagIf($matches['block_name'][$blockIndex]) .
-                    "\$result .= '" . trim($matches['block_true'][$blockIndex]) . "';" .
+                    "\t\t\t\$result .= '" . trim($matches['block_true'][$blockIndex]) . "';" .
                     (strlen($matches['block_false'][$blockIndex]) > 0
-                        ? self::TAG_ELSE . "\$result .=  '" . trim($matches['block_false'][$blockIndex]) . "';"
+                        ? self::TAG_ELSE . "\t\t\t\$result .= '" . trim($matches['block_false'][$blockIndex]) . "';"
                         : ''
                     ) .
                     self::TAG_ENDIF .
-                    "\$result .=  '",
+                    "\t\t\$result .=  '",
                     $tplString
                 );
             }
@@ -154,11 +154,11 @@ class ViewTranslator extends ViewBase
                             '',
                             $matches['row_name'][$blockIndex]
                         ) .
-                        "\$result .= '" . self::translateArrayStrings(
+                        "\t\t\t\$result .= '" . self::translateArrayStrings(
                                         trim($matches['block'][$blockIndex]),
                                         $matches['row_name'][$blockIndex]
                                    ) .
-                        "';" . self::TAG_ENDFOR . "\$result .= '",
+                        "';" . self::TAG_ENDFOR . "\t\t\$result .= '",
                     $tplString
                 );
             }
@@ -177,7 +177,7 @@ class ViewTranslator extends ViewBase
      */
     protected static function tagFor($varName, $varIndex = '', $rowName = 'row')
     {
-        return "';\nforeach (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false) as \$index => $$rowName) {\n";
+        return "';\n\t\tforeach (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false) as \$index => $$rowName) {\n";
     }
 
 
@@ -189,7 +189,7 @@ class ViewTranslator extends ViewBase
      */
     protected static function tagIf($varName, $varIndex = '')
     {
-        return "';\nif (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false)) {\n";
+        return "';\n\t\tif (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false)) {\n";
     }
 
 
@@ -240,8 +240,8 @@ class ViewTranslator extends ViewBase
             "class $className extends ViewInstance\n{\n" .
             "\tpublic static function display(\$data)\n\t{\n" .
             "\t\tparent::display(\$data); \n" .
-            "\$result = '$tplString';\n" .
-            "return \$result;\n" .
+            "\t\t\$result = '$tplString';\n" .
+            "\t\treturn \$result;\n" .
             "\t}\n}";
         return $result;
     }
