@@ -28,8 +28,58 @@ ViewTranslator::translateFile('base');
 $content = View::display('base', $data);
 
 // Рисуем шаблон
-require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
-
+//require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
 $time = microtime(true) - $start;
 printf('Скрипт выполнялся %.4F сек.', $time);
+
+
+$str = '   {{ data.rows.2.2 }}              ';
+
+
+var_dump(preg_match_all('/(?<var_name>(?<=\{\{\s)\w+(\.(\w+|#(?![\w\.])))*(?=\s\}\}))/i', $str, $matches));
+
+
+
+function parseVar($base, $varname, $indexValue = null)
+{
+    function getVarPart($base, $name)
+    {
+        // Простые переменные присваиваем целиком, а в массивах и объектах копируем указатели
+        switch (gettype($base)) {
+            case 'boolean':
+            case 'integer':
+            case 'double':
+            case 'string':
+            case 'NULL':
+                $result = $base;
+                break;
+            case 'array':
+                $result = &$base[$name];
+                break;
+            case 'object':
+                $result = &$base->$name;
+                break;
+            default:
+                throw new \Exception("Wrong variable index: '$name'");
+        }
+        return $result;
+    }
+
+    $varParts = explode('.', $varname);
+    if (count($varParts) < 1) {
+        throw new \Exception("Wrong variable name: '$varname'");
+    }
+    $result = getVarPart($base, $varParts[0]);
+    for ($i = 1; $i < count($varParts) - 1; $i++) {
+        $result = getVarPart($result, $varParts[$i]);
+    }
+    return $varParts[$i] == '#'
+        ? $result[$indexValue]
+        : getVarPart($result, $varParts[$i]);
+}
+
+var_dump($matches);
+
+
+var_dump(parseVar(['data' => $data], $matches['var_name'][0]));

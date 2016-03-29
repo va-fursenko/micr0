@@ -1,12 +1,10 @@
 <?php
 
 /** Собственное исключение класса */
-class ViewInstanceException extends BaseException
+class ViewInstanceException extends ViewTranslatorException
 {
-    # Языковые константы класса
-    const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
-    const L_TPL_BLOCK_UNKNOWN = 'Шаблон не найден';
 }
+
 
 /**
  * Абстрактный класс-предок для кешированных в PHP шаблонов
