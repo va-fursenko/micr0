@@ -3,4 +3,5 @@
 *.log
 *.xls
 vendor
+runtime
 composer.phar
