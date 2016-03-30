@@ -16,10 +16,8 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
 
 /** Собственное исключение класса */
-class ViewTranslatorException extends BaseException
+class ViewTranslatorException extends ViewParserException
 {
-    # Языковые константы класса
-    const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
 }
 
 

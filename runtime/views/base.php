@@ -4,19 +4,19 @@ class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
 	public static function display($data)
 	{
 		parent::display($data); 
-$result = '<div class="row log-row">
-    <h4 class="log-caption">micro :) \'' . self::getVar('button', 'text', true) . '\'</h4>
+		$result = '<div class="row log-row">
+    <h4 class="log-caption">micro :) \'{{ button.text|e }}\'</h4>
     <img class="log-caption log-loader" id="logLoader" src="img/loader.gif">
     <a id="beginBtn" class="log-caption btn btn-primary" href="javascript:void(0);">Красная кнопка</a>
 </div>
 
 ';
-if (self::getVar('echo_bool', '', false)) {
-$result .= '<span>ПРАВДА</span>';
-} else {
-$result .=  '<span>ЛОЖЬ</span>';
-}
-$result .=  '
+		if (self::getVar('echo_bool', '', false)) {
+			$result .= '<span>ПРАВДА</span>';
+		} else {
+			$result .= '<span>ЛОЖЬ</span>';
+		}
+		$result .=  '
 
 <div class="container">
     <table class="table table-striped table-condensed table-bordered table-hover">
@@ -31,30 +31,30 @@ $result .=  '
         </thead>
         <tbody>
             ';
-foreach (self::getVar('rows', '', false) as $index => $row) {
-$result .= '<tr>
-                <td>' . ($index + 1) . '.</td>
-                <td>' . (isset($row['city']) ? $row['city'] : $row[0]) . '</td>
-                <td>' . (isset($row['country']) ? $row['country'] : $row[1]) . '</td>
-                <td>' . (isset($row['population']) ? $row['population'] : $row[2]) . '</td>
+		foreach (self::getVar('rows', '', false) as $index => $row) {
+			$result .= '<tr>
+                <td>' . self::getVar('row.#', '', false) . '.</td>
+                <td>' . self::getVar('row.city', '', false) . '</td>
+                <td>' . self::getVar('row.country', '', false) . '</td>
+                <td>' . self::getVar('row.population', '', false) . '</td>
             </tr>';
-}
-$result .= '
+		}
+		$result .= '
         </tbody>
     </table>
 </div>
 
 <div class="container">
     ';
-if (self::getVar('place_button', '', false)) {
-$result .= '<a class="btn btn-success" href="javascript:void(0);">' . self::getVar('button', 'text', false) . '</a>';
-} else {
-$result .=  '<input type="email" class="form-control" value="' . self::getVar('email', '', false) . '" placeholder="Введи имайлку"/>';
-}
-$result .=  '
+		if (self::getVar('place_button', '', false)) {
+			$result .= '<a class="btn btn-success" href="javascript:void(0);">' . self::getVar('button.text', '', false) . '</a>';
+		} else {
+			$result .= '<input type="email" class="form-control" value="' . self::getVar('email', '', false) . '" placeholder="Введи имайлку"/>';
+		}
+		$result .=  '
 </div>
 
-        ' . self::getVar('some_data', '', true) . '
+        {{ some_data|e }}
 
 <div>
 <!--
@@ -74,13 +74,13 @@ $result .=  '
 
 
 ';
-if (self::getVar('flag3', '', false)) {
-$result .= 'Если флаг3 истина, то вывести эту бессмыслицу';
-}
-$result .=  '
+		if (self::getVar('flag3', '', false)) {
+			$result .= 'Если флаг3 истина, то вывести эту бессмыслицу';
+		}
+		$result .=  '
 
 <pre class="log-container" id="logPre">' . self::getVar('lines', '', false) . '</pre>
 ';
-return $result;
+		return $result;
 	}
 }
