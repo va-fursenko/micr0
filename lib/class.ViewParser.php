@@ -78,18 +78,13 @@ class ViewParser extends ViewBase
             // Проходим по всем найденным переменным
             foreach ($matches['var_name'] as $varIndex => $varName) {
 
-                // Из строкового имени переменной получаем её имя
-                $replacement = self::parseVar($varName, $data);
-
-                // Применяем модификатор, если он есть
-                // raw - Отмена экранирования html
-                if (self::AUTO_ESCAPE && $matches['modifier'][$varIndex] !== 'raw') {
-                    $replacement = htmlspecialchars($replacement);
-
-                // e - Экранирование html
-                } elseif (self::AUTO_ESCAPE || $matches['modifier'][$varIndex] !== 'e') {
-                    $replacement = htmlspecialchars($replacement);
+                // Если переменной с таким именем нет в контексте, пропускаем итерацию
+                if (!self::hasVar($data, $varName)) {
+                    continue;
                 }
+
+                // Из строкового имени переменной получаем её имя
+                $replacement = self::parseVar($data, $varName, $matches['modifier'][$varIndex]);
 
                 // Меняем выбранную переменную
                 $tplString = str_replace($matches[0][$varIndex], $replacement, $tplString);
@@ -113,13 +108,15 @@ class ViewParser extends ViewBase
         if ($matches = self::pregMatchConditionals($tplString)) {
             // Проходим по всем найденным блокам
             foreach ($matches[0] as $blockIndex => $blockDeclaration) {
+                $varName = $matches['block_name'][$blockIndex];
+
                 // Если искомой переменной в параметрах шаблона нет, пропускам итерацию
-                if (!array_key_exists($matches['block_name'][$blockIndex], $data)) {
+                if (!self::hasVar($data, $varName)) {
                     continue;
                 }
 
                 // Положительный вариант
-                if (self::parseVar($matches['block_name'][$blockIndex], $data)) {
+                if (self::parseVar($data, $varName)) {
                     $tplString = str_replace($blockDeclaration, trim($matches['block_true'][$blockIndex]), $tplString);
 
                 // Отрицательный вариант, или отсутствие блока
@@ -150,11 +147,11 @@ class ViewParser extends ViewBase
                 $rowName = $matches['row_name'][$blockIndex];
 
                 // Если переменной с таким именем нет в контексте, пропускаем итерацию
-                if (!self::hasVar($blockName, $data)) {
+                if (!self::hasVar($data, $blockName)) {
                     continue;
                 }
 
-                $rows = self::parseVar($blockName, $data);
+                $rows = self::parseVar($data, $blockName);
                 // Если вместо массива передано что-то другое, стоит или пропустить итерацию, или бросить исключение
                 if (!is_array($rows)) {
                     throw new ViewParserException(ViewParserException::L_WRONG_PARAMETERS);
@@ -175,7 +172,7 @@ class ViewParser extends ViewBase
                  */
                 if (preg_match_all(
                     '/' . self::EXPR_VAR_BEGIN . '\s' .
-                    '(?<var_name>' . $rowName . self::EXPR_VAR_INDEX . self::EXPR_VAR_MODIFIER . ')'.
+                    $rowName . '\.(?<var_name>' . self::EXPR_VAR_INDEX . ')' . self::EXPR_VAR_MODIFIER.
                     '\s' . self::EXPR_VAR_END . '/ms',
                     $blockHTML,
                     $blockVars
@@ -185,7 +182,7 @@ class ViewParser extends ViewBase
                     $varsOmitted = 0;
                     foreach ($blockVars['var_name'] as $varIndex => $varName) {
                         // Пока пропускается только одна переменная
-                        if ($varName == '#') {
+                        if ($varName === '#') {
                             $varsOmitted++;
                             continue;
                         }
@@ -207,17 +204,17 @@ class ViewParser extends ViewBase
                  * Если в блоке присутствует автосчётчик, инициализируем его
                  */
                 if (strpos($blockHTML, self::VAR_BEGIN . " $rowName.# " . self::VAR_END) !== false) {
-                    $counter = 1;    // Инициализуем порядковый счётчик
+                    $counter = 0;    // Инициализуем порядковый счётчик
                 } else {
                     $counter = null; // Указываем на то, что он не используется
                 }
 
                 // Заполняем блок переменными и прибавляем к представлению
-                foreach ($rows as $rowItems) {
+                foreach ($rows as &$rowItems) {
                     // Вообще ожидается, что имя пользовательской переменной во входных данных
                     // не может содержать знак '#', но это не проверяется. В любом случае, затираем
                     if (isset($counter)) {
-                        $rowItems['#'] = $counter++;
+                        $rowItems['#'] = $counter + 1;
                     }
                     $blocks .= self::parseStrings(
                         $blockHTML,
@@ -225,6 +222,7 @@ class ViewParser extends ViewBase
                             $rowName => $rowItems
                         ]
                     );
+                    $counter++;
                 }
 
                 // Заменяем объявление блока в тексте шаблона на полученное представление

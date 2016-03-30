@@ -60,9 +60,8 @@ abstract class ViewBase
 
     const EXPR_VAR_NAME     = '\w+';
     const EXPR_VAR_MODIFIER = '(\|(?<modifier>raw|e))?';
-    //const EXPR_VAR          = '\w+(\.\w+)*';
-    const EXPR_VAR_INDEX    = '(\.(\w+|#(?![\w\.])))*';
-    const EXPR_VAR          = self::EXPR_VAR_NAME . self::EXPR_VAR_INDEX;
+    const EXPR_VAR_INDEX    = '(\w+|#(?![\w\.]))';
+    const EXPR_VAR          = self::EXPR_VAR_NAME . '(\.' . self::EXPR_VAR_INDEX . ')*';
 
 
     # Блоки
@@ -121,7 +120,7 @@ abstract class ViewBase
          * /\{\{\s(?<var_name>\w+(\.\w+)*)(\|(?<modifier>raw|e))?\s\}\}/msx
          */
         if (preg_match_all(
-            '/' . self::EXPR_VAR_BEGIN . '\s(?<var_name>' . self::EXPR_VAR . ')\s' . self::EXPR_VAR_END . '/ms',
+            '/' . self::EXPR_VAR_BEGIN . '\s(?<var_name>' . self::EXPR_VAR . ')' . self::EXPR_VAR_MODIFIER . '\s' . self::EXPR_VAR_END . '/ms',
             $tplString,
             $matches
         )) {
@@ -235,31 +234,16 @@ abstract class ViewBase
 
     /**
      * Парсинг одной переменной
-     * @param string $varName Имя переменной с произвольным числом индексов
      * @param mixed $data Контекст шаблона, ассоциативный массив.
+     * @param string $varName Имя переменной с произвольным числом индексов
+     * @param string $modifier Модификатор переменной
      * Элементы могут быть массивами, объектами, числами, строками, bool или null
-     * @param int $indexValue Значение итератора, на которое будет заменён индекс '#'
      * @return mixed Значение элемента контекста шаблона,
      * если он простого типа и ссылка на него, если он массив, или объект
      * @throws ViewBaseException
      */
-    public static function parseVar($varName, $data, $indexValue = null)
+    public static function parseVar($data, $varName, $modifier = '')
     {
-        /* Получение элемента $index из переменной $base в зависимости от его типа */
-        function getVarPart($index, $data)
-        {
-            switch (gettype($data)) {
-                case 'array':
-                    return $data[$index];
-
-                case 'object':
-                    return $data->$index;
-
-                default:
-                    throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$index' in " . var_export($data, true));
-            }
-        }
-
         // Получаем массив индексов из имени переменной
         $varParts = explode('.', $varName);
         $partsCount = count($varParts);
@@ -268,38 +252,78 @@ abstract class ViewBase
         }
 
         // Проходим по массиву индексов
-        $result = getVarPart($varParts[0], $data);
+        $result = self::getVarPart($data, $varParts[0]);
         for ($i = 1; $i < $partsCount; $i++) {
-            // Если последний элемент массива - индекс итератора, вставляем его
-            if ($i == $partsCount - 1 && $varParts[$i] == '#') {
-                $result = &$result[$indexValue];
-            } else {
-                $result = getVarPart($varParts[$i], $result);
-            }
+            $result = self::getVarPart($result, $varParts[$i]);
         }
+
+        // Применяем модификатор, если он есть
+        // raw - Отмена экранирования html
+        // e - Экранирование html
+        if ($modifier !== 'raw' && (self::AUTO_ESCAPE || $modifier === 'e')) {
+            $result = htmlspecialchars($result);
+        }
+
         return $result;
     }
 
 
 
     /**
-     * Проверка наличия в контексте переменной
-     * @param string $varName
-     * @param mixed $data
-     * @return bool
+     * Получение элемента $index из переменной $base в зависимости от его типа
+     * @param array $data$data
+     * @param string $index
+     * @return mixed
      * @throws ViewBaseException
      */
-    public static function hasVar($varName, $data)
+    protected static function getVarPart($data, $index)
     {
         switch (gettype($data)) {
             case 'array':
-                return isset($data[$varName]);
+                return $data[$index];
 
             case 'object':
-                return property_exists($data, $varName);
+                return $data->$index;
 
             default:
-                throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$varName' in " . var_export($data, true));
+                throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$index' in " . var_export($data, true));
         }
+    }
+
+
+
+    /**
+     * Проверка наличия переменной в контексте
+     * @param mixed $data Контекст шаблона
+     * @param string $varName Полное имя переменной (var.index.index2.index3.#)
+     * @return bool
+     * @throws ViewBaseException
+     */
+    public static function hasVar($data, $varName)
+    {
+        $varName = explode('.', $varName);
+        $base = &$data;
+        for ($i = 0; $i < count($varName); $i++) {
+            switch (gettype($base)) {
+                case 'array':
+                    if (!array_key_exists($varName[$i], $base)) {
+                        return false;
+                    }
+                    $base = &$base[$varName[$i]];
+                    break;
+
+                case 'object':
+                    if (!property_exists($base, $varName[$i])) {
+                        return false;
+                    }
+                    $propName = $varName[$i];
+                    $base = &$base->$propName;
+                    break;
+
+                default:
+                    throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$varName' in " . var_export($data, true));
+            }
+        }
+        return true;
     }
 } 
