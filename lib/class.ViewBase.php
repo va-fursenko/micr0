@@ -12,7 +12,18 @@
  */
 
 /** @todo Сложные переменные в тегах {% %} */
-/** @todo ЛОгические выражения в условных операторах */
+
+
+
+/** Собственное исключение класса и его потомков */
+class ViewBaseException extends BaseException
+{
+    # Языковые константы класса
+    const L_TPL_FILE_UNREACHABLE = 'Файл с шаблоном недоступен';
+    const L_TPL_WRONG_VAR_NAME = 'Неизвестное имя переменной';
+    const L_TPL_WRONG_VAR_INDEX = 'Неизвестное имя переменной';
+}
+
 
 /**
  * Абстрактный класс-предок для видов (Господи, слово-то какое непривычное...)
@@ -46,9 +57,11 @@ abstract class ViewBase
     const VAR_END = '}}';
     const EXPR_VAR_BEGIN = '\{\{'; # Предыдущие 2 константы, экранированные для регулярных выражений
     const EXPR_VAR_END = '\}\}';
+
+    const EXPR_VAR_NAME     = '\w+';
     const EXPR_VAR_MODIFIER = '(\|(?<modifier>raw|e))?';
-    const EXPR_VAR_INDEX = '(\.(?<var_index>\w+|#))?';
-    const EXPR_VAR = '(?<var_name>\w+)' . self::EXPR_VAR_INDEX . self::EXPR_VAR_MODIFIER; // Пока из модификаторов поддерживается только raw - неэкранированный вывод
+    const EXPR_VAR_INDEX    = '(\w+|#(?![\w\.]))';
+    const EXPR_VAR          = self::EXPR_VAR_NAME . '(\.' . self::EXPR_VAR_INDEX . ')*';
 
 
     # Блоки
@@ -61,7 +74,7 @@ abstract class ViewBase
      * @const Регулярное выражение условного блока
      * {% if имя_блока %}
      */
-    const EXPR_IF = 'if\s(?<block_name>\w+)';
+    const EXPR_IF = 'if\s(?<block_name>' . self::EXPR_VAR . ')';
 
     /**
      * @const Регулярное выражение условного блока
@@ -81,7 +94,7 @@ abstract class ViewBase
      * @const Регулярное выражение блока-итератора
      * {% for имя_ряда in имя_блока %}
      */
-    const EXPR_FOR = 'for\s(?<row_name>\w+)\sin\s(?<block_name>\w+)';
+    const EXPR_FOR = 'for\s(?<row_name>' . self::EXPR_VAR_NAME . ')\sin\s(?<block_name>' . self::EXPR_VAR . ')';
 
     /**
      * @const Регулярное выражение блока-итератора
@@ -89,11 +102,6 @@ abstract class ViewBase
      */
     const EXPR_ENDFOR = 'endfor(\s\g<block_name>)?';
 
-    /**
-     * @const Регулярное выражение имени переменной в повторяющемся блоке
-     * 'var_name' или '#'
-     */
-    const EXPR_VAR_FOR = '(?<var_name>\w+|#)';
 
 
     /**
@@ -105,13 +113,14 @@ abstract class ViewBase
     {
         /**
          * Регулярное выражение для переменных
-         * {{ var_name }} {{ var_name.var_index }} {{ # }} {{ var_name|raw }} {{ var_name|e }}
-         * var_name и var_index состоят из символов \w - буквы, цифры, подчёркивание
+         * {{ var_name }} {{ var_name.index1.index2... }} {{ # }} {{ var_name|raw }} {{ var_name|e }}
+         * var_name и index состоят из символов \w - буквы, цифры, подчёркивание
          *
-         * /\{\{\s(?<var_name>\w+)(\.(?<var_index>\w+))?(\|(?<modifier>raw|e))?\s\}\}/msx
+         * /\{\{\s((?<var_name>self::EXPR_VAR)(self::EXPR_MODIFIER)?\s\}\}/msx
+         * /\{\{\s(?<var_name>\w+(\.\w+)*)(\|(?<modifier>raw|e))?\s\}\}/msx
          */
         if (preg_match_all(
-            '/' . self::EXPR_VAR_BEGIN . '\s' . self::EXPR_VAR . '\s' . self::EXPR_VAR_END . '/ms',
+            '/' . self::EXPR_VAR_BEGIN . '\s(?<var_name>' . self::EXPR_VAR . ')' . self::EXPR_VAR_MODIFIER . '\s' . self::EXPR_VAR_END . '/ms',
             $tplString,
             $matches
         )) {
@@ -133,20 +142,20 @@ abstract class ViewBase
          * {% if block_name %}...{% else %}...{% endif %}
          * или сокращённый вариант:
          * {% if block_name %}...             {% endif %}
-         * block_name состоит из символов \w - буквы, цифры, подчёркивание
+         * block_name == self::EXPR_VAR
          *
          * /
-         *      \{%\sif\s(?<block_name>\w+)\s%\}        # {% if block_name %}
-         *          (?<block_true>.*?)                  # Блок true
+         *      \{%\sif\s(?<block_name>\w+(\.\w+)*)\s%\}    # {% if block_name %}
+         *          (?<block_true>.*?)                      # Блок true
          *      (
-         *      \{%\selse\s(\g<block_name>\s)?%\}       # {% else %} или {% else block_name %}
-         *          (?<block_false>.*?)                 # Блок false
-         *      )?                                      # Отрицательного варианта может и не быть
-         *      \{%\sendif\s(\g<block_name>\s)?%\}      # {% endif %} или {% endif block_name %}
-         * /msx                                         # /i - РегистроНЕзависимый
-         *                                                /m - многострочный,
-         *                                                /s - \. включает в себя \n,
-         *                                                /x - неэкранированные пробелы и комментарии после # опускаются
+         *      \{%\selse\s(\g<block_name>\s)?%\}           # {% else %} или {% else block_name %}
+         *          (?<block_false>.*?)                     # Блок false
+         *      )?                                          # Отрицательного варианта может и не быть
+         *      \{%\sendif\s(\g<block_name>\s)?%\}          # {% endif %} или {% endif block_name %}
+         * /msx                                             # /i - РегистроНЕзависимый
+         *                                                    /m - многострочный,
+         *                                                    /s - \. включает в себя \n,
+         *                                                    /x - неэкранированные пробелы и комментарии после # опускаются
          * Доступ к маске по номеру: \1, \g1 или \g{1}
          * Маска левее места вызова: \g{-2}
          * Именованная маска: (?P<name>...), (?'name'...), (?<name>...)
@@ -181,9 +190,9 @@ abstract class ViewBase
          * {% for row_name in block_name %} ... {{ row_name.var1 }}, {{ row_name.var2 }} ... {% endfor %}
          * block_name и row_name состоят из символов \w - буквы, цифры, подчёркивание
          * /
-         *      \{%\sfor\s(?<row_name>\w+)\sin\s(?<block_name>\w+)\s%\}     # {% for row_name in block_name %}
-         *          (?<block>.*?)                                           # Повторяющийся блок
-         *      \{%\sendfor\s(\g<block_name>\s)?%\}                         # {% endfor %} или {% endfor block_name %}
+         *      \{%\sfor\s(?<row_name>\w+)\sin\s(?<block_name>\w+(\.\w+)*)\s%\}     # {% for row_name in block_name %}
+         *          (?<block>.*?)                                                   # Повторяющийся блок
+         *      \{%\sendfor\s(\g<block_name>\s)?%\}                                 # {% endfor %} или {% endfor block_name %}
          * /msx
          */
         if (preg_match_all(
@@ -206,20 +215,115 @@ abstract class ViewBase
      * Если имя файла не оканчивается на расширение self::FILE_EXT, оно будет добавлено автоматически.
      * Сравнение регистрозависимое. По умоланию self::FILE_EXT == '.html'
      * @param string $filename
-     * @param string $dir Базовая директория для файла
      * @return string
-     * @throws ViewParserException
+     * @throws ViewBaseException
      */
-    public static function getFile($filename, $dir = '')
+    public static function getFile($filename)
     {
         // Если имя файла не оканчивается ожидаемым расширением, добавляем его
         if (strlen($filename) < 6 || '.' . pathinfo($filename, PATHINFO_EXTENSION) != self::FILE_EXT) {
             $filename .= self::FILE_EXT;
         }
         if (!is_readable(self::DIR . $filename)) {
-            throw new ViewParserException(ViewParserException::L_TPL_FILE_UNREACHABLE . ': ' . $filename,
-                E_USER_WARNING);
+            throw new ViewBaseException(ViewBaseException::L_TPL_FILE_UNREACHABLE . ": '$filename'");
         }
         return file_get_contents(self::DIR . $filename);
+    }
+
+
+
+    /**
+     * Парсинг одной переменной
+     * @param mixed $data Контекст шаблона, ассоциативный массив.
+     * @param string $varName Имя переменной с произвольным числом индексов
+     * @param string $modifier Модификатор переменной
+     * Элементы могут быть массивами, объектами, числами, строками, bool или null
+     * @return mixed Значение элемента контекста шаблона,
+     * если он простого типа и ссылка на него, если он массив, или объект
+     * @throws ViewBaseException
+     */
+    public static function parseVar($data, $varName, $modifier = '')
+    {
+        // Получаем массив индексов из имени переменной
+        $varParts = explode('.', $varName);
+        $partsCount = count($varParts);
+        if ($partsCount < 1) {
+            throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_NAME . ": '$varName'");
+        }
+
+        // Проходим по массиву индексов
+        $result = self::getVarPart($data, $varParts[0]);
+        for ($i = 1; $i < $partsCount; $i++) {
+            $result = self::getVarPart($result, $varParts[$i]);
+        }
+
+        // Применяем модификатор, если он есть
+        // raw - Отмена экранирования html
+        // e - Экранирование html
+        if ($modifier !== 'raw' && (self::AUTO_ESCAPE || $modifier === 'e')) {
+            $result = htmlspecialchars($result);
+        }
+
+        return $result;
+    }
+
+
+
+    /**
+     * Получение элемента $index из переменной $base в зависимости от его типа
+     * @param array $data$data
+     * @param string $index
+     * @return mixed
+     * @throws ViewBaseException
+     */
+    protected static function getVarPart($data, $index)
+    {
+        switch (gettype($data)) {
+            case 'array':
+                return $data[$index];
+
+            case 'object':
+                return $data->$index;
+
+            default:
+                throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$index' in " . var_export($data, true));
+        }
+    }
+
+
+
+    /**
+     * Проверка наличия переменной в контексте
+     * @param mixed $data Контекст шаблона
+     * @param string $varName Полное имя переменной (var.index.index2.index3.#)
+     * @return bool
+     * @throws ViewBaseException
+     */
+    public static function hasVar($data, $varName)
+    {
+        $varName = explode('.', $varName);
+        $base = &$data;
+        for ($i = 0; $i < count($varName); $i++) {
+            switch (gettype($base)) {
+                case 'array':
+                    if (!array_key_exists($varName[$i], $base)) {
+                        return false;
+                    }
+                    $base = &$base[$varName[$i]];
+                    break;
+
+                case 'object':
+                    if (!property_exists($base, $varName[$i])) {
+                        return false;
+                    }
+                    $propName = $varName[$i];
+                    $base = &$base->$propName;
+                    break;
+
+                default:
+                    throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$varName' in " . var_export($data, true));
+            }
+        }
+        return true;
     }
 } 

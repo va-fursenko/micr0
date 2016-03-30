@@ -12,7 +12,7 @@ $data = [
     'rows' => [
         ['Belgorod', 'Russia', '360k'],
         ['St. Peterburg','Russia','5kk'],
-        ['New York', 'USA', '10kk'],
+        ['<a>New York</a>', 'USA', '10kk'],
         ['Las Vegas', 'USA', '2kk'],
         ['London', 'Great Britain', '12kk'],
     ],
@@ -23,13 +23,14 @@ $data = [
 ];
 
 // Генерим контент
-//$content = ViewParser::parseFile('base', $data);
-ViewTranslator::translateFile('base');
-$content = View::display('base', $data);
+$content = ViewParser::parseFile('base', $data);
+//ViewTranslator::translateFile('base');
+//$content = View::display('base', $data);
 
 // Рисуем шаблон
 require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
-
 $time = microtime(true) - $start;
 printf('Скрипт выполнялся %.4F сек.', $time);
+
+

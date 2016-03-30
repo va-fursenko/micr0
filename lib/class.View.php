@@ -15,12 +15,6 @@
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.BaseException.php');
 
 
-/** Собственное исключение класса */
-class ViewException extends BaseException
-{
-}
-
-
 
 /**
  * Класс шаблонизатора
@@ -42,9 +36,9 @@ class View extends ViewBase
      */
     public static function display($filename, $data)
     {
-        if (!file_exists(self::DIR_RUNTIME . $filename . self::FILE_EXT)) {
+        //if (!file_exists(self::DIR_RUNTIME . $filename . self::FILE_EXT)) {
             ViewTranslator::translateFile($filename);
-        }
+        //}
         require (self::DIR_RUNTIME . $filename . self::FILE_EXT);
         return call_user_func_array([ViewTranslator::getTplClassName($filename), 'display'], [$data]);
     }

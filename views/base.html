@@ -25,7 +25,7 @@
             {% for row in rows %}
             <tr>
                 <td>{{ row.# }}.</td>
-                <td>{{ row.city }}</td>
+                <td>{{ row.city|e }}</td>
                 <td>{{ row.country }}</td>
                 <td>{{ row.population }}</td>
             </tr>
@@ -37,12 +37,12 @@
 <div class="container">
     {% if place_button %}
         <a class="btn btn-success" href="javascript:void(0);">{{ button.text }}</a>
-    {% else place_button %}
+    {% else %}
         <input type="email" class="form-control" value="{{ email }}" placeholder="Введи имайлку"/>
-    {% endif place_button %}
+    {% endif %}
 </div>
 
-        {{ some_data|e }}
+        {{ some_data|raw }}
 
 <div>
 <!--
