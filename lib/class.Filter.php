@@ -152,7 +152,7 @@ class Filter
      */
     public static function isDateBetween($var, $from, $to)
     {
-        /** @todo Дописать метод isDateBetween */
+        /** @todo Дописать */
         return 1 / 0;
     }
 
@@ -278,8 +278,19 @@ class Filter
     }
 
 
-
-
+    /**
+     * Получение русской даты со склоняемым месяцем. Например, 1 января 2016
+     * @param string $format Формат даты для функции strftime()
+     * @param int $timestamp Время для форматирования. Текущее, если не указано
+     * @return string
+     * @see http://php.net/manual/ru/function.strftime.php
+     */
+    public static function dateRus($format = '%e %bg %Y', $timestamp = null) {
+        setlocale(LC_ALL, 'ru_RU.cp1251');
+        $months = ['', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        $format = str_replace('%bg', $months[date('n', $timestamp)], $format);
+        return strftime($format, $timestamp ?: time());
+    }
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - Функции экранирования - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -302,7 +313,7 @@ class Filter
     }
 
     /**
-     * Замена html-сущностей тегов их реальными символами
+     * Замена html-сущностей тегов и спецсимволов их реальными символами
      * @param string|array $var Обрабатываемая строка или массив строк
      * @param int $flags Способ обработки кавычек, аналогичен второму параметру htmlspecialchars_decode
      * @return string
@@ -379,7 +390,7 @@ class Filter
      * Выбирает из двухмерного массива множество значений столбца
      * @todo Как-то коряво смотрится
      * @param array $arr Исходный массив
-     * @param string $index
+     * @param string $index Индекс столбца
      * @param bool $arrayReindex Флаг, указывающий та то, что индексация результата будет проведена значениями полученного массива
      * @return array
      */
@@ -449,7 +460,8 @@ class Filter
     public static function strTrim($var, $length, $strEnd = '..', $encoding = null)
     {
         $encoding = $encoding !== null ?: mb_internal_encoding();
-        $func = function ($el) use ($length, $strEnd, $encoding) {
+        $func = function ($el) use ($length, $strEnd, $encoding)
+        {
             return mb_strimwidth($el, 0, $length, $strEnd, $encoding);
         };
         return is_array($var)
@@ -483,31 +495,18 @@ class Filter
 
 
     /**
-     * Увеличение строки до $padLength символов. Многобайтовая версия
-     * Под linux и PHP 5.5.xx на русских символах РАБОТАЕТ НЕПРАВИЛЬНО
-     * @todo Господь-Вседержитель, да вы только посмотрите на этот код... Тем более, что, кажется, на 7 PHP проблема не актуальна
+     * Увеличение строки до $padLength символов
      * @param string|array $var Исходная строка, или массив строк
      * @param int $padLength Длина, до которой будет дополняться исходная строка
      * @param string $padStr Строка, которой будет дополняться исходная строка
      * @param int $direct Направление дополнения - STR_PAD_RIGHT, STR_PAD_LEFT, STR_PAD_BOTH
-     * @param string $encoding Кодировка
      * @return string
-     * @see http://php.net/manual/ru/function.str-pad.php#116244
+     * @see http://php.net/manual/ru/function.str-pad.php
      */
-    public static function strPad($var, $padLength, $padStr = ' ', $direct = STR_PAD_RIGHT, $encoding = null)
+    public static function strPad($var, $padLength, $padStr = ' ', $direct = STR_PAD_RIGHT)
     {
-        $encoding = $encoding !== null ?: mb_internal_encoding();
-        $func = function ($el) use ($padLength, $padStr, $direct, $encoding) {
-            $padBefore = $direct === STR_PAD_BOTH || $direct === STR_PAD_LEFT;
-            $padAfter = $direct === STR_PAD_BOTH || $direct === STR_PAD_RIGHT;
-            $padLength -= mb_strlen($el, $encoding);
-            $targetLen = $padBefore && $padAfter ? $padLength / 2 : $padLength;
-            $strToRepeatLen = mb_strlen($padStr, $encoding);
-            $repeatTimes = ceil($targetLen / $strToRepeatLen);
-            $repeatedString = str_repeat($padStr, max(0, $repeatTimes)); // safe if used with valid utf-8 strings
-            $before = $padBefore ? mb_substr($repeatedString, 0, floor($targetLen), $encoding) : '';
-            $after = $padAfter ? mb_substr($repeatedString, 0, ceil($targetLen), $encoding) : '';
-            return $before . $el . $after;
+        $func = function ($el) use ($padLength, $padStr, $direct) {
+            return str_pad($el, $padLength, $padStr, $direct);
         };
         return is_array($var)
             ? $func($var)
