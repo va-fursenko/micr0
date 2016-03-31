@@ -46,17 +46,17 @@ class CONFIG
     /** @const bool Флаг дебага БД */
     const DB_DEBUG = true;
     /** @const string Строка подключения к БД */
-    const DB_DSN = 'mysql:host=localhost;dbname=mysql';
+    const DB_DSN = 'mysql:host=localhost;dbname=hint;charset=utf8';
     /** @const string Хост БД */
     const DB_HOST = 'localhost';
     /** @const int Порт БД */
     const DB_PORT = 3306;
     /** @const string Имя БД */
-    const DB_NAME = 'yii';
+    const DB_NAME = 'hint';
     /** @const string Пользователь БД */
     const DB_USER = 'root';
     /** @const string Пароль БД @deprecated Подразумевается, что не используется в продакшне */
-    const DB_PASSWORD = 'root';
+    const DB_PASSWORD = '';
     /** @const string Кодировка БД */
     const DB_CHARSET = 'utf8';
     /** @const string Лог БД */

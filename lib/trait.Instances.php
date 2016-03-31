@@ -62,7 +62,7 @@ trait Instances
                 if ($this->instanceIndex !== null) {
                     self::clearInstance($this->instanceIndex);
                 }
-                self::$_instances[$index] = &$this;
+                self::$instances[$index] = &$this;
                 $this->instanceIndex = $index;
             }
         }

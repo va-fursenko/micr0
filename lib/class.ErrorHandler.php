@@ -22,18 +22,27 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'class.Log.php');
  * @param Exception $e
  * @return void
  */
-function customExceptionHandler(Exception $e)
+function customExceptionHandler($e)
 {
     // Если исключение из нашей иерархии, воспользуемся его собственным методом
     if ($e instanceof BaseException) {
         $mArr = $e->toArray();
 
-        // Иначе выводим всю стандартную информацию
-    } else {
+    // Иначе выводим всю стандартную информацию
+    } elseif ($e instanceof Exception) {
         $mArr = Log::dumpException($e);
+
+    // Иначе чёрт его знает, показываем, что есть
+    } else {
+        $mArr = [Log::A_TEXT_MESSAGE => Log::showObject($e)];
     }
+
     // Без вьюх пока только так
-    echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\"<br/><br/>";
+    if (isset($mArr[Log::A_PHP_ERROR_MESSAGE])) {
+        echo "Exception has been raised: \"{$mArr[Log::A_PHP_ERROR_MESSAGE]}\"<br/><br/>";
+    } else {
+        echo "Something gonna bad";
+    }
     Log::save(
         $mArr,
         CONFIG::ERROR_LOG_FILE

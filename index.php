@@ -9,13 +9,13 @@ $data = [
     'button' => ['text' => 'Жмакни меня'],
     'lines' => 'Hello, world!',
     'email' => 'helloworld@mail.ru',
-    'rows' => [
+    'some_el' => ['rows' => [
         ['Belgorod', 'Russia', '360k'],
         ['St. Peterburg','Russia','5kk'],
         ['<a>New York</a>', 'USA', '10kk'],
         ['Las Vegas', 'USA', '2kk'],
         ['London', 'Great Britain', '12kk'],
-    ],
+    ]],
     'place_button' => true,
     'echo_bool'    => 0,
     'flag3'        => 1,
@@ -23,14 +23,18 @@ $data = [
 ];
 
 // Генерим контент
-$content = ViewParser::parseFile('base', $data);
+//$content = ViewParser::parseFile('base', $data);
 //ViewTranslator::translateFile('base');
 //$content = View::display('base', $data);
-
 // Рисуем шаблон
-require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
+//require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
+
+
+
+
+$db = new Db(CONFIG::DB_DSN, CONFIG::DB_USER, CONFIG::DB_PASSWORD);
+
+var_dump($db->selectOne("SELECT value FROM system_parameters"));
 
 $time = microtime(true) - $start;
 printf('Скрипт выполнялся %.4F сек.', $time);
-
-
