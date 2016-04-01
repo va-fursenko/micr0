@@ -4,7 +4,7 @@
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2016-2016
  * Email            vinjoy@bk.ru
- * Version          1.0.0
+ * Version          1.1.0
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -24,7 +24,7 @@ class ViewTranslatorException extends ViewParserException
 /**
  * Класс транслятора шаблонов в PHP-код
  * @author      viktor
- * @version     1.0
+ * @version     1.1.0
  * @package     Micr0
  */
 class ViewTranslator extends ViewBase
@@ -52,14 +52,6 @@ class ViewTranslator extends ViewBase
         // Получаем результат выполнения регулярного выражения поиска переменных
         if ($matches = self::pregMatchStrings($tplString)) {
             foreach ($matches['var_name'] as $varIndex => $varName) {
-                $indexes = array_flip(
-                    array_values(
-                        array_filter(
-                            $matches['var_index'],
-                            function ($el) {return $el != '#';}
-                        )
-                    )
-                );
                 if ($rowName == $varName) {
                     $tplString = str_replace(
                         $matches[0][$varIndex],
@@ -91,8 +83,8 @@ class ViewTranslator extends ViewBase
                     $matches[0][$varIndex],
                     self::tagVar(
                         $varName,
-                        $matches['var_index'][$varIndex],
-                        $matches['modifier'][$varIndex]
+                        $matches['modifier'][$varIndex],
+
                     ),
                     $tplString
                 );
@@ -148,15 +140,17 @@ class ViewTranslator extends ViewBase
                 $tplString = str_replace(
                     $blockDeclaration,
                     self::tagFor(
-                            $matches['block_name'][$blockIndex],
-                            '',
+                        $matches['block_name'][$blockIndex],
+                        '',
+                        $matches['row_name'][$blockIndex]
+                    ) .
+                        "\t\t\t\$result .= '" .
+                        self::translateArrayStrings(
+                            trim($matches['block'][$blockIndex]),
                             $matches['row_name'][$blockIndex]
                         ) .
-                        "\t\t\t\$result .= '" . self::translateArrayStrings(
-                                        trim($matches['block'][$blockIndex]),
-                                        $matches['row_name'][$blockIndex]
-                                   ) .
-                        "';" . self::TAG_ENDFOR . "\t\t\$result .= '",
+                        "';" .
+                        self::TAG_ENDFOR . "\t\t\$result .= '",
                     $tplString
                 );
             }
@@ -169,36 +163,33 @@ class ViewTranslator extends ViewBase
      * Вставка в код страницы PHP-тега с началом цикла перебора элементов
      * self::[$varName], self::[$varName][$varIndex] или self::[$varName]->$varIndex
      * @param mixed $varName
-     * @param mixed $varIndex
      * @param string $rowName Имя переменной, по которой будет идти итерация
      * @return string
      */
-    protected static function tagFor($varName, $varIndex = '', $rowName = 'row')
+    protected static function tagFor($varName, $rowName = 'row')
     {
-        return "';\n\t\tforeach (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false) as \$index => $$rowName) {\n";
+        return "';\n\t\tforeach (self::getVar('" . addslashes($varName) . "', false) as \$index => $$rowName) {\n";
     }
 
 
     /**
      * Вставка в код страницы PHP-тега с булевым флагом
      * @param mixed $varName
-     * @param mixed $varIndex
      * @return string
      */
-    protected static function tagIf($varName, $varIndex = '')
+    protected static function tagIf($varName)
     {
-        return "';\n\t\tif (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false)) {\n";
+        return "';\n\t\tif (self::getVar('" . addslashes($varName) . "', false)) {\n";
     }
 
 
     /**
      * Вставка в код страницы PHP-тега с выводом одной переменной
      * @param mixed $varName
-     * @param mixed $varIndex
      * @param mixed $varModifier
      * @return string
      */
-    protected static function tagVar($varName, $varIndex = '', $varModifier = '')
+    protected static function tagVar($varName, $varModifier = '')
     {
         // Применяем модификатор, если он есть
         switch ($varModifier) {
@@ -211,7 +202,7 @@ class ViewTranslator extends ViewBase
             default:
                 $escape = self::AUTO_ESCAPE ? 'true' : 'false';
         }
-        return "' . self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', $escape) . '";
+        return "' . self::getVar('" . addslashes($varName) . "', $escape) . '";
     }
 
 

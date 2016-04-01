@@ -30,7 +30,7 @@ class ViewParserException extends ViewBaseException
 /**
  * Класс парсера шаблонов
  * @author      viktor
- * @version     2.5
+ * @version     2.5.1
  * @package     Micr0
  */
 class ViewParser extends ViewBase
@@ -68,7 +68,6 @@ class ViewParser extends ViewBase
      * @param string $tplString Шаблон в строке
      * @param array $data Ассоциативный массив с контекстом шаблона
      * @return string
-     * @throws ViewParserException
      */
     protected static function parseStrings($tplString, $data)
     {
@@ -252,34 +251,15 @@ class ViewParser extends ViewBase
 
 
     /**
-     * Заполнение контейнера, заданного именем секции
-     * @param string $containerName Имя блока шаблона
-     * @param array $data Массив с полями шаблона
-     * @return string
-     */
-    public static function parseBlock($containerName, $data)
-    {
-        return self::parseString(
-            self::getFile($containerName),
-            $data
-        );
-    }
-
-
-    /**
      * Обработка целого файла или одного блока в нём
      * @param string $filename Имя файла для парсинга
      * @param array $data Массив с  шаблона
-     * @param string $blockName Имя блока
      * @return string
-     * @throws ViewParserException
      */
-    public static function parseFile($filename, $data, $blockName = '')
+    public static function parseFile($filename, $data)
     {
         return self::parseString(
-            $blockName ?
-                Filter::strBetween(self::getFile($filename), '[[$' . $blockName . ']]', '[[/$' . $blockName . ']]')
-                : self::getFile($filename),
+            self::getFile($filename),
             $data
         );
     }
