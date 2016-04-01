@@ -46,18 +46,19 @@ class ViewTranslator extends ViewBase
      * @param string $rowName Имя переменной, означаяющей ряд
      * @return string
      * @throws ViewTranslatorException
+     * @todo Почти хорошо, но добавить риндекс входных данных, чтобы не обязательно требовались ассоциативные массивы
      */
     protected static function translateArrayStrings($tplString, $rowName)
     {
         // Получаем результат выполнения регулярного выражения поиска переменных
         if ($matches = self::pregMatchStrings($tplString)) {
             foreach ($matches['var_name'] as $varIndex => $varName) {
-                if ($rowName == $varName) {
+                if (strpos($varName, $rowName) === 0) {
                     $tplString = str_replace(
                         $matches[0][$varIndex],
-                        $matches['var_index'][$varIndex] == '#'
+                        substr($matches['var_name'][$varIndex], -1) == '#'
                             ? "' . (\$index + 1) . '"
-                            : "' . (isset(\${$rowName}['" . $matches['var_index'][$varIndex] . "']) ? \${$rowName}['" . $matches['var_index'][$varIndex] . "'] : \${$rowName}[" . $indexes[$matches['var_index'][$varIndex]] . "]) . '",
+                            : self::tagVar($varName, $matches['modifier'][$varIndex], $rowName),
                         $tplString
                     );
                 }
@@ -83,8 +84,7 @@ class ViewTranslator extends ViewBase
                     $matches[0][$varIndex],
                     self::tagVar(
                         $varName,
-                        $matches['modifier'][$varIndex],
-
+                        $matches['modifier'][$varIndex]
                     ),
                     $tplString
                 );
@@ -141,15 +141,13 @@ class ViewTranslator extends ViewBase
                     $blockDeclaration,
                     self::tagFor(
                         $matches['block_name'][$blockIndex],
-                        '',
                         $matches['row_name'][$blockIndex]
                     ) .
                         "\t\t\t\$result .= '" .
                         self::translateArrayStrings(
                             trim($matches['block'][$blockIndex]),
                             $matches['row_name'][$blockIndex]
-                        ) .
-                        "';" .
+                        ) . "';" .
                         self::TAG_ENDFOR . "\t\t\$result .= '",
                     $tplString
                 );
@@ -185,24 +183,26 @@ class ViewTranslator extends ViewBase
 
     /**
      * Вставка в код страницы PHP-тега с выводом одной переменной
-     * @param mixed $varName
-     * @param mixed $varModifier
+     * @param mixed $varName Полное имя переменной
+     * @param mixed $varModifier Модификатор вывода
+     * @param string $baseName Имя переменной с контекстом
      * @return string
      */
-    protected static function tagVar($varName, $varModifier = '')
+    protected static function tagVar($varName, $varModifier = '', $baseName = null)
     {
         // Применяем модификатор, если он есть
         switch ($varModifier) {
             case 'raw':
-                $escape = 'false';
+                $params = 'false';
                 break;
             case 'e':
-                $escape = 'true';
+                $params = 'true';
                 break;
             default:
-                $escape = self::AUTO_ESCAPE ? 'true' : 'false';
+                $params = self::AUTO_ESCAPE ? 'true' : 'false';
         }
-        return "' . self::getVar('" . addslashes($varName) . "', $escape) . '";
+        $params .= $baseName !== null ? ", ['$baseName' => \$$baseName]" : '';
+        return "' . self::getVar('" . addslashes($varName) . "', $params) . '";
     }
 
 
