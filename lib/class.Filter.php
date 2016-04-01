@@ -1,26 +1,23 @@
 <?php
 /**
- * Filter сlass         (PHP 5 >= 5.3.0)
+ * Filter helper сlass  (PHP 5 >= 5.3.0)
  * Special thanks to:   all, http://www.php.net
  * Copyright (c)        viktor, Belgorod, 2010-2016
  * Email                vinjoy@bk.ru
- * version                2.0.0
+ * version              2.0.1
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
  * @see https://opensource.org/licenses/MIT
  */
 
-require_once('class.BaseException.php');
-
-
-/** Собственное исключение класса */
-class FilterException extends BaseException
-{
-}
-
 
 /** @todo Сделать по возможности передачу в методы произвольного числа аргументов вместо массива. Хотя, не принципиально */
+/** @todo Всё, что можно, перевести в filter_var */
+
+/** @see http://php.net/manual/ru/filter.filters.validate.php */
+/** @see http://php.net/manual/ru/function.filter-var.php */
+
 
 /**
  * Класс фильтрации параметров
@@ -76,7 +73,8 @@ class Filter
      */
     public static function mapBool(callable $func, $arg)
     {
-        $map = function ($arr) use ($func) {
+        $map = function ($arr) use ($func)
+        {
             $result = true;
             $i = 0;
             while ($result && $i < count($arr)) {
@@ -106,7 +104,8 @@ class Filter
     public static function is($var, $type)
     {
         return self::mapBool(
-            function ($el) use ($type) {
+            function ($el) use ($type)
+            {
                 return is_a($el, $type, false);
             },
             $var
@@ -135,7 +134,8 @@ class Filter
     public static function isIntegerBetween($var, $from, $to)
     {
         return self::mapBool(
-            function ($el) use ($from, $to) {
+            function ($el) use ($from, $to)
+            {
                 return is_int($el) && ($el >= $from) && ($el <= $to);
             },
             $var
@@ -191,7 +191,7 @@ class Filter
 
 
     /**
-     * Проверка одного числа на вещественное число
+     * Проверка одного параметра на вещественное число
      * @param float|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -202,7 +202,7 @@ class Filter
 
 
     /**
-     * Проверка одного числа на целочисленность
+     * Проверка одного параметра на целочисленность
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -213,14 +213,15 @@ class Filter
 
 
     /**
-     * Проверка одного числа на натуральность
+     * Проверка одного параметра на натуральность
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
     public static function isNatural($var)
     {
         return self::mapBool(
-            function ($el) {
+            function ($el)
+            {
                 return is_int($el) && $el >= 0;
             },
             $var
@@ -229,7 +230,7 @@ class Filter
 
 
     /**
-     * Проверка одного аргумента на правильну дату формата "yyyy-mm-dd"
+     * Проверка одного параметра на правильну дату формата "yyyy-mm-dd"
      * @param datetime|array $var Аргумент, или массив аргументов функции
      * @param string $formatExpr Регулярное выражение для проверки формата даты
      * @return bool
@@ -237,7 +238,8 @@ class Filter
     public static function isDate($var, $formatExpr = '/^(\d{4})\-(\d{2})\-(\d{2})$/')
     {
         return self::mapBool(
-            function ($el) use ($formatExpr) {
+            function ($el) use ($formatExpr)
+            {
                 return preg_match($formatExpr, $el, $d) && checkdate($d[2], $d[3], $d[1]);
             },
             $var
@@ -246,14 +248,15 @@ class Filter
 
 
     /**
-     * Проверка одного аргумента на правильну дату и время формата "yy-mm-dd hh:mm:ss"
+     * Проверка одного параметра на правильну дату и время формата "yy-mm-dd hh:mm:ss"
      * @param datetime|array $var Аргумент, или массив аргументов функции
      * @return bool
+     * @todo Проверить, не будет ли ошибки при вызове метода во второй раз из-за переопределения функции checkTime
      */
     public static function isDatetime($var)
     {
         $func = function ($el) {
-            function checktime($hour, $min, $sec)
+            function checkTime($hour, $min, $sec)
             {
                 $hour = (strlen($hour) < 2 || $hour{0} !== '0') ?: $hour{1};
                 if ($hour < 0 || $hour > 23 || !is_int($hour)) {
@@ -276,6 +279,25 @@ class Filter
         };
         return self::mapBool($func, $var);
     }
+
+
+
+    /**
+     * Проверка одного параметра на email
+     * @param string $var Аргумент, или массив аргументов функции
+     * @return bool
+     */
+    public static function isEmail($var)
+    {
+        return self::mapBool(
+            function ($el)
+            {
+                return filter_var($el, FILTER_VALIDATE_EMAIL);
+            },
+            $var
+        );
+    }
+
 
 
     /**
@@ -334,7 +356,6 @@ class Filter
      * Экранирование спесцимволов в стиле языка С
      * @param string|array $var Обрабатываемая строка или массив строк
      * @return mixed
-     * @throws FilterException
      */
     public static function slashesAdd($var)
     {
@@ -350,7 +371,6 @@ class Filter
      * Отмена экранирования спесцимволов в стиле языка С
      * @param string|array $var Обрабатываемая строка или массив строк
      * @return mixed
-     * @throws FilterException
      */
     public static function slashesStrip($var)
     {
@@ -416,7 +436,7 @@ class Filter
 
     /**
      * Проверяет существование в массиве ключа, или массива ключей
-     * @param mixed|array $key Ключ, или массив ключей массива
+     * @param bool|int|string|array $key Ключ, или массив ключей массива
      * @param array $arr Проверяемый массив
      * @return bool
      */
