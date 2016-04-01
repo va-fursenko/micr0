@@ -39,7 +39,7 @@ class Filter
         if (func_num_args() == 2) {
             return is_array($arg) ? array_map($func, $arg) : $func($arg);
 
-            // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
+        // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
         } else {
             // Передаём на обработку все аргументы кроме первого - это коллбэк
             return array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
@@ -50,7 +50,7 @@ class Filter
     /**
      * Возвращает массив $arg, к элементам которого рекурсивно применили функцию $func
      * @param callable $func Функция вида mixed function (mixed $el){...}
-     * @param mixed $arg Аргумент функции
+     * @param mixed $arg Массив аргументов
      * @return mixed
      */
     public static function mapRecursive(callable $func, array $arg)
@@ -75,28 +75,27 @@ class Filter
     {
         $map = function ($arr) use ($func)
         {
-            $result = true;
-            $i = 0;
-            while ($result && $i < count($arr)) {
-                $result = $result && $func($arr[$i]);
-                $i++;
+            foreach ($arr as $el) {
+                if (!$func($el)) {
+                    return false;
+                }
             }
-            return $i > 0 && $result; // Для пустого массива стоит вернуть false
+            return count($arr) > 0; // Для пустого массива стоит вернуть false
         };
 
+        // Обрабатываем единственный элемент
         if (func_num_args() == 2) {
             return is_array($arg) ? $map($arg) : $func($arg);
 
-            // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
+        // Меньше 2 параметров функция принять не должна, значит обрабатываем все после первого
         } else {
-            // Передаём на обработку все аргументы кроме первого - это коллбэк
             return $map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
         }
     }
 
 
     /**
-     * Проверка первого параметра на принадлежность к типу, указанному во втором
+     * Проверка на принадлежность к типу, указанному во втором
      * @param mixed|array $var Переменная или массив переменных для проверки
      * @param mixed $type Тип данных
      * @return bool
@@ -131,12 +130,12 @@ class Filter
      * @assert (1.2, 0, 3) == false
      * @return bool
      */
-    public static function isIntegerBetween($var, $from, $to)
+    public static function isIntBetween($var, $from, $to)
     {
         return self::mapBool(
             function ($el) use ($from, $to)
             {
-                return is_int($el) && ($el >= $from) && ($el <= $to);
+                return filter_var($el, FILTER_VALIDATE_INT, ['options' => ['min_range' => $from, 'max_range' => $to]]) !== false;
             },
             $var
         );
@@ -158,7 +157,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на строку
+     * Проверка на строку
      * @param string|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -169,7 +168,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на массив
+     * Проверка на массив
      * @param array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -180,7 +179,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на логическое значение
+     * Проверка на логическое значение
      * @param bool|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -191,7 +190,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на вещественное число
+     * Проверка на вещественное число
      * @param float|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -202,18 +201,22 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на целочисленность
+     * Проверка на целочисленность
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
     public static function isInteger($var)
     {
-        return self::mapBool('is_int', $var);
+        $func = function ($el)
+        {
+            return filter_var($el, FILTER_VALIDATE_INT) !== false;
+        };
+        return self::mapBool($func, $var);
     }
 
 
     /**
-     * Проверка одного параметра на натуральность
+     * Проверка на натуральность
      * @param int|array $var Аргумент, или массив аргументов функции
      * @return bool
      */
@@ -222,7 +225,7 @@ class Filter
         return self::mapBool(
             function ($el)
             {
-                return is_int($el) && $el >= 0;
+                return filter_var($el, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]) !== false;
             },
             $var
         );
@@ -230,7 +233,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на правильну дату формата "yyyy-mm-dd"
+     * Проверка на правильну дату формата "yyyy-mm-dd"
      * @param datetime|array $var Аргумент, или массив аргументов функции
      * @param string $formatExpr Регулярное выражение для проверки формата даты
      * @return bool
@@ -240,7 +243,7 @@ class Filter
         return self::mapBool(
             function ($el) use ($formatExpr)
             {
-                return preg_match($formatExpr, $el, $d) && checkdate($d[2], $d[3], $d[1]);
+                return preg_match($formatExpr, $el, $d) && checkdate($d[2], $d[3], $d[1]) === 1;
             },
             $var
         );
@@ -248,7 +251,7 @@ class Filter
 
 
     /**
-     * Проверка одного параметра на правильну дату и время формата "yy-mm-dd hh:mm:ss"
+     * Проверка на правильну дату и время формата "yy-mm-dd hh:mm:ss"
      * @param datetime|array $var Аргумент, или массив аргументов функции
      * @return bool
      * @todo Проверить, не будет ли ошибки при вызове метода во второй раз из-за переопределения функции checkTime
@@ -273,31 +276,76 @@ class Filter
                 return true;
             }
 
-            return preg_match('/^(\d{4})\-(\d{2})\-(\d{2}) ([0-1][0-9]|[2][0-3]):([0-5][0-9]):([0-5][0-9])$/', $el, $d)
-            && checkdate($d[2], $d[3], $d[1])
-            && checktime($d[4], $d[5], $d[6]);
+            return (preg_match('/^(\d{4})\-(\d{2})\-(\d{2}) ([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/', $el, $d) === 1)
+                && checkTime($d[2], $d[3], $d[1])
+                && checkTime($d[4], $d[5], $d[6]);
         };
         return self::mapBool($func, $var);
     }
 
 
-
     /**
-     * Проверка одного параметра на email
-     * @param string $var Аргумент, или массив аргументов функции
+     * Проверка с помощью функции filter_var
+     * @param mixed $var Аргумент, или массив аргументов функции
+     * @param int $flag Флаг функции filter_var()
      * @return bool
+     * @see http://php.net/manual/ru/function.filter-var.php
+     * @see http://php.net/manual/ru/filter.filters.php
      */
-    public static function isEmail($var)
+    public static function filterVar($var, $flag)
     {
         return self::mapBool(
-            function ($el)
+            function ($el) use ($flag)
             {
-                return filter_var($el, FILTER_VALIDATE_EMAIL);
+                return filter_var($el, $flag) !== false;
             },
             $var
         );
     }
 
+
+    /**
+     * Проверка на email
+     * @param string $var Аргумент, или массив аргументов функции
+     * @return bool
+     */
+    public static function isEmail($var)
+    {
+        return self::filterVar($var, FILTER_VALIDATE_EMAIL);
+    }
+
+
+    /**
+     * Проверка на IP
+     * @param string $var Аргумент, или массив аргументов функции
+     * @return bool
+     */
+    public static function isIP($var)
+    {
+        return self::filterVar($var, FILTER_VALIDATE_IP);
+    }
+
+
+    /**
+     * Проверка на MAC
+     * @param string $var Аргумент, или массив аргументов функции
+     * @return bool
+     */
+    public static function isMAC($var)
+    {
+        return self::filterVar($var, FILTER_VALIDATE_MAC);
+    }
+
+
+    /**
+     * Проверка на url
+     * @param string $var Аргумент, или массив аргументов функции
+     * @return bool
+     */
+    public static function isUrl($var)
+    {
+        return self::filterVar($var, FILTER_VALIDATE_URL);
+    }
 
 
     /**
