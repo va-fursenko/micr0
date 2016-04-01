@@ -4,7 +4,7 @@
  * Special thanks to:   all, http://www.php.net
  * Copyright (c)        viktor, Belgorod, 2010-2016
  * Email                vinjoy@bk.ru
- * version              2.0.1
+ * version              2.0.4
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -19,7 +19,7 @@
 /**
  * Класс фильтрации параметров
  * @author    Enjoy
- * @version   2.0.0
+ * @version   2.0.4
  * @package   Micr0
  */
 class Filter

@@ -23,7 +23,7 @@ $data = [
 ];
 
 // Генерим контент
-//$content = ViewParser::parseFile('base', $data);
+$content = ViewParser::parseFile('base', $data);
 //ViewTranslator::translateFile('base');
 //$content = View::display('base', $data);
 // Рисуем шаблон
@@ -36,7 +36,7 @@ $data = [
 //var_dump($db->selectOne("SELECT value FROM system_parameters"));
 phpinfo();
 
-var_dump(Filter::isNumeric(false));
+
 
 
 $time = microtime(true) - $start;
