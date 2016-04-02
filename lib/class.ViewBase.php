@@ -229,4 +229,55 @@ abstract class ViewBase extends ViewVar
         }
         return file_get_contents(self::DIR . $filename);
     }
+
+
+    /**
+     * Переиндексация матрицы входных данных повторяющегося блока именами внутренних переменных этого блока
+     * чтобы не обязательно было передавать на вход ассоциативный массив
+     * Например, из матрицы [['1', '2', '3'], ['one', 'two', 'three']]
+     * и переменных блока ['first', 'second', 'third'] получится матрица
+     * [
+     *     [0=>'1', 1=>'2', 2=>'3', 'first'=>'1', 'second'=>'2', 'third'=>''3],
+     *     [0=>'one', 1=>'two', 2=>'three', 'first'=>'one', 'second'=>'two', 'third'=>'three'],
+     * ]
+     * Дублирующий индекс добавляется со ссылкой на основной элемент
+     * @param array $rows Матрица входных данных
+     * @param array $rowName Имя переменной, обозначающей ряд матрицы в цикле
+     * @param string $blockHTML Текст повторяющегося блока
+     * @return array
+     */
+    protected static function reindexVarRows($rows, $rowName, $blockHTML)
+    {
+        // Найдём все внутренние переменные блока
+        if (preg_match_all(
+            '/' . self::EXPR_VAR_BEGIN . '\s' .
+                $rowName . '\.(?<var_name>' . self::EXPR_VAR_INDEX . ')' . self::EXPR_VAR_MODIFIER.
+                '\s' . self::EXPR_VAR_END . '/ms',
+            $blockHTML,
+            $blockVars
+        )) {
+            // Проходим по всем найденным в блоке переменным
+            // Флаг пропущенных служебных переменных. Мы считаем по порядку только пользовательские
+            $varsOmitted = 0;
+            foreach ($blockVars['var_name'] as $varIndex => $varName) {
+                // Пропускаем служебные выражения. Пока пропускается только одна переменная #
+                if ($varName === '#') {
+                    $varsOmitted++;
+                    continue;
+                }
+                /*
+                 * Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
+                 * но есть переменная с таким же порядковым номером,
+                 * то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][0]
+                 */
+                foreach ($rows as $rowIndex => &$dataRow) {
+                    if (!isset($dataRow[$varName]) && isset($dataRow[$varIndex - $varsOmitted])) {
+                        $dataRow[$varName] = &$dataRow[$varIndex - $varsOmitted];
+                    }
+                }
+            }
+            return $rows;
+        }
+
+    }
 }

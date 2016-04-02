@@ -16,17 +16,19 @@ $data = [
         ['Las Vegas', 'USA', '2kk'],
         ['London', 'Great Britain', '12kk'],
     ]],
-    'place_button' => true,
-    'echo_bool'    => 0,
-    'flag3'        => 1,
+    'place_button' => false,
+    'echo_bool'    => 1,
+    'flag3'        => 0,
     'some_flag' => 'warning',
 ];
 
-// Генерим контент
-//$content = ViewParser::parseFile('base', $data);
+$content = 'Hello, world!';
 //ViewTranslator::translateFile('base');
 $content = View::display('base', $data);
-// Рисуем шаблон
+
+
+// Генерим контент и рисуем шаблон
+//$content = ViewParser::parseFile('base', $data);
 require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
 

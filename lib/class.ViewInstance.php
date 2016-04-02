@@ -37,15 +37,18 @@ abstract class ViewInstance extends ViewVar
      * @param string $varName Имя переменной (индекс в массиве контекста self::$data)
      * @param bool $escape Флаг экранирования html
      * @param array $base Контекст переменной
-     * @return string
+     * @param string $altVarName Альтернативное полное имя переменной в контексте (используется в итераторах)
+     * @return mixed
      * @throws ViewInstanceException
      */
-    protected static function getVar($varName, $escape = false, array $base = null)
+    protected static function getVar($varName, $escape = false, array $base = null, $altVarName = null)
     {
         if ($base === null) {
             $base = &self::$data;
         }
-        if (!self::hasVar($base, $varName)) {
+        if ($altVarName !== null && self::hasVar($base, $altVarName)) {
+            $varName = $altVarName;
+        } elseif (!self::hasVar($base, $varName)) {
             return ViewBase::VAR_BEGIN . " '$varName' " . ViewBase::VAR_END;
             /* Или так, или так...
             return '';

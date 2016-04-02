@@ -16,7 +16,7 @@ class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
 		} else {
 			$result .= '<span>ЛОЖЬ</span>';
 		}
-		$result .=  '
+		$result .= '
 
 <div class="container">
     <table class="table table-striped table-condensed table-bordered table-hover">
@@ -34,9 +34,9 @@ class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
 		foreach (self::getVar('some_el.rows', false) as $index => $row) {
 			$result .= '<tr>
                 <td>' . ($index + 1) . '.</td>
-                <td>' . self::getVar('row.city', true, ['row' => $row]) . '</td>
-                <td>' . self::getVar('row.country', false, ['row' => $row]) . '</td>
-                <td>' . self::getVar('row.population', false, ['row' => $row]) . '</td>
+                <td>' . self::getVar('row.city', true, ['row' => $row], 'row.0') . '</td>
+                <td>' . self::getVar('row.country', false, ['row' => $row], 'row.1') . '</td>
+                <td>' . self::getVar('row.population', false, ['row' => $row], 'row.2') . '</td>
             </tr>';
 		}
 		$result .= '
@@ -51,7 +51,7 @@ class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
 		} else {
 			$result .= '<input type="email" class="form-control" value="' . self::getVar('email', false) . '" placeholder="Введи имайлку"/>';
 		}
-		$result .=  '
+		$result .= '
 </div>
 
         ' . self::getVar('some_data', false) . '
@@ -77,7 +77,7 @@ class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
 		if (self::getVar('flag3', false)) {
 			$result .= 'Если флаг3 истина, то вывести эту бессмыслицу';
 		}
-		$result .=  '
+		$result .= '
 
 <pre class="log-container" id="logPre">' . self::getVar('lines', false) . '</pre>
 ';

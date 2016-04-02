@@ -161,42 +161,14 @@ class ViewParser extends ViewBase
                     continue;
                 }
 
-                $blocks = '';
                 $blockHTML = trim($matches['block'][$blockIndex]);
 
                 /*
                  * Найдём все внутренние переменные блока и переиндексируем входные данные
                  * именами найденных переменных, чтобы не обязательно было передавать на вход ассоциативный массив
-                 * {{ row_name.var1..X }}
+                 * {{ $rowName.var1.var2...X }}
                  */
-                if (preg_match_all(
-                    '/' . self::EXPR_VAR_BEGIN . '\s' .
-                    $rowName . '\.(?<var_name>' . self::EXPR_VAR_INDEX . ')' . self::EXPR_VAR_MODIFIER.
-                    '\s' . self::EXPR_VAR_END . '/ms',
-                    $blockHTML,
-                    $blockVars
-                )) {
-                    // Проходим по всем найденным в блоке переменным
-                    // Флаг пропущенных служебных переменных. Мы считаем по порядку только пользовательские
-                    $varsOmitted = 0;
-                    foreach ($blockVars['var_name'] as $varIndex => $varName) {
-                        // Пока пропускается только одна переменная
-                        if ($varName === '#') {
-                            $varsOmitted++;
-                            continue;
-                        }
-                        /*
-                         * Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
-                         * но есть переменная с таким же порядковым номером,
-                         * то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][0]
-                         */
-                        foreach ($rows as $rowIndex => &$dataRow) {
-                            if (!isset($dataRow[$varName]) && isset($dataRow[$varIndex - $varsOmitted])) {
-                                $dataRow[$varName] = &$dataRow[$varIndex - $varsOmitted];
-                            }
-                        }
-                    }
-                }
+                $rows = self::reindexVarRows($rows, $rowName, $blockHTML);
 
                 /*
                  * Парсим блок для каждого ряда массива $dataItems[$blockName]
@@ -208,19 +180,15 @@ class ViewParser extends ViewBase
                     $counter = null; // Указываем на то, что он не используется
                 }
 
-                // Заполняем блок переменными и прибавляем к представлению
+                // Заполняем блок переменными и прибавляем к представлению блока
+                $blocks = '';
                 foreach ($rows as &$rowItems) {
                     // Вообще ожидается, что имя пользовательской переменной во входных данных
                     // не может содержать знак '#', но это не проверяется. В любом случае, затираем
                     if (isset($counter)) {
                         $rowItems['#'] = $counter + 1;
                     }
-                    $blocks .= self::parseStrings(
-                        $blockHTML,
-                        [
-                            $rowName => $rowItems
-                        ]
-                    );
+                    $blocks .= self::parseStrings($blockHTML, [$rowName => $rowItems]);
                     $counter++;
                 }
 
