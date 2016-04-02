@@ -4,7 +4,7 @@
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2016-2016
  * Email            vinjoy@bk.ru
- * Version          1.0.0
+ * Version          1.0.5
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -28,10 +28,10 @@ class ViewBaseException extends BaseException
 /**
  * Абстрактный класс-предок для видов (Господи, слово-то какое непривычное...)
  * @author      viktor
- * @version     1.0
+ * @version     1.0.5
  * @package     Micr0
  */
-abstract class ViewBase
+abstract class ViewBase extends ViewVar
 {
     # Параметры класса
     /** @const Режим дебага шаблонов */
@@ -231,99 +231,53 @@ abstract class ViewBase
     }
 
 
-
     /**
-     * Парсинг одной переменной
-     * @param mixed $data Контекст шаблона, ассоциативный массив.
-     * @param string $varName Имя переменной с произвольным числом индексов
-     * @param string $modifier Модификатор переменной
-     * Элементы могут быть массивами, объектами, числами, строками, bool или null
-     * @return mixed Значение элемента контекста шаблона,
-     * если он простого типа и ссылка на него, если он массив, или объект
-     * @throws ViewBaseException
+     * Переиндексация матрицы входных данных повторяющегося блока именами внутренних переменных этого блока
+     * чтобы не обязательно было передавать на вход ассоциативный массив
+     * Например, из матрицы [['1', '2', '3'], ['one', 'two', 'three']]
+     * и переменных блока ['first', 'second', 'third'] получится матрица
+     * [
+     *     [0=>'1', 1=>'2', 2=>'3', 'first'=>'1', 'second'=>'2', 'third'=>''3],
+     *     [0=>'one', 1=>'two', 2=>'three', 'first'=>'one', 'second'=>'two', 'third'=>'three'],
+     * ]
+     * Дублирующий индекс добавляется со ссылкой на основной элемент
+     * @param array $rows Матрица входных данных
+     * @param array $rowName Имя переменной, обозначающей ряд матрицы в цикле
+     * @param string $blockHTML Текст повторяющегося блока
+     * @return array
      */
-    public static function parseVar($data, $varName, $modifier = '')
+    protected static function reindexVarRows($rows, $rowName, $blockHTML)
     {
-        // Получаем массив индексов из имени переменной
-        $varParts = explode('.', $varName);
-        $partsCount = count($varParts);
-        if ($partsCount < 1) {
-            throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_NAME . ": '$varName'");
-        }
-
-        // Проходим по массиву индексов
-        $result = self::getVarPart($data, $varParts[0]);
-        for ($i = 1; $i < $partsCount; $i++) {
-            $result = self::getVarPart($result, $varParts[$i]);
-        }
-
-        // Применяем модификатор, если он есть
-        // raw - Отмена экранирования html
-        // e - Экранирование html
-        if ($modifier !== 'raw' && (self::AUTO_ESCAPE || $modifier === 'e')) {
-            $result = htmlspecialchars($result);
-        }
-
-        return $result;
-    }
-
-
-
-    /**
-     * Получение элемента $index из переменной $base в зависимости от его типа
-     * @param array $data$data
-     * @param string $index
-     * @return mixed
-     * @throws ViewBaseException
-     */
-    protected static function getVarPart($data, $index)
-    {
-        switch (gettype($data)) {
-            case 'array':
-                return $data[$index];
-
-            case 'object':
-                return $data->$index;
-
-            default:
-                throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$index' in " . var_export($data, true));
-        }
-    }
-
-
-
-    /**
-     * Проверка наличия переменной в контексте
-     * @param mixed $data Контекст шаблона
-     * @param string $varName Полное имя переменной (var.index.index2.index3.#)
-     * @return bool
-     * @throws ViewBaseException
-     */
-    public static function hasVar($data, $varName)
-    {
-        $varName = explode('.', $varName);
-        $base = &$data;
-        for ($i = 0; $i < count($varName); $i++) {
-            switch (gettype($base)) {
-                case 'array':
-                    if (!array_key_exists($varName[$i], $base)) {
-                        return false;
+        // Найдём все внутренние переменные блока
+        if (preg_match_all(
+            '/' . self::EXPR_VAR_BEGIN . '\s' .
+                $rowName . '\.(?<var_name>' . self::EXPR_VAR_INDEX . ')' . self::EXPR_VAR_MODIFIER.
+                '\s' . self::EXPR_VAR_END . '/ms',
+            $blockHTML,
+            $blockVars
+        )) {
+            // Проходим по всем найденным в блоке переменным
+            // Флаг пропущенных служебных переменных. Мы считаем по порядку только пользовательские
+            $varsOmitted = 0;
+            foreach ($blockVars['var_name'] as $varIndex => $varName) {
+                // Пропускаем служебные выражения. Пока пропускается только одна переменная #
+                if ($varName === '#') {
+                    $varsOmitted++;
+                    continue;
+                }
+                /*
+                 * Проходим по всем рядам входных данных и если нужного индекса в ряде нет,
+                 * но есть переменная с таким же порядковым номером,
+                 * то добавляем индекс со ссылкой на неё: $var[$row]['user_name'] = &$var[$row][0]
+                 */
+                foreach ($rows as $rowIndex => &$dataRow) {
+                    if (!isset($dataRow[$varName]) && isset($dataRow[$varIndex - $varsOmitted])) {
+                        $dataRow[$varName] = &$dataRow[$varIndex - $varsOmitted];
                     }
-                    $base = &$base[$varName[$i]];
-                    break;
-
-                case 'object':
-                    if (!property_exists($base, $varName[$i])) {
-                        return false;
-                    }
-                    $propName = $varName[$i];
-                    $base = &$base->$propName;
-                    break;
-
-                default:
-                    throw new ViewBaseException(ViewBaseException::L_TPL_WRONG_VAR_INDEX . ": '$varName' in " . var_export($data, true));
+                }
             }
+            return $rows;
         }
-        return true;
+
     }
-} 
+}

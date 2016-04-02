@@ -4,7 +4,7 @@
  * Special thanks to: all, http://www.php.net
  * Copyright (c)    viktor Belgorod, 2016-2016
  * Email            vinjoy@bk.ru
- * Version          1.0.0
+ * Version          1.1.0
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the MIT License (MIT)
@@ -24,7 +24,7 @@ class ViewTranslatorException extends ViewParserException
 /**
  * Класс транслятора шаблонов в PHP-код
  * @author      viktor
- * @version     1.0
+ * @version     1.1.0
  * @package     Micr0
  */
 class ViewTranslator extends ViewBase
@@ -32,47 +32,12 @@ class ViewTranslator extends ViewBase
     /**
      * Константные теги
      */
-    const TAG_ELSE   = "\n\t\t} else {\n";
-    const TAG_ENDIF  = "\n\t\t}\n";
-    const TAG_ENDFOR = "\n\t\t}\n";
+    const BLOCK_ELSE   = "\n\t\t} else {\n";
+    const BLOCK_ENDIF  = "\n\t\t}\n";
+    const BLOCK_ENDFOR = "\n\t\t}\n";
 
     /** @const Расширение файлов шаблонов */
     const FILE_EXT = '.php';
-
-
-    /**
-     * Замена в повторяющемся блоке строковых и числовых переменных
-     * @param string $tplString Шаблон в строке
-     * @param string $rowName Имя переменной, означаяющей ряд
-     * @return string
-     * @throws ViewTranslatorException
-     */
-    protected static function translateArrayStrings($tplString, $rowName)
-    {
-        // Получаем результат выполнения регулярного выражения поиска переменных
-        if ($matches = self::pregMatchStrings($tplString)) {
-            foreach ($matches['var_name'] as $varIndex => $varName) {
-                $indexes = array_flip(
-                    array_values(
-                        array_filter(
-                            $matches['var_index'],
-                            function ($el) {return $el != '#';}
-                        )
-                    )
-                );
-                if ($rowName == $varName) {
-                    $tplString = str_replace(
-                        $matches[0][$varIndex],
-                        $matches['var_index'][$varIndex] == '#'
-                            ? "' . (\$index + 1) . '"
-                            : "' . (isset(\${$rowName}['" . $matches['var_index'][$varIndex] . "']) ? \${$rowName}['" . $matches['var_index'][$varIndex] . "'] : \${$rowName}[" . $indexes[$matches['var_index'][$varIndex]] . "]) . '",
-                        $tplString
-                    );
-                }
-            }
-        }
-        return $tplString;
-    }
 
 
     /**
@@ -80,7 +45,6 @@ class ViewTranslator extends ViewBase
      * вставки данных из контекста генерируемого шаблона
      * @param string $tplString Шаблон в строке
      * @return string
-     * @throws ViewTranslatorException
      */
     protected static function translateStrings($tplString)
     {
@@ -89,9 +53,8 @@ class ViewTranslator extends ViewBase
             foreach ($matches['var_name'] as $varIndex => $varName) {
                 $tplString = str_replace(
                     $matches[0][$varIndex],
-                    self::tagVar(
+                    self::blockVar(
                         $varName,
-                        $matches['var_index'][$varIndex],
                         $matches['modifier'][$varIndex]
                     ),
                     $tplString
@@ -113,23 +76,58 @@ class ViewTranslator extends ViewBase
     {
         // Получаем результат выполнения регулярного выражения поиска условных блоков
         if ($matches = self::pregMatchConditionals($tplString)) {
-            foreach ($matches[0] as $blockIndex => $blockDeclaration) {
+            foreach ($matches[0] as $blockIndex => $blockHTML) {
+                $blockPHP = self::blockIf($matches['block_name'][$blockIndex]) .
+                    "\t\t\t\$result .= '" . trim($matches['block_true'][$blockIndex]) . "';";
+                if (strlen($matches['block_false'][$blockIndex]) > 0) {
+                    $blockPHP .= self::BLOCK_ELSE .
+                        "\t\t\t\$result .= '" . trim($matches['block_false'][$blockIndex]) . "';";
+                }
+                $blockPHP .= self::BLOCK_ENDIF;
 
                 $tplString = str_replace(
-                    $blockDeclaration,
-                    self::tagIf($matches['block_name'][$blockIndex]) .
-                    "\t\t\t\$result .= '" . trim($matches['block_true'][$blockIndex]) . "';" .
-                    (strlen($matches['block_false'][$blockIndex]) > 0
-                        ? self::TAG_ELSE . "\t\t\t\$result .= '" . trim($matches['block_false'][$blockIndex]) . "';"
-                        : ''
-                    ) .
-                    self::TAG_ENDIF .
-                    "\t\t\$result .=  '",
+                    $blockHTML,
+                    "';\n\t\t" . $blockPHP . "\t\t\$result .= '",
                     $tplString
                 );
             }
         }
         return $tplString;
+    }
+
+
+    /**
+     * Замена в повторяющемся блоке строковых и числовых переменных
+     * @param string $tplString Шаблон в строке
+     * @param string $rowName Имя переменной, означаяющей ряд
+     * @return string
+     */
+    protected static function translateArrayStrings($tplString, $rowName)
+    {
+        if ($matches = self::pregMatchStrings($tplString)) {
+            $varsOmitted = 0;
+            // Проходим по всем найденным переменным
+            foreach ($matches['var_name'] as $varIndex => $varName) {
+                // Пропускаем переменные не из данного блока
+                if (strpos($varName, $rowName) === 0) {
+                    // Отдельно обрабатываем служебные переменные. Пока только #, так что поступаем по-простому
+                    if (substr($matches['var_name'][$varIndex], -1) == '#') {
+                        $replace = "' . (\$index + 1) . '";
+                        $varsOmitted++;
+                    } else {
+                        $replace = self::blockVar($varName, $matches['modifier'][$varIndex], $rowName, $varIndex - $varsOmitted);
+                    }
+                    $tplString = str_replace(
+                        $matches[0][$varIndex],
+                        $replace,
+                        $tplString
+                    );
+                } else {
+                    $varsOmitted++;
+                }
+            }
+        }
+        return "\t\t\t\$result .= '" . $tplString . "';";
     }
 
 
@@ -143,20 +141,19 @@ class ViewTranslator extends ViewBase
     {
         // Получаем результат выполнения регулярного выражения поиска условных блоков
         if ($matches = self::pregMatchArrays($tplString)) {
-            foreach ($matches[0] as $blockIndex => $blockDeclaration) {
-
+            foreach ($matches[0] as $blockIndex => $blockHTML) {
+                $blockPHP = self::blockFor(
+                    $matches['block_name'][$blockIndex],
+                    $matches['row_name'][$blockIndex]
+                );
+                $blockPHP .= self::translateArrayStrings(
+                        trim($matches['block'][$blockIndex]),
+                        $matches['row_name'][$blockIndex]
+                    ) .
+                    self::BLOCK_ENDFOR ;
                 $tplString = str_replace(
-                    $blockDeclaration,
-                    self::tagFor(
-                            $matches['block_name'][$blockIndex],
-                            '',
-                            $matches['row_name'][$blockIndex]
-                        ) .
-                        "\t\t\t\$result .= '" . self::translateArrayStrings(
-                                        trim($matches['block'][$blockIndex]),
-                                        $matches['row_name'][$blockIndex]
-                                   ) .
-                        "';" . self::TAG_ENDFOR . "\t\t\$result .= '",
+                    $blockHTML,
+                    "';\n\t\t" . $blockPHP . "\t\t\$result .= '",
                     $tplString
                 );
             }
@@ -169,49 +166,50 @@ class ViewTranslator extends ViewBase
      * Вставка в код страницы PHP-тега с началом цикла перебора элементов
      * self::[$varName], self::[$varName][$varIndex] или self::[$varName]->$varIndex
      * @param mixed $varName
-     * @param mixed $varIndex
      * @param string $rowName Имя переменной, по которой будет идти итерация
      * @return string
      */
-    protected static function tagFor($varName, $varIndex = '', $rowName = 'row')
+    protected static function blockFor($varName, $rowName = 'row')
     {
-        return "';\n\t\tforeach (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false) as \$index => $$rowName) {\n";
+        return "foreach (self::getVar('" . addslashes($varName) . "', false) as \$index => $$rowName) {\n";
     }
 
 
     /**
      * Вставка в код страницы PHP-тега с булевым флагом
      * @param mixed $varName
-     * @param mixed $varIndex
      * @return string
      */
-    protected static function tagIf($varName, $varIndex = '')
+    protected static function blockIf($varName)
     {
-        return "';\n\t\tif (self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', false)) {\n";
+        return "if (self::getVar('" . addslashes($varName) . "', false)) {\n";
     }
 
 
     /**
      * Вставка в код страницы PHP-тега с выводом одной переменной
-     * @param mixed $varName
-     * @param mixed $varIndex
-     * @param mixed $varModifier
+     * @param mixed $varName Полное имя переменной
+     * @param mixed $varModifier Модификатор вывода
+     * @param string $baseName Имя переменной с контекстом
+     * @param string $altIndex Альтернативный индекс переменной в контексте (для итераторов)
      * @return string
      */
-    protected static function tagVar($varName, $varIndex = '', $varModifier = '')
+    protected static function blockVar($varName, $varModifier = '', $baseName = null, $altIndex = null)
     {
         // Применяем модификатор, если он есть
         switch ($varModifier) {
             case 'raw':
-                $escape = 'false';
+                $params = 'false';
                 break;
             case 'e':
-                $escape = 'true';
+                $params = 'true';
                 break;
             default:
-                $escape = self::AUTO_ESCAPE ? 'true' : 'false';
+                $params = self::AUTO_ESCAPE ? 'true' : 'false';
         }
-        return "' . self::getVar('" . addslashes($varName) . "', '" . addslashes($varIndex) . "', $escape) . '";
+        $params .= $baseName !== null ? ", ['$baseName' => \$$baseName]" : '';
+        $params .= $altIndex !== null ? ", '$baseName.$altIndex'" : '';
+        return "' . self::getVar('" . addslashes($varName) . "', $params) . '";
     }
 
 
