@@ -220,7 +220,7 @@ class ViewTranslator extends ViewBase
      */
     public static function getTplClassName($filename)
     {
-        return 'Tpl_' . md5($filename) . '_Class';
+        return 'View_' . ucfirst($filename) . '_' . md5($filename);
     }
 
 
