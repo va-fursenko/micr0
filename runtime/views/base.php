@@ -1,5 +1,5 @@
 <?php
-class Tpl_593616de15330c0fb2d55e55410bf994_Class extends ViewInstance
+class View_Base_593616de15330c0fb2d55e55410bf994 extends ViewInstance
 {
 	public static function display($data)
 	{
