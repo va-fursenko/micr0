@@ -24,12 +24,12 @@ $data = [
 
 $content = 'Hello, world!';
 //ViewTranslator::translateFile('base');
-$content = View::display('base', $data);
+//$content = View::display('base', $data);
 
 
 // Генерим контент и рисуем шаблон
 //$content = ViewParser::parseFile('base', $data);
-require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
+//require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Main.php');
 
 
 
@@ -37,7 +37,8 @@ require_once(CONFIG::ROOT . DIRECTORY_SEPARATOR . CONFIG::VIEW_DIR . '/layout.Ma
 //$db = new Db(CONFIG::DB_DSN, CONFIG::DB_USER, CONFIG::DB_PASSWORD);
 //var_dump($db->selectOne("SELECT value FROM system_parameters"));
 
-
+var_dump(Filter::isInteger([1]));
+var_dump(filter_var(true, FILTER_VALIDATE_INT));
 
 
 

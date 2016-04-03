@@ -12,10 +12,6 @@
  */
 
 
-/** @todo Сделать по возможности передачу в методы произвольного числа аргументов вместо массива. Хотя, не принципиально */
-
-
-
 /**
  * Класс фильтрации параметров
  * @author    Enjoy
@@ -128,14 +124,16 @@ class Filter
      */
     protected static function isNumberBetween($var, $from, $to, $flag)
     {
-        return self::mapBool(
-            function ($el) use ($from, $to, $flag)
-            {
-                $num = filter_var($el, $flag);
-                return $num !== false && ($from !== null && $num >= $from) && ($to !== null && $num <= $to);
-            },
-            $var
-        );
+        $func = function ($el) use ($from, $to, $flag)
+        {
+            // Забавно, но false функция filter_var числом не считает
+            if ($el === true) {
+                return false;
+            }
+            $num = filter_var($el, $flag);
+            return $num !== false && ($from === null || $num >= $from) && ($to === null || $num <= $to);
+        };
+        return is_array($var) ? self::mapBool($func, $var) : $func($var);
     }
 
 
