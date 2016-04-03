@@ -145,16 +145,6 @@ class Filter
      * @return bool
      *
      * @assert (0, 0, 0) == true
-     * @assert (0, 0, 1) == true
-     * @assert (1, 0, 1) == true
-     * @assert (0, -1, 1) == true
-     * @assert (-2, -3, -1) == true
-     * @assert (2, 1.1, 2.1) == true
-     * @assert (1, 0, 2) == true
-     * @assert (1, 2, 3) == false
-     * @assert (4, 1, 3) == false
-     * @assert (-1, -3, -2) == false
-     * @assert (1.2, 0, 3) == false
      */
     public static function isInteger($var, $from = null, $to = null)
     {
