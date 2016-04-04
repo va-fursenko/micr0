@@ -37,9 +37,7 @@ $content = 'Hello, world!';
 //$db = new Db(CONFIG::DB_DSN, CONFIG::DB_USER, CONFIG::DB_PASSWORD);
 //var_dump($db->selectOne("SELECT value FROM system_parameters"));
 
-var_dump(Filter::isInteger([1]));
-var_dump(filter_var(true, FILTER_VALIDATE_INT));
-
+var_dump(Filter::dateRus('%e %bg %Y', (new DateTime('2000-01-01'))->getTimestamp()));
 
 
 $time = microtime(true) - $start;

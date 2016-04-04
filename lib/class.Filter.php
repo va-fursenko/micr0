@@ -29,52 +29,42 @@ class Filter
 
 
     /**
-     * Возвращает массив $arg или массив из всех параметров метода, начиная с [1], к элементам которых применили функцию $func
+     * Возвращает массив $arg после применения к его элементам функции $func
      * @param callable $func Функция вида mixed function (mixed $el){...}
-     * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
+     * @param mixed|array $arg Аргумент или массив аргументов
      * @return mixed
      */
     public static function map(callable $func, $arg)
     {
-        // Функции переданы только коллбэк и один аргумент
-        if (func_num_args() == 2) {
-            return is_array($arg) ? array_map($func, $arg) : $func($arg);
-
-        // Меньше 2 параметров функция принять не должна, значит у нас их больше 2
-        } else {
-            // Передаём на обработку все аргументы кроме первого - это коллбэк
-            return array_map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
-        }
+        return is_array($arg) ? array_map($func, $arg) : $func($arg);
     }
 
 
     /**
      * Возвращает массив $arg, к элементам которого рекурсивно применили функцию $func
      * @param callable $func Функция вида mixed function (mixed $el){...}
-     * @param mixed $arg Массив аргументов
+     * @param mixed|array $arg Аргумент или массив аргументов
      * @return mixed
      */
     public static function mapRecursive(callable $func, array $arg)
     {
         foreach ($arg as $key => $value) {
-            $arg[$key] = is_array($value)
-                ? self::mapRecursive($func, $value)
-                : $func($value);
+            $arg[$key] = is_array($value) ? self::mapRecursive($func, $value) : $func($value);
         }
         return $arg;
     }
 
 
     /**
-     * Применение ко всем элементам массива $arg или всем параметрам метода, начиная с [1], функции $func и логическое сложение && результатов
-     * Прерывается при получении первого false в результате выполнения $func
+     * Применение ко всем элементам массива $arg функции $func и логическое сложение && результатов
+     * Прерывается при получении первого false в процессе вычисления
      * @param callable $func Функция вида bool function(mixed $el){...}
-     * @param mixed $arg Аргумент функции, массив аргументов, или один из нескольких переданных аргументов
+     * @param mixed|array $arg Аргумент или массив аргументов
      * @return bool
      */
     public static function mapBool(callable $func, $arg)
     {
-        $map = function ($arr) use ($func)
+        $map = function (array $arr) use ($func)
         {
             foreach ($arr as $el) {
                 if (!$func($el)) {
@@ -84,20 +74,13 @@ class Filter
             return count($arr) > 0; // Для пустого массива стоит вернуть false
         };
 
-        // Обрабатываем единственный элемент
-        if (func_num_args() == 2) {
-            return is_array($arg) ? $map($arg) : $func($arg);
-
-        // Меньше 2 параметров функция принять не должна, значит обрабатываем все после первого
-        } else {
-            return $map($func, array_slice(func_get_args(), 1, func_num_args() - 1));
-        }
+        return is_array($arg) ? $map($arg) : $func($arg);
     }
 
 
     /**
-     * Проверка на принадлежность к типу, указанному во втором
-     * @param mixed $var Переменная или массив переменных для проверки
+     * Проверка аргумента или массива аргументов на принадлежность к типу, указанному во втором
+     * @param mixed|array $var Аргумент или массив аргументов
      * @param mixed $type Тип данных
      * @return bool
      */
@@ -114,9 +97,9 @@ class Filter
 
 
     /**
-     * Проверка агрумента на принадлежность к вещественному, или целому числу.
+     * Проверка на число и попадание в указанный диапазон аргумента, или массива аргументов
      * Опциональная проверка на принадлженость диапазону
-     * @param float|int|array $var Аргумент, или массив аргументов функции
+     * @param mixed|array $var Аргумент или массив аргументов
      * @param float $from Начало диапазона допустимых значений
      * @param float $to Конец диапазона допустимых значений
      * @param int $flag Флаг фильтрации - FILTER_VALIDATE_INT, FILTER_VALIDATE_FLOAT
@@ -138,13 +121,11 @@ class Filter
 
 
     /**
-     * Проверка на целочисленность и на попадание в заданный отрезок, если указанны дополнительные параметры
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * Проверка на целочисленность и попадание в указанный диапазон аргумента, или массива аргументов
+     * @param mixed|array $var Аргумент или массив аргументов
      * @param float $from Начало диапазона допустимых значений
      * @param float $to Конец диапазона допустимых значений
      * @return bool
-     *
-     * @assert (0, 0, 0) == true
      */
     public static function isInteger($var, $from = null, $to = null)
     {
@@ -153,8 +134,9 @@ class Filter
 
 
     /**
-     * Проверка на натуральность. 0 считается натуральным
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * Проверка на натуральность и попадание в указанный диапазон аргумента, или массива аргументов.
+     * 0 считается натуральным
+     * @param mixed|array $var Аргумент или массив аргументов
      * @param float $from Начало диапазона допустимых значений. Значения ниже 0 заменятся на 0
      * @param float $to Конец диапазона допустимых значений
      * @return bool
@@ -167,8 +149,8 @@ class Filter
 
 
     /**
-     * Проверка на вещественное число
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * Проверка на вещественное число аргумента, или массива аргументов
+     * @param mixed|array $var Аргумент или массив аргументов
      * @param float $from Начало диапазона допустимых значений
      * @param float $to Конец диапазона допустимых значений
      * @return bool
@@ -180,44 +162,43 @@ class Filter
 
 
     /**
-     * Проверка даты на попадание в интервал
-     * @param mixed $var Аргумент, или массив аргументов функции
-     * @param datetime $from Начало диапазона допустимых значений
-     * @param datetime $to Конец диапазона допустимых значений
+     * Проверка на строку аргумента, или массива аргументов
+     * @param mixed|array $var Аргумент или массив аргументов
+     * @param array $params Ассоциативный массив параметров метода
+     * 'match' - проверяется соответстве регулярному выражению
+     * 'mix' - минимальная длина
+     * 'max' - максимальная длина
+     * 'ip', 'email', 'url', 'mac' - соответствие строки указанными типам
      * @return bool
+     * @todo $params ['match' => '/.../..', 'min' => int, 'max' => int]
      */
-    public static function isDateBetween($var, $from, $to)
+    public static function isString($var, array $params = [])
     {
-        /** @todo Дописать */
-        return 1 / 0;
+        $func = function ($el) use ($params)
+        {
+            return is_string($el);
+        };
+        return self::mapBool($func, $var);
     }
 
 
     /**
-     * Проверка на строку
-     * @param mixed $var Аргумент, или массив аргументов функции
-     * @return bool
-     */
-    public static function isString($var)
-    {
-        return self::mapBool('is_string', $var);
-    }
-
-
-    /**
-     * Проверка на массив
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * Проверка на массив одного или нескольких аргументов
+     * @param mixed $var,... Аргумент, или несколько аргументов
+     * В отличие от других подобных методов класса параметры данного метода
+     * по понятным причинам не принимаются в массиве, а передаются прямо в метод,
+     * в произвольном количестве
      * @return bool
      */
     public static function isArray($var)
     {
-        return self::mapBool('is_array', $var);
+        return self::mapBool('is_array', func_get_args());
     }
 
 
     /**
-     * Проверка на логическое значение
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * Проверка на логическое значение аргумента, или массива аргументов
+     * @param mixed|array $var Аргумент или массив аргументов
      * @return bool
      */
     public static function isBool($var)
@@ -227,50 +208,20 @@ class Filter
 
 
     /**
-     * Проверка на правильну дату и время формата "yyyy-mm-dd hh:mm:ss"
-     * @param mixed $var Аргумент, или массив аргументов функции
-     * @param string $format Формат даты и времени для функции DateTime::createFromFormat
-     * @see http://php.net/manual/ru/datetime.createfromformat.php
-     * @return bool
-     */
-    public static function isDatetime($var, $format = 'Y-m-d H:i:s')
-    {
-        $func = function ($el) use ($format)
-        {
-            return DateTime::createFromFormat($format, $el) !== false;
-        };
-        return self::mapBool($func, $var);
-    }
-
-
-    /**
-     * Проверка на правильну дату формата "yyyy-mm-dd". Полностью аналогична isDatetime()
-     * @param mixed $var Аргумент, или массив аргументов функции
-     * @param string $format Формат даты для функции DateTime::createFromFormat.
-     * Параметр не проверяется и, если опрелелить в нём формат не даты, а времени, (не только даты, но и времени)
-     * то от строки с соответствующими данными, вернётся положительный результат
-     * @return bool
-     */
-    public static function isDate($var, $format = 'Y-m-d')
-    {
-        return self::isDatetime($var, $format);
-    }
-
-
-    /**
      * Проверка с помощью функции filter_var
-     * @param mixed $var Аргумент, или массив аргументов функции
-     * @param int $flag Флаг функции filter_var()
+     * @param mixed $var Аргумент или массив аргументов
+     * @param int $filter Флаг функции filter_var()
+     * @param int $options Флаг или комбинация флагов
      * @return bool
      * @see http://php.net/manual/ru/function.filter-var.php
      * @see http://php.net/manual/ru/filter.filters.php
      */
-    public static function filterVar($var, $flag)
+    protected static function filterVar($var, $filter, $options = null)
     {
         return self::mapBool(
-            function ($el) use ($flag)
+            function ($el) use ($filter, $options)
             {
-                return filter_var($el, $flag) !== false;
+                return filter_var($el, $filter, $options) !== false;
             },
             $var
         );
@@ -279,7 +230,7 @@ class Filter
 
     /**
      * Проверка на email
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * @param mixed $var Аргумент или массив аргументов
      * @return bool
      */
     public static function isEmail($var)
@@ -290,18 +241,21 @@ class Filter
 
     /**
      * Проверка на IP
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * @param mixed $var Аргумент или массив аргументов
+     * @param int $options Флаг или комбинация флагов
+     * FILTER_FLAG_IPV4, FILTER_FLAG_IPV6, FILTER_FLAG_NO_PRIV_RANGE, FILTER_FLAG_NO_RES_RANGE
+     * @see http://php.net/manual/ru/filter.filters.flags.php
      * @return bool
      */
-    public static function isIP($var)
+    public static function isIP($var, $options = FILTER_FLAG_IPV4)
     {
-        return self::filterVar($var, FILTER_VALIDATE_IP);
+        return self::filterVar($var, FILTER_VALIDATE_IP, $options);
     }
 
 
     /**
      * Проверка на MAC
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * @param mixed $var Аргумент или массив аргументов
      * @return bool
      */
     public static function isMAC($var)
@@ -312,29 +266,74 @@ class Filter
 
     /**
      * Проверка на url
-     * @param mixed $var Аргумент, или массив аргументов функции
+     * @param mixed $var Аргумент или массив аргументов
+     * @param int $options Флаг или комбинация флагов
+     * FILTER_FLAG_PATH_REQUIRED, FILTER_FLAG_NO_RES_RANGE
+     * @see http://php.net/manual/ru/filter.filters.flags.php
      * @return bool
      */
-    public static function isUrl($var)
+    public static function isUrl($var, $options = null)
     {
-        return self::filterVar($var, FILTER_VALIDATE_URL);
+        return self::filterVar($var, FILTER_VALIDATE_URL, $options);
     }
 
 
     /**
      * Получение русской даты со склоняемым месяцем. Например, 1 января 2016
      * @param mixed $format Формат даты для функции strftime()
-     * @param int $timestamp Время для форматирования. Текущее, если не указано
+     * @param int|string|DateTime $time Время для форматирования. Текущее, если не указано
      * @return string
      * @see http://php.net/manual/ru/function.strftime.php
      */
-    public static function dateRus($format = '%e %bg %Y', $timestamp = null) {
-        setlocale(LC_ALL, 'ru_RU.cp1251');
+    public static function dateRus($format = '%d %bg %Y', $time = null) {
+        if ($time === null) {
+            $time = time();
+        } elseif ($time instanceof DateTime) {
+            $time = $time->getTimestamp();
+        } elseif (is_string($time)) {
+            $time = (new DateTime($time))->getTimestamp();
+        }
+        //setlocale(LC_ALL, 'ru_RU.cp1251');
         $months = ['', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-        $format = str_replace('%bg', $months[date('n', $timestamp)], $format);
-        return strftime($format, $timestamp ?: time());
+        $format = str_replace('%bg', $months[date('n', $time)], $format);
+        return strftime($format, $time);
     }
 
+
+    /**
+     * Проверка на правильну дату и время формата "yyyy-mm-dd hh:mm:ss"
+     * @param mixed $var Аргумент или массив аргументов
+     * @param string $format Формат даты и времени для функции DateTime::createFromFormat
+     * @param string|datetime $from Начало диапазона допустимых значений
+     * @param string|datetime $to Конец диапазона допустимых значений
+     * @todo Доделать диапазон допустимых значений
+     * @see http://php.net/manual/ru/datetime.createfromformat.php
+     * @return bool
+     */
+    public static function isDatetime($var, $format = 'Y-m-d H:i:s', $from = null, $to = null)
+    {
+        $func = function ($el) use ($format, $from, $to)
+        {
+            return DateTime::createFromFormat($format, $el) !== false;
+        };
+        return self::mapBool($func, $var);
+    }
+
+
+    /**
+     * Проверка на правильну дату формата "yyyy-mm-dd". Полностью аналогична isDatetime()
+     * @param mixed $var Аргумент или массив аргументов
+     * @param string $format Формат даты для функции DateTime::createFromFormat.
+     * Параметр не проверяется и, если опрелелить в нём формат не даты, а времени,
+     * (или и даты, и времени) то от строки с соответствующими данными, вернётся положительный результат
+     * @param string|datetime $from Начало диапазона допустимых значений
+     * @param string|datetime $to Конец диапазона допустимых значений
+     * @return bool
+     */
+    public static function isDate($var, $format = 'Y-m-d', $from = null, $to = null)
+    {
+        return self::isDatetime($var, $format, $from, $to);
+    }
 
 
 
@@ -465,19 +464,19 @@ class Filter
 
     /**
      * Проверяет существование в массиве ключа, или массива ключей
-     * @param bool|int|string|array $key Ключ, или массив ключей массива
+     * @param bool|int|string|array $keys Ключ, или массив ключей массива
      * @param array $arr Проверяемый массив
      * @return bool
      */
-    public static function arrayKeysExists($key, array $arr)
+    public static function arrayKeysExists($keys, array $arr)
     {
         $func = function ($el) use ($arr)
         {
             return array_key_exists($el, $arr);
         };
-        return is_array($key)
-            ? self::mapBool($func, $key)
-            : $func($key);
+        return is_array($keys)
+            ? self::mapBool($func, $keys)
+            : $func($keys);
     }
 
 
