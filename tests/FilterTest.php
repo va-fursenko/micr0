@@ -65,12 +65,12 @@ class FilterTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse(Filter::isInteger(5, 10, null));
         $this->assertFalse(Filter::isInteger(5, null, 1));
         $this->assertFalse(Filter::isInteger(-50, -40, -20));
-        $this->assertFalse(Filter::isInteger(null));
         $this->assertFalse(Filter::isInteger(''));
         $this->assertFalse(Filter::isInteger('1a'));
         $this->assertFalse(Filter::isInteger('asdaa'));
         $this->assertFalse(Filter::isInteger(true));
         $this->assertFalse(Filter::isInteger(false));
+        $this->assertFalse(Filter::isInteger(null));
         $this->assertFalse(Filter::isInteger([]));
         $this->assertFalse(Filter::isInteger(['-0.0', '1', '-200', '-1'], -1000, 100 / 13));
         $this->assertFalse(Filter::isInteger([-10, 1, 2, -1], 0, 10));
@@ -212,12 +212,12 @@ class FilterTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse(Filter::isNatural(5, 10));
         $this->assertFalse(Filter::isNatural(5, 10.2, null));
         $this->assertFalse(Filter::isNatural(5.7, null, 1.3));
-        $this->assertFalse(Filter::isNatural(null));
         $this->assertFalse(Filter::isNatural(''));
         $this->assertFalse(Filter::isNatural('1a'));
         $this->assertFalse(Filter::isNatural('asdaa'));
         $this->assertFalse(Filter::isNatural(true));
         $this->assertFalse(Filter::isNatural(false));
+        $this->assertFalse(Filter::isNatural(null));
         $this->assertFalse(Filter::isNatural([]));
         $this->assertFalse(Filter::isNatural([1.1]));
         $this->assertFalse(Filter::isNatural([1, 1.1]));
@@ -244,6 +244,55 @@ class FilterTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(Filter::isNatural(range(1, 1000000), 0, 2000000));
     }
 
+
+
+    public function testIsString()
+    {
+        $this->assertTrue(Filter::isString(''));
+        $this->assertTrue(Filter::isString(' '));
+        $this->assertTrue(Filter::isString('1'));
+        $this->assertTrue(Filter::isString('0'));
+        $this->assertTrue(Filter::isString('1.1'));
+        $this->assertTrue(Filter::isString('-1.1'));
+        $this->assertTrue(Filter::isString('-1,1'));
+        $this->assertTrue(Filter::isString('a'));
+        $this->assertTrue(Filter::isString("\n"));
+        $this->assertTrue(Filter::isString("\r"));
+        $this->assertTrue(Filter::isString("\t"));
+        $this->assertTrue(Filter::isString("\r\n"));
+        $this->assertTrue(Filter::isString("asd\rasd\nasd"));
+        $this->assertTrue(Filter::isString("asd\r\nasd"));
+        $this->assertTrue(Filter::isString("\r\nasd"));
+        $this->assertTrue(Filter::isString("gfghg\r\n"));
+        $this->assertTrue(Filter::isString("\0"));
+        $this->assertTrue(Filter::isString("\0asdas"));
+        $this->assertTrue(Filter::isString("'"));
+        $this->assertTrue(Filter::isString('"'));
+        $ar = [777, 0, true, false, null, 'a', FILE_APPEND, 1.2, 'asdasd'];
+        foreach ($ar as $a) {
+            $this->assertTrue(Filter::isString("$a"));
+        }
+        $this->assertTrue(Filter::isString('asdasgfgdflkafsda'));
+        $this->assertTrue(Filter::isString(str_repeat(' ', 1000)));
+        $this->assertTrue(Filter::isString(['']));
+        $this->assertTrue(Filter::isString(['', 's', '2', '6', '6', '1323234234234', 'sdfsdfsdfs dfsdf']));
+        $this->assertTrue(Filter::isString(['', ' ', '2', 'g', '6', '1323234', 'sdfsdfs sdf']));
+
+        $this->assertFalse(Filter::isString(true));
+        $this->assertFalse(Filter::isString(false));
+        $this->assertFalse(Filter::isString(null));
+        $this->assertFalse(Filter::isString(1));
+        $this->assertFalse(Filter::isString(0));
+        $this->assertFalse(Filter::isString([]));
+        $this->assertFalse(Filter::isString([2]));
+        $this->assertFalse(Filter::isString([2, '']));
+        $this->assertFalse(Filter::isString([true, '']));
+        $this->assertFalse(Filter::isString([false, '']));
+        $this->assertFalse(Filter::isString([null, '']));
+        $this->assertFalse(Filter::isString(['', ' ', '2', 'g', '6', '1323234', 'sdfsdfs sdf', true]));
+
+        $this->assertTrue(Filter::isString(str_repeat('0', 1000000)));
+    }
 
 }
  
