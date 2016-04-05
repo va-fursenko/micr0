@@ -69,10 +69,10 @@ function customErrorHandler($errNo, $errStr, $errFile, $errLine, $errContext = n
         Log::A_PHP_FILE_LINE => $errLine,
         Log::A_SESSION_ID => session_id(),
         Log::A_HTTP_REQUEST_METHOD => $_SERVER['REQUEST_METHOD'],
-        Log::A_HTTP_SERVER_NAME => $_SERVER['SERVER_NAME'],
-        Log::A_HTTP_REQUEST_URI => $_SERVER['REQUEST_URI'],
-        Log::A_HTTP_USER_AGENT => $_SERVER['HTTP_USER_AGENT'],
-        Log::A_HTTP_REMOTE_ADDRESS => $_SERVER['REMOTE_ADDR'],
+        //Log::A_HTTP_SERVER_NAME => isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'console',
+        //Log::A_HTTP_REQUEST_URI => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
+        //Log::A_HTTP_USER_AGENT => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'console',
+        //Log::A_HTTP_REMOTE_ADDRESS => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'console',
     ];
     if ($errContext) {
         $mArr[Log::A_PHP_CONTEXT] = $errContext;

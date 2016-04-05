@@ -278,44 +278,121 @@ class Filter
     }
 
 
+
+
+    /**
+     * Проверка на метку времени
+     * @param mixed $var Аргумент или массив аргументов
+     * @return bool
+     */
+    public static function isTimeStamp($var)
+    {
+        return self::mapBool(
+            function ($el)
+            {
+                return is_numeric($el) && (string)(int)$el === (string)$el && ($el <= PHP_INT_MAX) && ($el >= ~PHP_INT_MAX);
+            },
+            $var
+        );
+    }
+
+
+    /**
+     * Получение таймстампа входной даты
+     * @param mixed $var Параметр, который, предположительно, может быть timestamp
+     * @see http://php.net/manual/ru/class.datetime.php
+     * @return int
+     * @throws Exception В случае передачи чего-то кроме null, (int|string)timestamp, DateTime
+     * или строки, являющейся валидной датой для конструктора DateTime
+     */
+    public static function getTimestamp($var)
+    {
+        if ($var === null) {
+            return time();
+        }
+        if ($var instanceof DateTime) {
+            return $var->getTimestamp();
+        }
+        if (self::isTimeStamp($var)) {
+            return (int)$var;
+        }
+        // В противном случае, ничего не остаётся, как считать параметр строкой с датой
+        // и попытаться создать на её базе объект DateTime или бросить исключение
+        return (new DateTime($var))->getTimestamp();
+    }
+
+
     /**
      * Получение русской даты в произвольном формате, включая склоняемый месяц. Например, 1 января 2016
-     * @param int|string|DateTime $time Время для форматирования. Текущее, если не указано
+     * Устанавливает русскую локаль
+     * @param null|int|string|DateTime $time Время для форматирования. Выбирается текущее, если null или не указано
      * @param mixed $format Формат даты для функции strftime()
-     * @return string
      * @see http://php.net/manual/ru/function.strftime.php
+     * @see http://php.net/manual/ru/class.datetime.php
+     * @return string
+     * @throws Exception В случае передачи в $time чего-то кроме null, (int|string)timestamp, DateTime
+     * или строки, являющейся валидной датой для конструктора DateTime
      */
-    public static function dateRus($time = null, $format = '%d %bg %Y') {
-        if ($time === null) {
-            $time = time();
-        } elseif ($time instanceof DateTime) {
-            $time = $time->getTimestamp();
-        } elseif (is_string($time)) {
-            $time = (new DateTime($time))->getTimestamp();
-        }
+    public static function getDatetime($time = null, $format = '%d %bg %Y') {
         setlocale(LC_ALL, 'ru_RU.cp1251');
-        $months = ['', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-        $format = str_replace('%bg', $months[date('n', $time)], $format);
+        $time = self::getTimestamp($time);
+        $format = str_replace(
+            '%bg',
+            ['','января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][date('n', $time)],
+            $format
+        );
         return strftime($format, $time);
     }
 
 
     /**
-     * Проверка на правильну дату и время формата "yyyy-mm-dd hh:mm:ss"
+     * Проверка на правильну дату и время формата и вхождение в диапазон, если указаны $from или $to
+     * Передавать один год (больше 999 или '999') бесполезно, т.к. он будет считаться таймстампом независимо от формата
      * @param mixed $var Аргумент или массив аргументов
-     * @param string $format Формат даты и времени для функции DateTime::createFromFormat
-     * @param string|datetime $from Начало диапазона допустимых значений
-     * @param string|datetime $to Конец диапазона допустимых значений
-     * @todo Доделать диапазон допустимых значений
+     * @param bool|string $format Формат даты и времени для функции DateTime::createFromFormat
+     * Не учитывается, если пустая строка, null или false. Пример: 'Y-m-d H:i:s' соответствует '2004-03-25 22:37:44'
+     * @param bool|string|datetime|int $from Начало диапазона допустимых значений.
+     * Текущее время, если null. Не проверяется, если false или не указано
+     * @param bool|string|datetime|int $to Конец диапазона допустимых значений.
+     * Текущее время, если null. Не проверяется, если false или не указано
      * @see http://php.net/manual/ru/datetime.createfromformat.php
      * @return bool
+     * @todo Какой-то пиздец. Пропускается пустая строка и т.п. Нужно разобраться, как всё поправить
      */
-    public static function isDatetime($var, $format = 'Y-m-d H:i:s', $from = null, $to = null)
+    public static function isDatetime($var, $format = false, $from = false, $to = false)
     {
+        $from = $from !== false ? self::getTimestamp($from) : $from;
+        $to = $to !== false ? self::getTimestamp($to) : $to;
+
+        // Функция непосредственной проверки на время и/или дату
         $func = function ($el) use ($format, $from, $to)
         {
-            return DateTime::createFromFormat($format, $el) !== false;
+            try {
+                // Проверяем дату на корректность
+                if (is_string($el) && !is_numeric($el) || (int)$el < 1000) {
+                    $result = !$format
+                        ? new DateTime($el)
+                        : DateTime::createFromFormat($format, $el);
+                    if ($result !== false) {
+                        $result = $result->getLastErrors();
+                        $result = $result['warning_count'] == 0 && $result['error_count'] == 0;
+                    }
+                } else {
+                    $result = true;
+                }
+                // Если дата корректна и задан диапазон, проверяем его
+                if ($result && ($from !== false || $to !== false)) {
+                    $el = self::getTimestamp($el);
+                    return ($from === false || $el >= $from) && ($to === false || $el <= $to);
+                }
+                return $result;
+
+            // Не позволяем выбросить исключение в чекере
+            } catch (Exception $e) {
+                return false;
+            }
         };
+
         return self::mapBool($func, $var);
     }
 
