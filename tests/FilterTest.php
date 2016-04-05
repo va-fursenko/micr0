@@ -579,20 +579,20 @@ class FilterTest extends PHPUnit_Framework_TestCase
 
     public function testDateRus()
     {
-        $this->assertEquals('01 января 2000',   Filter::dateRus('%d %bg %Y', new DateTime('2000-01-01')));
-        $this->assertEquals('01 января 2000',   Filter::dateRus('%d %bg %Y', (new DateTime('2000-01-01'))->getTimestamp()));
-        $this->assertEquals(' 1 января 2000',   Filter::dateRus('%e %bg %Y', '2000-01-01'));
-        $this->assertEquals(' 2 февраля 2001',  Filter::dateRus('%e %bg %Y', '2001-02-02'));
-        $this->assertEquals(' 4 марта 2002',    Filter::dateRus('%e %bg %Y', '2002-03-04'));
-        $this->assertEquals(' 6 апреля 2003',   Filter::dateRus('%e %bg %Y', '2003-04-06'));
-        $this->assertEquals(' 8 мая 2004',      Filter::dateRus('%e %bg %Y', '2004-05-08'));
-        $this->assertEquals('10 июня 2005',     Filter::dateRus('%e %bg %Y', '2005-06-10'));
-        $this->assertEquals('12 июля 2006',     Filter::dateRus('%e %bg %Y', '2006-07-12'));
-        $this->assertEquals('14 августа 2007',  Filter::dateRus('%e %bg %Y', '2007-08-14'));
-        $this->assertEquals('16 сентября 2008', Filter::dateRus('%e %bg %Y', '2008-09-16'));
-        $this->assertEquals('18 октября 2009',  Filter::dateRus('%e %bg %Y', '2009-10-18'));
-        $this->assertEquals('20 ноября 2010',   Filter::dateRus('%e %bg %Y', '2010-11-20'));
-        $this->assertEquals('31 декабря 2011',  Filter::dateRus('%e %bg %Y', '2011-12-31'));
+        $this->assertEquals('01 января 2000',   Filter::dateRus(new DateTime('2000-01-01')), '%d %bg %Y');
+        $this->assertEquals('01 января 2000',   Filter::dateRus((new DateTime('2000-01-01'))->getTimestamp()), '%d %bg %Y');
+        $this->assertEquals(' 1 января 2000',   Filter::dateRus('2000-01-01'), '%d %bg %Y');
+        $this->assertEquals(' 2 февраля 2001',  Filter::dateRus('2001-02-02'), '%d %bg %Y');
+        $this->assertEquals(' 4 марта 2002',    Filter::dateRus('2002-03-04'), '%e %bg %Y');
+        $this->assertEquals(' 6 апреля 2003',   Filter::dateRus('2003-04-06'), '%e %bg %Y');
+        $this->assertEquals(' 8 мая 2004',      Filter::dateRus('2004-05-08'), '%e %bg %Y');
+        $this->assertEquals('10 июня 2005',     Filter::dateRus('2005-06-10'), '%e %bg %Y');
+        $this->assertEquals('12 июля 2006',     Filter::dateRus('2006-07-12'), '%e %bg %Y');
+        $this->assertEquals('14 августа 2007',  Filter::dateRus('2007-08-14'), '%e %bg %Y');
+        $this->assertEquals('16 сентября 2008', Filter::dateRus('2008-09-16'), '%e %bg %Y');
+        $this->assertEquals('18 октября 2009',  Filter::dateRus('2009-10-18'), '%e %bg %Y');
+        $this->assertEquals('20 ноября 2010',   Filter::dateRus('2010-11-20'), '%e %bg %Y');
+        $this->assertEquals('31 декабря 2011',  Filter::dateRus('2011-12-31'), '%e %bg %Y');
     }
 }
  

@@ -279,13 +279,13 @@ class Filter
 
 
     /**
-     * Получение русской даты со склоняемым месяцем. Например, 1 января 2016
-     * @param mixed $format Формат даты для функции strftime()
+     * Получение русской даты в произвольном формате, включая склоняемый месяц. Например, 1 января 2016
      * @param int|string|DateTime $time Время для форматирования. Текущее, если не указано
+     * @param mixed $format Формат даты для функции strftime()
      * @return string
      * @see http://php.net/manual/ru/function.strftime.php
      */
-    public static function dateRus($format = '%d %bg %Y', $time = null) {
+    public static function dateRus($time = null, $format = '%d %bg %Y') {
         if ($time === null) {
             $time = time();
         } elseif ($time instanceof DateTime) {
@@ -293,7 +293,7 @@ class Filter
         } elseif (is_string($time)) {
             $time = (new DateTime($time))->getTimestamp();
         }
-        //setlocale(LC_ALL, 'ru_RU.cp1251');
+        setlocale(LC_ALL, 'ru_RU.cp1251');
         $months = ['', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         $format = str_replace('%bg', $months[date('n', $time)], $format);
         return strftime($format, $time);
