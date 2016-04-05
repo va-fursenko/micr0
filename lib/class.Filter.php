@@ -332,6 +332,7 @@ class Filter
      * @return string
      * @throws Exception В случае передачи в $time чего-то кроме null, (int|string)timestamp, DateTime
      * или строки, являющейся валидной датой для конструктора DateTime
+     * @throws error E_NOTICE, и/или ошибку уровня E_STRICT или E_WARNING при неправильных настройках временной зоны
      */
     public static function getDatetime($time = null, $format = '%d %bg %Y') {
         setlocale(LC_ALL, 'ru_RU.cp1251');
@@ -357,7 +358,6 @@ class Filter
      * Текущее время, если null. Не проверяется, если false или не указано
      * @see http://php.net/manual/ru/datetime.createfromformat.php
      * @return bool
-     * @todo Какой-то пиздец. Пропускается пустая строка и т.п. Нужно разобраться, как всё поправить
      */
     public static function isDatetime($var, $format = false, $from = false, $to = false)
     {
@@ -368,8 +368,8 @@ class Filter
         $func = function ($el) use ($format, $from, $to)
         {
             try {
-                // Проверяем дату на корректность
-                if (is_string($el) && !is_numeric($el) || (int)$el < 1000) {
+                // Проверяем строковую дату на корректность. Пропускаем на таймстампы в строке
+                if (is_string($el) && !is_numeric($el) && $el !== '') {
                     $result = !$format
                         ? new DateTime($el)
                         : DateTime::createFromFormat($format, $el);
@@ -377,9 +377,16 @@ class Filter
                         $result = $result->getLastErrors();
                         $result = $result['warning_count'] == 0 && $result['error_count'] == 0;
                     }
-                } else {
+
+                // Таймстампы, таймстампы в строке и объекты DateTime допускаем
+                } elseif ((is_numeric($el) && (int)$el == $el) || ($el instanceof DateTime)) {
                     $result = true;
+
+                // Всё остальное отбрасываем
+                } else {
+                    return false;
                 }
+
                 // Если дата корректна и задан диапазон, проверяем его
                 if ($result && ($from !== false || $to !== false)) {
                     $el = self::getTimestamp($el);
@@ -441,7 +448,7 @@ class Filter
      * @param int $flags Способ обработки кавычек, аналогичен второму параметру htmlspecialchars_decode
      * @return string
      */
-    public function htmlDecode($var, $flags = ENT_QUOTES)
+    public static function htmlDecode($var, $flags = ENT_QUOTES)
     {
         $flags = $flags !== null ?: ENT_COMPAT | ENT_HTML401;
         return self::map(
@@ -455,7 +462,7 @@ class Filter
 
 
     /**
-     * Экранирование спесцимволов в стиле языка С
+     * Экранирование спесцимволов
      * @param mixed $var Обрабатываемая строка или массив строк
      * @return mixed
      */
@@ -472,7 +479,7 @@ class Filter
 
 
     /**
-     * Отмена экранирования спесцимволов в стиле языка С
+     * Отмена экранирования спесцимволов
      * @param mixed $var Обрабатываемая строка или массив строк
      * @return mixed
      */

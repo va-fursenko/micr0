@@ -41,8 +41,8 @@ $content = 'Hello, world!';
 $var = DateTime::createFromFormat('Y-m-d H:i:s', '2007-02-29 12:24:36');
 
 
-var_dump(Filter::isDatetime(''));
-//var_dump('-10000000000', Filter::isDatetime(10000000000));
+var_dump(Filter::slashesAdd("A\"B\"'C'"));
+//var_dump('-1000000000', Filter::getDatetime(-1000000000));
 
 
 $var = Filter::getDatetime('2005', '%Y');

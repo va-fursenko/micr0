@@ -577,7 +577,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
     }
 
 
-    public function testDateRus()
+    public function testDatetime()
     {
         $this->assertEquals('01 января 2000',   Filter::getDatetime(new DateTime('2000-01-01'), '%d %bg %Y'));
         $this->assertEquals('01 января 2000',   Filter::getDatetime((new DateTime('2000-01-01'))->getTimestamp(), '%d %bg %Y'));
@@ -594,14 +594,22 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('20 ноября 2010',   Filter::getDatetime('2010-11-20', '%e %bg %Y'));
         $this->assertEquals('31 декабря 2011',  Filter::getDatetime('2011-12-31', '%e %bg %Y'));
         $this->assertEquals(' 9 мая',           Filter::getDatetime('2015-05-09', '%e %bg'));
-
         $this->assertEquals(' 5 апреля 2016',   Filter::getDatetime('1459855490', '%e %bg %Y'));
         $this->assertEquals('01 января 1970',   Filter::getDatetime('1000'));
         $this->assertEquals('01 января 1970',   Filter::getDatetime('2000'));
         $this->assertEquals('01 января 1970',   Filter::getDatetime('9000'));
         $this->assertEquals('01 августа 2005',  Filter::getDatetime('2005-08'));
         $this->assertEquals('31 октября 1966',  Filter::getDatetime(-100000000));
-        $this->assertEquals('10 февраля 1653',  Filter::getDatetime(-1000000000));
+        $this->assertEquals('25 апреля 1938',   Filter::getDatetime(-1000000000));
+
+        $this->expectExceptionCode('Filter::getDatetime(true)');
+        $this->expectExceptionCode("Filter::getDatetime('')");
+        $this->expectExceptionCode("Filter::getDatetime(false)");
+        $this->expectExceptionCode("Filter::getDatetime(true)");
+        $this->expectExceptionCode("Filter::getDatetime([])");
+        $this->expectExceptionCode("Filter::getDatetime([1])");
+        $this->expectExceptionCode("Filter::getDatetime(['2005-08'])");
+        $this->expectExceptionCode("Filter::getDatetime(['2005-08', -1000000000])");
     }
 
 
@@ -609,24 +617,82 @@ class FilterTest extends PHPUnit_Framework_TestCase
     {
         $this->assertTrue(Filter::isDatetime('2005-08'));
         $this->assertTrue(Filter::isDatetime('2005-08-24'));
+        $this->assertTrue(Filter::isDatetime('1900-09-27'));
         $this->assertTrue(Filter::isDatetime('2005-08-24 12:35'));
         $this->assertTrue(Filter::isDatetime('2005-08-24 23:35:48'));
-        $this->assertTrue(Filter::isDatetime('1000'));
+        $this->assertTrue(Filter::isDatetime(2));
+        $this->assertTrue(Filter::isDatetime('200'));
+        $this->assertTrue(Filter::isDatetime('999'));
+        $this->assertTrue(Filter::isDatetime(1000));
+        $this->assertTrue(Filter::isDatetime(-1000));
         $this->assertTrue(Filter::isDatetime('9000'));
-        $this->assertTrue(Filter::isDatetime('1459855490'));
+        $this->assertTrue(Filter::isDatetime('-1459855490'));
         $this->assertTrue(Filter::isDatetime(1459855490));
-        $this->assertTrue(Filter::isDatetime([1459855490, '1459755490', 1259855490, '2005-08-24 23:35:48', '2005-08-24']));
-
+        $this->assertTrue(Filter::isDatetime([1459855490, '1459755490', '-1459755490', 1259855490, -1259855490, '2005-08-24 23:35:48', '2005-08-24']));
+        // Да идите нахуй со своими функция! Сука-аа, таймзону она нашла и теперь это нормальная дата...
+        $this->assertTrue(Filter::isDatetime('a'));
 
         $this->assertFalse(Filter::isDatetime('2005-08-24 23'));
-        $this->assertFalse(Filter::isDatetime('2'));
-        $this->assertFalse(Filter::isDatetime('200'));
-        $this->assertFalse(Filter::isDatetime('999'));
         $this->assertFalse(Filter::isDatetime(''));
-        $this->assertFalse(Filter::isDatetime('a'));
+        $this->assertFalse(Filter::isDatetime(1.2));
         $this->assertFalse(Filter::isDatetime(true));
         $this->assertFalse(Filter::isDatetime(false));
         $this->assertFalse(Filter::isDatetime(null));
+        $this->assertFalse(Filter::isDatetime([null, '2005-08-24', '1900-09-27']));
+    }
+
+
+    public function testHtmlEncode()
+    {
+        $this->assertEquals('Hello, &lt;a href="http://google.ru"&gt;world!&lt;/a&gt;&gt;', Filter::htmlEncode('Hello, <a href="http://google.ru">world!</a>>'));
+        $this->assertEquals('A&lt;a&gt;B&lt;/a&gt;C', Filter::htmlEncode('A<a>B</a>C'));
+        $this->assertEquals(['A&lt;a&gt;B&lt;/a&gt;C'], Filter::htmlEncode(['A<a>B</a>C']));
+        $this->assertEquals(['A&lt;a&gt;B&lt;/a&gt;C', 'D&lt;a&gt;E&lt;/a&gt;F', 'G&lt;a&gt;H&lt;/a&gt;I'], Filter::htmlEncode(['A<a>B</a>C', 'D<a>E</a>F', 'G<a>H</a>I']));
+    }
+
+
+    public function testHtmlDecode()
+    {
+        $this->assertEquals('Hello, <a href="http://google.ru">world!</a>', Filter::htmlDecode('Hello, &lt;a href="http://google.ru"&gt;world!&lt;/a&gt;'));
+        $this->assertEquals('A<a>B</a>C', Filter::htmlDecode('A&lt;a&gt;B&lt;/a&gt;C'));
+        $this->assertEquals(['A<a>B</a>C'], Filter::htmlDecode(['A&lt;a&gt;B&lt;/a&gt;C']));
+        $this->assertEquals(['A<a>B</a>C', 'D<a>E</a>F', 'G<a>H</a>I'], Filter::htmlDecode(['A&lt;a&gt;B&lt;/a&gt;C', 'D&lt;a&gt;E&lt;/a&gt;F', 'G&lt;a&gt;H&lt;/a&gt;I']));
+    }
+
+
+    public function testSlashesAdd()
+    {
+        $this->assertEquals(1, Filter::slashesAdd(1));
+        $this->assertEquals('', Filter::slashesAdd(''));
+        $this->assertEquals([1], Filter::slashesAdd([1]));
+        $this->assertEquals([1, true], Filter::slashesAdd([1, true]));
+        $this->assertEquals([], Filter::slashesAdd([]));
+        $this->assertEquals(true, Filter::slashesAdd(true));
+        $this->assertEquals(false, Filter::slashesAdd(false));
+        $this->assertEquals(null, Filter::slashesAdd(null));
+
+        $this->assertEquals('AB', Filter::slashesAdd('AB'));
+        $this->assertEquals('A\"B\"C', Filter::slashesAdd('A"B"C'));
+        $this->assertEquals("A\\\"B\\\"\\'C\\'", Filter::slashesAdd("A\"B\"'C'"));
+        $this->assertEquals(['AB', "A\\\"B\\\"\\'C\\'", 'A\"B\"C'], Filter::slashesAdd(['AB', "A\"B\"'C'", 'A"B"C']));
+    }
+
+
+    public function testSlashesStrip()
+    {
+        $this->assertEquals(1, Filter::slashesStrip(1));
+        $this->assertEquals('', Filter::slashesStrip(''));
+        $this->assertEquals([1], Filter::slashesStrip([1]));
+        $this->assertEquals([1, true], Filter::slashesStrip([1, true]));
+        $this->assertEquals([], Filter::slashesStrip([]));
+        $this->assertEquals(true, Filter::slashesStrip(true));
+        $this->assertEquals(false, Filter::slashesStrip(false));
+        $this->assertEquals(null, Filter::slashesStrip(null));
+
+        $this->assertEquals('AB', Filter::slashesStrip('AB'));
+        $this->assertEquals('A"B"C', Filter::slashesStrip('A\"B\"C'));
+        $this->assertEquals("A\"B\"'C'", Filter::slashesStrip("A\\\"B\\\"\\'C\\'"));
+        $this->assertEquals(['AB', "A\"B\"'C'", 'A"B"C'], Filter::slashesStrip(['AB', "A\\\"B\\\"\\'C\\'", 'A"B"C']));
     }
 }
  
