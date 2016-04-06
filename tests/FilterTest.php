@@ -581,8 +581,8 @@ class FilterTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals('01 января 2000',   Filter::dateRus(new DateTime('2000-01-01')), '%d %bg %Y');
         $this->assertEquals('01 января 2000',   Filter::dateRus((new DateTime('2000-01-01'))->getTimestamp()), '%d %bg %Y');
-        $this->assertEquals(' 1 января 2000',   Filter::dateRus('2000-01-01'), '%d %bg %Y');
-        $this->assertEquals(' 2 февраля 2001',  Filter::dateRus('2001-02-02'), '%d %bg %Y');
+        $this->assertEquals(' 1 января 2000',   Filter::dateRus('2000-01-01'), '%e %bg %Y');
+        $this->assertEquals(' 2 февраля 2001',  Filter::dateRus('2001-02-02'), '%e %bg %Y');
         $this->assertEquals(' 4 марта 2002',    Filter::dateRus('2002-03-04'), '%e %bg %Y');
         $this->assertEquals(' 6 апреля 2003',   Filter::dateRus('2003-04-06'), '%e %bg %Y');
         $this->assertEquals(' 8 мая 2004',      Filter::dateRus('2004-05-08'), '%e %bg %Y');
@@ -593,6 +593,23 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('18 октября 2009',  Filter::dateRus('2009-10-18'), '%e %bg %Y');
         $this->assertEquals('20 ноября 2010',   Filter::dateRus('2010-11-20'), '%e %bg %Y');
         $this->assertEquals('31 декабря 2011',  Filter::dateRus('2011-12-31'), '%e %bg %Y');
+    }
+
+
+
+    public function testStrTrim()
+    {
+        $this->assertEquals('', Filter::strTrim(''));
+        $this->assertEquals([''], Filter::strTrim(['']));
+        $this->assertEquals('asa', Filter::strTrim('  asa    '));
+        $this->assertEquals(['asa'], Filter::strTrim(['  asa    ']));
+        $this->assertEquals(['asa', '', 'asda', '121'], Filter::strTrim(['  asa    ', '', 'asda    ', '    121']));
+        $this->assertEquals('asa', Filter::strTrim('  asa    ', Filter::STR_TRIM_BOTH));
+        $this->assertEquals('asa', Filter::strTrim('  asa    ', Filter::STR_TRIM_BOTH));
+        $this->assertEquals('asa    ', Filter::strTrim('  asa    ', Filter::STR_TRIM_LEFT));
+        $this->assertEquals('  asa', Filter::strTrim('  asa    ', Filter::STR_TRIM_RIGHT));
+        $this->assertEquals('asa', Filter::strTrim('asa'));
+        $this->assertEquals('asa', Filter::strTrim('_-___asa_--', Filter::STR_TRIM_BOTH, "_-"));
     }
 }
  

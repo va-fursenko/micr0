@@ -23,9 +23,9 @@ class Filter
     /**
      * @const Константы для метода strTrim(), определяющие направление обрезки
      */
-    const TRIM_LEFT  = 'ltrim';
-    const TRIM_BOTH  = 'trim';
-    const TRIM_RIGHT = 'rtrim';
+    const STR_TRIM_LEFT  = 'ltrim';
+    const STR_TRIM_BOTH  = 'trim';
+    const STR_TRIM_RIGHT = 'rtrim';
 
 
     /**
@@ -570,7 +570,7 @@ class Filter
      * @param string $charMask Набор удаляемых сисволов. Диапазон можно указывать через ..
      * @return string
      */
-    public static function strTrim($var, callable $direct = self::TRIM_BOTH, $charMask = " \t\n\r\0\x0B")
+    public static function strTrim($var, callable $direct = self::STR_TRIM_BOTH, $charMask = " \t\n\r\0\x0B")
     {
         $func = function ($el) use ($direct, $charMask)
         {
