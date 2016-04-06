@@ -694,5 +694,132 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals("A\"B\"'C'", Filter::slashesStrip("A\\\"B\\\"\\'C\\'"));
         $this->assertEquals(['AB', "A\"B\"'C'", 'A"B"C'], Filter::slashesStrip(['AB', "A\\\"B\\\"\\'C\\'", 'A"B"C']));
     }
+
+
+    public function testArrayReindex()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 114, 'name' => 'Robinson', 'last_name' => 'Cruso'],
+        ];
+
+        $dataArrayReindex = [
+            5   => ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            12  => ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            67  => ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            7   => ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            114 => ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+        ];
+        $this->assertArrayHasKey(1, $dataArray);
+        $this->assertArrayHasKey('12', Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey(12, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey(67, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey('Bob', Filter::arrayReindex($dataArray, 'name'));
+        $this->assertArrayNotHasKey(0, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayNotHasKey(2, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertEquals($dataArrayReindex, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertEquals([], Filter::arrayReindex([], 'id'));
+        $this->assertEquals([], Filter::arrayReindex($dataArray, 'id2'));
+        $this->assertEquals([], Filter::arrayReindex([1], 'id'));
+        $this->assertEquals([], Filter::arrayReindex($dataArray, ''));
+        $this->assertEquals([], Filter::arrayReindex([], ''));
+    }
+
+
+    public function testArrayExtract()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+        $this->assertEquals([5, 12, 67, 7, 114, 119], Filter::arrayExtract($dataArray, 'id'));
+        $this->assertEquals(['John', 'Samantha', 'Bob', 'Mike', 'Olaf'], Filter::arrayExtract($dataArray, 'name'));
+        $this->assertEquals([], Filter::arrayExtract($dataArray, 'name2'));
+        $this->assertEquals([], Filter::arrayExtract([], 'name'));
+        $this->assertEquals([], Filter::arrayExtract([], ''));
+        $this->assertEquals([], Filter::arrayExtract($dataArray, ''));
+    }
+
+
+    public function testArrayKeysExists()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+
+        $dataArrayAssoc = [
+            'John'      => ['id' => 5,   'name' => 'John',     'last_name' => 'Smith'],
+            'Samantha'  => ['id' => 12,  'name' => 'Samantha', 'last_name' => 'Johnson'],
+            'Bob'       => ['id' => 67,  'name' => 'Bob',      'last_name' => 'Thornton'],
+            'Mike'      => ['id' => 7,   'name' => 'Mike',     'last_name' => 'Pratt'],
+            'Olaf'      => ['id' => 114, 'name' => 'Olaf',     'last_name' => 'Snow'],
+            119         => ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+            '1.2'       => ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+        $this->assertTrue(Filter::arrayKeysExists(0, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists(1, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists(5, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists([0, 1, 5], $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists('Bob', $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf', '1.2'], $dataArrayAssoc));
+
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', 1.2], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', true], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', ''], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob', 118, 'Olaf'], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists([], $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists([0, 1, 5], []));
+        $this->assertFalse(Filter::arrayKeysExists(null, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists(true, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists(false, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists('', $dataArray));
+    }
+
+
+    public function testStrReplace()
+    {
+        $this->assertEquals('', Filter::strReplace('', '', ''));
+        $this->assertEquals('10 + 3 = 13', Filter::strReplace('12', '13', '10 + 3 = 12'));
+        $this->assertEquals('10 + 3 = 13;', Filter::strReplace('12', '13', '10 + 3 = 12;'));
+        $this->assertEquals('Odd numbers are 3, 5, 9, 17, 33', Filter::strReplace([2, 4, 8, 16, 32], [3, 5, 9, 17, 33], 'Odd numbers are 2, 4, 8, 16, 32'));
+        $this->assertEquals('Even numbers are 2, 4, 8, 16, 32', Filter::strReplace('', '', 'Even numbers are 2, 4, 8, 16, 32'));
+        $this->assertEquals('Чётные числа: 2, 4, 8, 16, 32', Filter::strReplace('ттт', 'т', 'Чётттные числа: 2, 4, 8, 16, 32'));
+        $this->assertEquals(['Чётные числа', 'Audi-TT', 'Крот плохой'], Filter::strReplace(['ттт', 'ttt', 'хороший'], ['т', 'TT', 'плохой'], ['Чётттные числа', 'Audi-ttt', 'Кроттт хороший']));
+    }
+
+
+    public function testStrPad()
+    {
+        $this->assertEquals('abc    ', Filter::strPad('abc', 7, ' '));
+        $this->assertEquals('abc', Filter::strPad('abc', 3, ' '));
+        $this->assertEquals('abc', Filter::strPad('abc', 2, ' '));
+        $this->assertEquals('abc- - ', Filter::strPad('abc', 7, '- '));
+        $this->assertEquals('    abc', Filter::strPad('abc', 7, ' ', STR_PAD_LEFT));
+        $this->assertEquals('    abc    ', Filter::strPad('abc', 11, ' ', STR_PAD_BOTH));
+        $this->assertEquals('abcdefg', Filter::strPad('abcdefg', 5, ' ', STR_PAD_BOTH));
+        $this->assertEquals('abc-  -', Filter::strPad('abc', 7, '-  ', STR_PAD_RIGHT));
+        $this->assertEquals('1231abc', Filter::strPad('abc', 7, '123', STR_PAD_LEFT));
+        $this->assertEquals(['12abc12', '123a123', '1231231', 'aassvvccssaass'], Filter::strPad(['abc', 'a', '', 'aassvvccssaass'], 7, '123', STR_PAD_BOTH));
+        $this->assertEquals('1      ', Filter::strPad(true, 7));
+        $this->assertEquals('       ', Filter::strPad(false, 7));
+        $this->assertEquals('       ', Filter::strPad(null, 7));
+        $this->assertEquals([], Filter::strPad([], 7));
+    }
 }
  

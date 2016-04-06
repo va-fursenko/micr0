@@ -520,7 +520,6 @@ class Filter
 
     /**
      * Выбирает из двухмерного массива множество значений столбца
-     * @todo Как-то коряво смотрится
      * @param array $arr Исходный массив
      * @param string $index Индекс столбца
      * @param bool $arrayReindex Флаг, указывающий та то, что индексация результата будет проведена значениями полученного массива
@@ -529,14 +528,12 @@ class Filter
     public static function arrayExtract(array $arr, $index, $arrayReindex = false)
     {
         $result = [];
-        if ($arrayReindex) {
-            foreach ($arr as $el) {
+        foreach ($arr as $el) {
+            if ($arrayReindex) {
                 if (isset($el[$index]) && !isset($result[$el[$index]])) {
                     $result[$el[$index]] = $el[$index];
                 }
-            }
-        } else {
-            foreach ($arr as $el) {
+            } else {
                 if (isset($el[$index]) && (array_search($el[$index], $result) === false)) {
                     $result[] = $el[$index];
                 }
@@ -556,7 +553,7 @@ class Filter
     {
         $func = function ($el) use ($arr)
         {
-            return array_key_exists($el, $arr);
+            return (is_string($el) || is_int($el)) && array_key_exists($el, $arr);
         };
         return is_array($keys)
             ? self::mapBool($func, $keys)
@@ -622,8 +619,8 @@ class Filter
             return str_pad($el, $padLength, $padStr, $direct);
         };
         return is_array($var)
-            ? $func($var)
-            : self::map($func, $var);
+            ? self::map($func, $var)
+            : $func($var);
     }
 
 
