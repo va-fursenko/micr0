@@ -37,7 +37,20 @@ $content = 'Hello, world!';
 //$db = new Db(CONFIG::DB_DSN, CONFIG::DB_USER, CONFIG::DB_PASSWORD);
 //var_dump($db->selectOne("SELECT value FROM system_parameters"));
 
-var_dump(Filter::dateRus((new DateTime('2000-01-01'))->getTimestamp(), '%e %bg %Y'));
+
+//var_dump(Filter::isDatetime('2006-03-31', ''));
+$var = DateTime::createFromFormat('Y-m-d H:i:s', '2007-02-29 12:24:36');
+
+
+//var_dump(Filter::slashesAdd("A\"B\"'C'"));
+//var_dump('-1000000000', Filter::getDatetime(-1000000000));
+
+
+$var = Filter::getDatetime('2005', '%Y');
+//var_dump($var);
+//var_dump($var->getLastErrors());
+
+var_dump(Filter::strTrim(['']));
 
 
 $time = microtime(true) - $start;

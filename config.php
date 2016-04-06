@@ -10,7 +10,7 @@
 
 
 /** @const Хост */
-define('HOST', 'http://' . $_SERVER['HTTP_HOST'] . '/');
+define('HOST', 'http://' . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '') . '/');
 
 
 

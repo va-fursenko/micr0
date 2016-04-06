@@ -92,7 +92,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isInteger([1, 1, 0], 2, 1));
         $this->assertFalse(Filter::isInteger(function ($num) { return $num * 2;}));
 
-        $this->assertTrue(Filter::isInteger(range(1, 1000000), 0, 2000000));
+        //$this->assertTrue(Filter::isInteger(range(1, 1000000), 0, 2000000));
     }
 
 
@@ -169,7 +169,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isNumeric(new Filter(), 2, 10));
         $this->assertFalse(Filter::isNumeric(function ($num) { return $num * 2;}));
 
-        $this->assertTrue(Filter::isNumeric(range(1, 1000000), 0, 2000000));
+        //$this->assertTrue(Filter::isNumeric(range(1, 1000000), 0, 2000000));
     }
 
 
@@ -245,7 +245,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isNatural(new Filter(), 2, 10));
         $this->assertFalse(Filter::isNatural(function ($num) { return $num * 2;}));
 
-        $this->assertTrue(Filter::isNatural(range(1, 1000000), 0, 2000000));
+        //$this->assertTrue(Filter::isNatural(range(1, 1000000), 0, 2000000));
     }
 
 
@@ -295,7 +295,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isString(['', ' ', '2', 'g', '6', '1323234', 'sdfsdfs sdf', true]));
         $this->assertFalse(Filter::isString(function ($num) { return $num * 2;}));
 
-        $this->assertTrue(Filter::isString(str_repeat('0', 1000000)));
+        //$this->assertTrue(Filter::isString(str_repeat('0', 1000000)));
     }
 
 
@@ -354,7 +354,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isArray(function ($num) { return [$num, $num];}));
         $this->assertFalse(Filter::isArray(['1', '2', '3'], [2, 3, 5], [3, true, null, false, new Filter()], [], 2));
 
-        $this->assertTrue(Filter::isArray(range(1, 1000000)));
+        //$this->assertTrue(Filter::isArray(range(1, 1000000)));
     }
 
 
@@ -388,8 +388,8 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertFalse(Filter::isBool([false, false, false, true, false, false, 1, true, false]));
         $this->assertFalse(Filter::isBool([true, false, true, true, false, false, '', true, true]));
 
-        $this->assertTrue(Filter::isBool(array_merge(array_pad([], 500000, true), array_pad([], 500000, false))));
-        $this->assertFalse(Filter::isBool(array_merge(array_pad([], 500000, true), [1])));
+        //$this->assertTrue(Filter::isBool(array_merge(array_pad([], 500000, true), array_pad([], 500000, false))));
+        //$this->assertFalse(Filter::isBool(array_merge(array_pad([], 500000, true), [1])));
     }
 
 
@@ -577,22 +577,264 @@ class FilterTest extends PHPUnit_Framework_TestCase
     }
 
 
-    public function testDateRus()
+    public function testDatetime()
     {
-        $this->assertEquals('01 января 2000',   Filter::dateRus(new DateTime('2000-01-01')), '%d %bg %Y');
-        $this->assertEquals('01 января 2000',   Filter::dateRus((new DateTime('2000-01-01'))->getTimestamp()), '%d %bg %Y');
-        $this->assertEquals(' 1 января 2000',   Filter::dateRus('2000-01-01'), '%e %bg %Y');
-        $this->assertEquals(' 2 февраля 2001',  Filter::dateRus('2001-02-02'), '%e %bg %Y');
-        $this->assertEquals(' 4 марта 2002',    Filter::dateRus('2002-03-04'), '%e %bg %Y');
-        $this->assertEquals(' 6 апреля 2003',   Filter::dateRus('2003-04-06'), '%e %bg %Y');
-        $this->assertEquals(' 8 мая 2004',      Filter::dateRus('2004-05-08'), '%e %bg %Y');
-        $this->assertEquals('10 июня 2005',     Filter::dateRus('2005-06-10'), '%e %bg %Y');
-        $this->assertEquals('12 июля 2006',     Filter::dateRus('2006-07-12'), '%e %bg %Y');
-        $this->assertEquals('14 августа 2007',  Filter::dateRus('2007-08-14'), '%e %bg %Y');
-        $this->assertEquals('16 сентября 2008', Filter::dateRus('2008-09-16'), '%e %bg %Y');
-        $this->assertEquals('18 октября 2009',  Filter::dateRus('2009-10-18'), '%e %bg %Y');
-        $this->assertEquals('20 ноября 2010',   Filter::dateRus('2010-11-20'), '%e %bg %Y');
-        $this->assertEquals('31 декабря 2011',  Filter::dateRus('2011-12-31'), '%e %bg %Y');
+        $this->assertEquals('01 января 2000',   Filter::getDatetime(new DateTime('2000-01-01')), '%d %bg %Y');
+        $this->assertEquals('01 января 2000',   Filter::getDatetime((new DateTime('2000-01-01'))->getTimestamp()), '%d %bg %Y');
+        $this->assertEquals('01 января 2000',   Filter::getDatetime('2000-01-01'), '%d %bg %Y');
+        $this->assertEquals('02 февраля 2001',  Filter::getDatetime('2001-02-02'), '%d %bg %Y');
+        $this->assertEquals('04 марта 2002',    Filter::getDatetime('2002-03-04'), '%d %bg %Y');
+        $this->assertEquals('06 апреля 2003',   Filter::getDatetime('2003-04-06'), '%d %bg %Y');
+        $this->assertEquals('08 мая 2004',      Filter::getDatetime('2004-05-08'), '%d %bg %Y');
+        $this->assertEquals('10 июня 2005',     Filter::getDatetime('2005-06-10'), '%d %bg %Y');
+        $this->assertEquals('12 июля 2006',     Filter::getDatetime('2006-07-12'), '%d %bg %Y');
+        $this->assertEquals('14 августа 2007',  Filter::getDatetime('2007-08-14'), '%d %bg %Y');
+        $this->assertEquals('16 сентября 2008', Filter::getDatetime('2008-09-16'), '%d %bg %Y');
+        $this->assertEquals('18 октября 2009',  Filter::getDatetime('2009-10-18'), '%d %bg %Y');
+        $this->assertEquals('20 ноября 2010',   Filter::getDatetime('2010-11-20'), '%d %bg %Y');
+        $this->assertEquals('31 декабря 2011',  Filter::getDatetime('2011-12-31'), '%d %bg %Y');
+        $this->assertEquals('09 мая',           Filter::getDatetime('2015-05-09', '%d %bg'));
+        $this->assertEquals('05 апреля 2016',   Filter::getDatetime('1459855490', '%d %bg %Y'));
+        $this->assertEquals('01 января 1970',   Filter::getDatetime('1000'));
+        $this->assertEquals('01 января 1970',   Filter::getDatetime('2000'));
+        $this->assertEquals('01 января 1970',   Filter::getDatetime('9000'));
+        $this->assertEquals('01 августа 2005',  Filter::getDatetime('2005-08'));
+        $this->assertEquals('31 октября 1966',  Filter::getDatetime(-100000000));
+        $this->assertEquals('25 апреля 1938',   Filter::getDatetime(-1000000000));
+
+        $this->expectExceptionCode('Filter::getDatetime(true)');
+        $this->expectExceptionCode("Filter::getDatetime('')");
+        $this->expectExceptionCode("Filter::getDatetime(false)");
+        $this->expectExceptionCode("Filter::getDatetime(true)");
+        $this->expectExceptionCode("Filter::getDatetime([])");
+        $this->expectExceptionCode("Filter::getDatetime([1])");
+        $this->expectExceptionCode("Filter::getDatetime(['2005-08'])");
+        $this->expectExceptionCode("Filter::getDatetime(['2005-08', -1000000000])");
+    }
+
+
+    public function testIsDatetime()
+    {
+        $this->assertTrue(Filter::isDatetime('2005-08'));
+        $this->assertTrue(Filter::isDatetime('2005-08-24'));
+        $this->assertTrue(Filter::isDatetime('1900-09-27'));
+        $this->assertTrue(Filter::isDatetime('2005-08-24 12:35'));
+        $this->assertTrue(Filter::isDatetime('2005-08-24 23:35:48'));
+        $this->assertTrue(Filter::isDatetime(2));
+        $this->assertTrue(Filter::isDatetime('200'));
+        $this->assertTrue(Filter::isDatetime('999'));
+        $this->assertTrue(Filter::isDatetime(1000));
+        $this->assertTrue(Filter::isDatetime(-1000));
+        $this->assertTrue(Filter::isDatetime('9000'));
+        $this->assertTrue(Filter::isDatetime('-1459855490'));
+        $this->assertTrue(Filter::isDatetime(1459855490));
+        $this->assertTrue(Filter::isDatetime([1459855490, '1459755490', '-1459755490', 1259855490, -1259855490, '2005-08-24 23:35:48', '2005-08-24']));
+        // Да идите нахуй со своими функция! Сука-аа, таймзону она нашла и теперь это нормальная дата...
+        $this->assertTrue(Filter::isDatetime('a'));
+
+        $this->assertFalse(Filter::isDatetime('2005-08-24 23'));
+        $this->assertFalse(Filter::isDatetime(''));
+        $this->assertFalse(Filter::isDatetime(1.2));
+        $this->assertFalse(Filter::isDatetime(true));
+        $this->assertFalse(Filter::isDatetime(false));
+        $this->assertFalse(Filter::isDatetime(null));
+        $this->assertFalse(Filter::isDatetime([null, '2005-08-24', '1900-09-27']));
+    }
+
+
+    public function testHtmlEncode()
+    {
+        $this->assertEquals('Hello, &lt;a href="http://google.ru"&gt;world!&lt;/a&gt;&gt;', Filter::htmlEncode('Hello, <a href="http://google.ru">world!</a>>'));
+        $this->assertEquals('A&lt;a&gt;B&lt;/a&gt;C', Filter::htmlEncode('A<a>B</a>C'));
+        $this->assertEquals(['A&lt;a&gt;B&lt;/a&gt;C'], Filter::htmlEncode(['A<a>B</a>C']));
+        $this->assertEquals(['A&lt;a&gt;B&lt;/a&gt;C', 'D&lt;a&gt;E&lt;/a&gt;F', 'G&lt;a&gt;H&lt;/a&gt;I'], Filter::htmlEncode(['A<a>B</a>C', 'D<a>E</a>F', 'G<a>H</a>I']));
+    }
+
+
+    public function testHtmlDecode()
+    {
+        $this->assertEquals('Hello, <a href="http://google.ru">world!</a>', Filter::htmlDecode('Hello, &lt;a href="http://google.ru"&gt;world!&lt;/a&gt;'));
+        $this->assertEquals('A<a>B</a>C', Filter::htmlDecode('A&lt;a&gt;B&lt;/a&gt;C'));
+        $this->assertEquals(['A<a>B</a>C'], Filter::htmlDecode(['A&lt;a&gt;B&lt;/a&gt;C']));
+        $this->assertEquals(['A<a>B</a>C', 'D<a>E</a>F', 'G<a>H</a>I'], Filter::htmlDecode(['A&lt;a&gt;B&lt;/a&gt;C', 'D&lt;a&gt;E&lt;/a&gt;F', 'G&lt;a&gt;H&lt;/a&gt;I']));
+    }
+
+
+    public function testSlashesAdd()
+    {
+        $this->assertEquals(1, Filter::slashesAdd(1));
+        $this->assertEquals('', Filter::slashesAdd(''));
+        $this->assertEquals([1], Filter::slashesAdd([1]));
+        $this->assertEquals([1, true], Filter::slashesAdd([1, true]));
+        $this->assertEquals([], Filter::slashesAdd([]));
+        $this->assertEquals(true, Filter::slashesAdd(true));
+        $this->assertEquals(false, Filter::slashesAdd(false));
+        $this->assertEquals(null, Filter::slashesAdd(null));
+
+        $this->assertEquals('AB', Filter::slashesAdd('AB'));
+        $this->assertEquals('A\"B\"C', Filter::slashesAdd('A"B"C'));
+        $this->assertEquals("A\\\"B\\\"\\'C\\'", Filter::slashesAdd("A\"B\"'C'"));
+        $this->assertEquals(['AB', "A\\\"B\\\"\\'C\\'", 'A\"B\"C'], Filter::slashesAdd(['AB', "A\"B\"'C'", 'A"B"C']));
+    }
+
+
+    public function testSlashesStrip()
+    {
+        $this->assertEquals(1, Filter::slashesStrip(1));
+        $this->assertEquals('', Filter::slashesStrip(''));
+        $this->assertEquals([1], Filter::slashesStrip([1]));
+        $this->assertEquals([1, true], Filter::slashesStrip([1, true]));
+        $this->assertEquals([], Filter::slashesStrip([]));
+        $this->assertEquals(true, Filter::slashesStrip(true));
+        $this->assertEquals(false, Filter::slashesStrip(false));
+        $this->assertEquals(null, Filter::slashesStrip(null));
+
+        $this->assertEquals('AB', Filter::slashesStrip('AB'));
+        $this->assertEquals('A"B"C', Filter::slashesStrip('A\"B\"C'));
+        $this->assertEquals("A\"B\"'C'", Filter::slashesStrip("A\\\"B\\\"\\'C\\'"));
+        $this->assertEquals(['AB', "A\"B\"'C'", 'A"B"C'], Filter::slashesStrip(['AB', "A\\\"B\\\"\\'C\\'", 'A"B"C']));
+    }
+
+
+    public function testArrayReindex()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 114, 'name' => 'Robinson', 'last_name' => 'Cruso'],
+        ];
+
+        $dataArrayReindex = [
+            5   => ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            12  => ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            67  => ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            7   => ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            114 => ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+        ];
+        $this->assertArrayHasKey(1, $dataArray);
+        $this->assertArrayHasKey('12', Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey(12, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey(67, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayHasKey('Bob', Filter::arrayReindex($dataArray, 'name'));
+        $this->assertArrayNotHasKey(0, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertArrayNotHasKey(2, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertEquals($dataArrayReindex, Filter::arrayReindex($dataArray, 'id'));
+        $this->assertEquals([], Filter::arrayReindex([], 'id'));
+        $this->assertEquals([], Filter::arrayReindex($dataArray, 'id2'));
+        $this->assertEquals([], Filter::arrayReindex([1], 'id'));
+        $this->assertEquals([], Filter::arrayReindex($dataArray, ''));
+        $this->assertEquals([], Filter::arrayReindex([], ''));
+    }
+
+
+    public function testArrayExtract()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+        $this->assertEquals([5, 12, 67, 7, 114, 119], Filter::arrayExtract($dataArray, 'id'));
+        $this->assertEquals(['John', 'Samantha', 'Bob', 'Mike', 'Olaf'], Filter::arrayExtract($dataArray, 'name'));
+        $this->assertEquals([], Filter::arrayExtract($dataArray, 'name2'));
+        $this->assertEquals([], Filter::arrayExtract([], 'name'));
+        $this->assertEquals([], Filter::arrayExtract([], ''));
+        $this->assertEquals([], Filter::arrayExtract($dataArray, ''));
+    }
+
+
+    public function testArrayKeysExists()
+    {
+        $dataArray = [
+            ['id' => 5, 'name' => 'John', 'last_name' => 'Smith'],
+            ['id' => 12, 'name' => 'Samantha', 'last_name' => 'Johnson'],
+            ['id' => 67, 'name' => 'Bob', 'last_name' => 'Thornton'],
+            ['id' => 7, 'name' => 'Mike', 'last_name' => 'Pratt'],
+            ['id' => 114, 'name' => 'Olaf', 'last_name' => 'Snow'],
+            ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+
+        $dataArrayAssoc = [
+            'John'      => ['id' => 5,   'name' => 'John',     'last_name' => 'Smith'],
+            'Samantha'  => ['id' => 12,  'name' => 'Samantha', 'last_name' => 'Johnson'],
+            'Bob'       => ['id' => 67,  'name' => 'Bob',      'last_name' => 'Thornton'],
+            'Mike'      => ['id' => 7,   'name' => 'Mike',     'last_name' => 'Pratt'],
+            'Olaf'      => ['id' => 114, 'name' => 'Olaf',     'last_name' => 'Snow'],
+            119         => ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+            '1.2'       => ['id' => 119, 'name' => 'Bob', 'last_name' => 'Kruzo'],
+        ];
+        $this->assertTrue(Filter::arrayKeysExists(0, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists(1, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists(5, $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists([0, 1, 5], $dataArray));
+        $this->assertTrue(Filter::arrayKeysExists('Bob', $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertTrue(Filter::arrayKeysExists(['Bob', 119, 'Olaf', '1.2'], $dataArrayAssoc));
+
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf'], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', 1.2], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', true], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob2', 119, 'Olaf', ''], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists(['Bob', 118, 'Olaf'], $dataArrayAssoc));
+        $this->assertFalse(Filter::arrayKeysExists([], $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists([0, 1, 5], []));
+        $this->assertFalse(Filter::arrayKeysExists(null, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists(true, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists(false, $dataArray));
+        $this->assertFalse(Filter::arrayKeysExists('', $dataArray));
+    }
+
+
+    public function testStrReplace()
+    {
+        $this->assertEquals('', Filter::strReplace('', '', ''));
+        $this->assertEquals('10 + 3 = 13', Filter::strReplace('12', '13', '10 + 3 = 12'));
+        $this->assertEquals('10 + 3 = 13;', Filter::strReplace('12', '13', '10 + 3 = 12;'));
+        $this->assertEquals('Odd numbers are 3, 5, 9, 17, 33', Filter::strReplace([2, 4, 8, 16, 32], [3, 5, 9, 17, 33], 'Odd numbers are 2, 4, 8, 16, 32'));
+        $this->assertEquals('Even numbers are 2, 4, 8, 16, 32', Filter::strReplace('', '', 'Even numbers are 2, 4, 8, 16, 32'));
+        $this->assertEquals('Чётные числа: 2, 4, 8, 16, 32', Filter::strReplace('ттт', 'т', 'Чётттные числа: 2, 4, 8, 16, 32'));
+        $this->assertEquals(['Чётные числа', 'Audi-TT', 'Крот плохой'], Filter::strReplace(['ттт', 'ttt', 'хороший'], ['т', 'TT', 'плохой'], ['Чётттные числа', 'Audi-ttt', 'Кроттт хороший']));
+    }
+
+
+    public function testStrPad()
+    {
+        $this->assertEquals('abc    ', Filter::strPad('abc', 7, ' '));
+        $this->assertEquals('abc', Filter::strPad('abc', 3, ' '));
+        $this->assertEquals('abc', Filter::strPad('abc', 2, ' '));
+        $this->assertEquals('abc- - ', Filter::strPad('abc', 7, '- '));
+        $this->assertEquals('    abc', Filter::strPad('abc', 7, ' ', STR_PAD_LEFT));
+        $this->assertEquals('    abc    ', Filter::strPad('abc', 11, ' ', STR_PAD_BOTH));
+        $this->assertEquals('abcdefg', Filter::strPad('abcdefg', 5, ' ', STR_PAD_BOTH));
+        $this->assertEquals('abc-  -', Filter::strPad('abc', 7, '-  ', STR_PAD_RIGHT));
+        $this->assertEquals('1231abc', Filter::strPad('abc', 7, '123', STR_PAD_LEFT));
+        $this->assertEquals(['12abc12', '123a123', '1231231', 'aassvvccssaass'], Filter::strPad(['abc', 'a', '', 'aassvvccssaass'], 7, '123', STR_PAD_BOTH));
+        $this->assertEquals('1      ', Filter::strPad(true, 7));
+        $this->assertEquals('       ', Filter::strPad(false, 7));
+        $this->assertEquals('       ', Filter::strPad(null, 7));
+        $this->assertEquals([], Filter::strPad([], 7));
+    }
+
+
+
+    public function testStrSlice()
+    {
+        $this->assertEquals('', Filter::strSlice('', 2));
+        $this->assertEquals('', Filter::strSlice('', 0));
+        $this->assertEquals('', Filter::strSlice('a', 0));
+        $this->assertEquals('', Filter::strSlice('abc', 0));
+        $this->assertEquals('a', Filter::strSlice('abc', 1));
+        $this->assertEquals(['a'], Filter::strSlice(['abc'], 1));
+        $this->assertEquals('  asa', Filter::strSlice('  asa    ', 5));
+        $this->assertEquals(['asa'], Filter::strSlice(['asa'], 10));
+        $this->assertEquals(['asa', '', 'a', 'aassd', 'aadds', 'aadds'], Filter::strSlice(['asa', '', 'a', 'aassddffcc', 'aadds', 'aaddss'], 5));
     }
 
 
@@ -609,6 +851,7 @@ class FilterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('asa    ', Filter::strTrim('  asa    ', Filter::STR_TRIM_LEFT));
         $this->assertEquals('  asa', Filter::strTrim('  asa    ', Filter::STR_TRIM_RIGHT));
         $this->assertEquals('asa', Filter::strTrim('asa'));
+        $this->assertEquals(' __asa', Filter::strTrim('_-_ __asa_--', Filter::STR_TRIM_BOTH, "_-"));
         $this->assertEquals('asa', Filter::strTrim('_-___asa_--', Filter::STR_TRIM_BOTH, "_-"));
     }
 }
