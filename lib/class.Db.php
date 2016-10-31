@@ -92,9 +92,9 @@ class Db
         ]
     ) {
         $this->lastQuery = 'CONNECT';
-        $this->debug = isset($options[self::ATTR_DEBUG]) ? $options[self::ATTR_DEBUG] : CONFIG::DB_DEBUG;
-        $this->logFile = isset($options[self::ATTR_LOG_FILE]) ? $options[self::ATTR_LOG_FILE] : CONFIG::DB_LOG_FILE;
-        $this->errorLogFile = isset($options[self::ATTR_ERROR_LOG_FILE]) ? $options[self::ATTR_ERROR_LOG_FILE] : CONFIG::DB_ERROR_LOG_FILE;
+        $this->debug = $options[self::ATTR_DEBUG] ?? CONFIG::DB_DEBUG;
+        $this->logFile = $options[self::ATTR_LOG_FILE] ?? CONFIG::DB_LOG_FILE;
+        $this->errorLogFile = $options[self::ATTR_ERROR_LOG_FILE] ?? CONFIG::DB_ERROR_LOG_FILE;
         $this->dsn = $dsn;
         $this->userName = $userName;
         // Пробуем подключиться, переделывая возможные исключения в DbException
@@ -107,7 +107,7 @@ class Db
                 trigger_error($e->getMessage() . ': ' . $e->getCode(), E_USER_ERROR);
             }
         }
-        $this->instanceIndex(isset($options[self::ATTR_INSTANCE_INDEX]) ? $options[self::ATTR_INSTANCE_INDEX] : null);
+        $this->instanceIndex($options[self::ATTR_INSTANCE_INDEX] ?? null);
         if ($this->isDebug()) {
             $this->toLog('db_connect');
         }
