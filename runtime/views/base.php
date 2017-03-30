@@ -20,7 +20,7 @@ class View_Base_593616de15330c0fb2d55e55410bf994 extends ViewInstance
 
 <div class="container">
     <table class="table table-striped table-condensed table-bordered table-hover">
-        <caption>Таблица с какой-то залупой</caption>
+        <caption>Таблица с какой-то информацией</caption>
         <thead>
             <tr>
                 <th>№</th>
